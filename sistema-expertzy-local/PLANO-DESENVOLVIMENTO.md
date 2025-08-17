@@ -365,14 +365,131 @@ calculateItemTotalCost(adicao, produto, cenario, ratios) {
 
 ### 📋 Checklist de Implementação
 
-- [ ] Modificar `calculateItemRatios()` para receber cenário
-- [ ] Corrigir cálculo de `custos_extra_rateados`
-- [ ] Incluir ICMS em `calculateItemTotalCost()`
-- [ ] Adicionar validações para quantidade zero
-- [ ] Criar método `createEmptyRatios()`
-- [ ] Atualizar chamadas da função em `createItemRow()`
-- [ ] Testar com dados reais (DI 2300120746)
-- [ ] Validar que soma dos itens = custo da adição
+- [x] Modificar `calculateItemRatios()` para receber cenário
+- [x] Corrigir cálculo de `custos_extra_rateados` 
+- [x] Incluir ICMS em `calculateItemTotalCost()`
+- [x] Adicionar validações para quantidade zero
+- [x] Criar método `createEmptyRatios()`
+- [x] Atualizar chamadas da função em `createItemRow()`
+- [x] Testar com dados reais (DI 2300120746)
+- [x] Validar que soma dos itens = custo da adição
+
+---
+
+## 🚨 ANÁLISE CRÍTICA: SEPARAÇÃO IMPORTAÇÃO vs PRECIFICAÇÃO
+
+**Data:** 17/08/2025  
+**Problema Crítico:** Mistura de conceitos entre operações de importação e venda  
+**Status:** Separação conceitual necessária para funcionamento correto  
+
+### 🎯 **Problema Identificado**
+
+#### **1. Valor FOB Unitário Zerado**
+- **Localização**: Tabela de resultados, coluna "Valor FOB"
+- **Impacto**: Impossibilidade de validar custos unitários
+- **Causa**: Problema no cálculo ou exibição de `produto.valor_total_item`
+
+#### **2. Mistura Conceitual GRAVE**
+**Configurações de VENDA na aba de IMPORTAÇÃO:**
+- ❌ "Estado de Destino" → Isso é para onde vai VENDER, não importar
+- ❌ "Tipo de Operação: Venda Interestadual/Interna" → Isso é PRECIFICAÇÃO
+- ❌ "Regime Tributário" → Isso é configuração do VENDEDOR
+
+**Problema**: Estamos calculando custos de **entrada** misturado com configurações de **saída**
+
+### 🔄 **Separação Correta dos Conceitos**
+
+#### **FASE 1: IMPORTAÇÃO (Atual - Deve ser isolada)**
+**Objetivo**: Calcular **custo de entrada** da mercadoria no Brasil  
+**Escopo**:
+```
+XML da DI → Parser → Tributos Federais → ICMS Importação → Custos Extras → CUSTO FINAL DE ENTRADA
+```
+**Elementos válidos**:
+- ✅ Dados da DI (FOB, frete, seguro)
+- ✅ Tributos federais (II, IPI, PIS, COFINS) 
+- ✅ ICMS de importação (estado da URF)
+- ✅ Custos extras de importação (capatazia, despachante, AFRMM)
+- ✅ **Resultado**: Custo unitário de entrada
+
+#### **FASE 2: PRECIFICAÇÃO (Futura - Separada)**
+**Objetivo**: Calcular **preço de venda**  
+**Escopo**:
+```
+Custo de Entrada → Configurações de Venda → Markup → Tributos de Saída → PREÇO FINAL
+```
+**Elementos válidos**:
+- 📋 Estado de destino (onde vai vender)
+- 📋 Tipo de operação (interestadual/interna/consumidor final)
+- 📋 Regime tributário (do vendedor)
+- 📋 ICMS de saída, substituição tributária
+- 📋 Markup, margem, análise de concorrência
+
+### 🔧 **Plano de Correção Estrutural**
+
+#### **Etapa 1: Corrigir Valor FOB Unitário**
+```javascript
+// Investigar em createItemRow():
+<td>${this.formatCurrency(produto.valor_total_item)}</td>
+// Verificar se produto.valor_total_item está sendo calculado corretamente
+```
+
+#### **Etapa 2: Limpar Aba "Custos Extras" - Focar APENAS Importação**
+**REMOVER** (mover para futura aba de precificação):
+```html
+<!-- EXCLUIR da aba custos -->
+<select id="estadoDestino">        <!-- Isso é venda -->
+<select id="regimeTributario">     <!-- Isso é venda -->
+<select id="tipoOperacao">         <!-- Isso é venda -->
+```
+
+**MANTER** (são custos reais de importação):
+```html
+<!-- MANTER na aba custos -->
+<input name="temCustosExtras">     <!-- Pergunta sobre custos extras -->
+<input id="custosPortuarios">      <!-- Custo real de importação -->
+<input id="custosBancarios">       <!-- Custo real de importação -->
+<input id="custosLogisticos">      <!-- Custo real de importação -->
+<input id="custosAdministrativos"> <!-- Custo real de importação -->
+```
+
+#### **Etapa 3: Ajustar Cálculo de ICMS para Importação**
+```javascript
+// ANTES (errado - misturava venda):
+const estadoDestino = document.getElementById('estadoDestino')?.value;
+
+// DEPOIS (correto - só importação):
+const estadoImportacao = this.currentDI.urf_despacho_codigo; // Estado da URF
+```
+
+#### **Etapa 4: Renomear e Reorganizar**
+- **Aba atual**: "Custos Extras" → "Custos de Importação"
+- **Descrição**: "Configure custos adicionais do processo de importação"
+- **Foco**: Apenas custos que afetam o custo de entrada
+
+### 📊 **Resultado Final Esperado**
+
+**Tabela de Custos de Importação (por item)**:
+| Campo | Fonte | Objetivo |
+|-------|-------|----------|
+| Valor FOB | `produto.valor_total_item` | Custo base da mercadoria |
+| Frete | Rateado da DI | Custo de transporte |
+| Seguro | Rateado da DI | Custo de seguro |
+| II | Rateado da DI | Imposto de Importação |
+| IPI | Rateado da DI | IPI na importação |
+| PIS | Rateado da DI | PIS na importação |
+| COFINS | Rateado da DI | COFINS na importação |
+| ICMS Importação | Calculado | ICMS de entrada |
+| Custos Extras | Opcional/Rateado | Custos adicionais |
+| **CUSTO TOTAL** | **Soma** | **Custo unitário de entrada** |
+
+### 🎯 **Benefícios da Separação**
+
+1. **✅ Clareza conceitual**: Importação ≠ Venda
+2. **✅ Compliance fiscal**: Cada fase com suas regras
+3. **✅ Facilita auditoria**: Custos de entrada vs preços de saída
+4. **✅ Modularidade**: Fases independentes
+5. **✅ Extensibilidade**: Facilita adição de precificação futura
 
 ---
 
