@@ -7,6 +7,7 @@ class ExpertzyApp {
         this.storage = new StorageManager();
         this.xmlParser = new DiParser();
         this.calculator = new TributaryCalculator();
+        this.calculationMemory = new CalculationMemory();
         this.currentDI = null;
         this.currentResults = null;
         
@@ -55,6 +56,7 @@ class ExpertzyApp {
         
         if (dropZone) {
             dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
+            dropZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
             dropZone.addEventListener('drop', (e) => this.handleFileDrop(e));
             dropZone.addEventListener('click', () => fileInput?.click());
         }
@@ -123,7 +125,16 @@ class ExpertzyApp {
     handleDragOver(event) {
         event.preventDefault();
         event.stopPropagation();
-        event.currentTarget.classList.add('drag-over');
+        event.currentTarget.classList.add('dragover');
+    }
+
+    /**
+     * Manipula drag leave
+     */
+    handleDragLeave(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.classList.remove('dragover');
     }
 
     /**
@@ -132,7 +143,7 @@ class ExpertzyApp {
     handleFileDrop(event) {
         event.preventDefault();
         event.stopPropagation();
-        event.currentTarget.classList.remove('drag-over');
+        event.currentTarget.classList.remove('dragover');
         
         const files = event.dataTransfer.files;
         if (files.length > 0) {
@@ -160,6 +171,48 @@ class ExpertzyApp {
 
             // Fazer parse do XML
             this.currentDI = this.xmlParser.parseXML(xmlContent);
+            
+            // Registrar operação de processamento na memória
+            this.calculationMemory.log(
+                'PROCESSAMENTO_XML',
+                `Processamento do arquivo ${file.name}`,
+                {
+                    arquivo_nome: file.name,
+                    arquivo_tamanho: file.size,
+                    numero_di: this.currentDI.numero_di,
+                    total_adicoes: this.currentDI.total_adicoes
+                },
+                'Parser XML -> Estrutura de dados da DI',
+                {
+                    di_processada: this.currentDI.numero_di,
+                    adicoes_extraidas: this.currentDI.total_adicoes,
+                    incoterm_identificado: this.currentDI.incoterm_identificado?.codigo
+                },
+                {
+                    parser_versao: '1.0',
+                    encoding: 'UTF-8'
+                }
+            );
+
+            // Registrar conversões de moeda se houver
+            if (this.currentDI.adicoes) {
+                this.currentDI.adicoes.forEach(adicao => {
+                    if (adicao.valor_moeda_negociacao && adicao.valor_reais) {
+                        const taxa = adicao.valor_reais / adicao.valor_moeda_negociacao;
+                        this.calculationMemory.logCurrencyConversion(
+                            adicao.valor_moeda_negociacao,
+                            adicao.moeda_negociacao_codigo,
+                            adicao.valor_reais,
+                            'BRL',
+                            taxa,
+                            {
+                                adicao: adicao.numero_adicao,
+                                data_di: this.currentDI.data_registro
+                            }
+                        );
+                    }
+                });
+            }
             
             // Salvar DI processada
             this.storage.saveDI(this.currentDI);
@@ -972,6 +1025,498 @@ class ExpertzyApp {
 
         document.getElementById('totalGeral').textContent = this.formatCurrency(totalGeral);
         document.getElementById('totalBaseICMS').textContent = this.formatCurrency(totalBaseICMS);
+    }
+
+    /**
+     * Mostra detalhes de uma adição específica
+     */
+    viewAdicaoDetails(numeroAdicao) {
+        if (!this.currentDI) {
+            this.showError('Nenhuma DI carregada.');
+            return;
+        }
+
+        // Encontrar a adição
+        const adicao = this.currentDI.adicoes.find(a => a.numero_adicao === numeroAdicao);
+        if (!adicao) {
+            this.showError(`Adição ${numeroAdicao} não encontrada.`);
+            return;
+        }
+
+        // Criar modal com detalhes da adição
+        this.showAdicaoModal(adicao);
+    }
+
+    /**
+     * Exibe modal com detalhes da adição
+     */
+    showAdicaoModal(adicao) {
+        // Criar modal dinamicamente
+        const modalId = 'modalAdicaoDetails';
+        let modal = document.getElementById(modalId);
+        
+        if (modal) {
+            modal.remove();
+        }
+
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal fade';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('role', 'dialog');
+
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-box"></i> Detalhes da Adição ${adicao.numero_adicao}
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        ${this.generateAdicaoDetailsContent(adicao)}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" onclick="app.exportAdicao('${adicao.numero_adicao}')">
+                            <i class="fas fa-download"></i> Exportar Adição
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        
+        // Mostrar modal usando Bootstrap
+        $(modal).modal('show');
+        
+        // Remover modal quando fechado
+        $(modal).on('hidden.bs.modal', function() {
+            modal.remove();
+        });
+    }
+
+    /**
+     * Gera conteúdo detalhado da adição
+     */
+    generateAdicaoDetailsContent(adicao) {
+        const produtosHtml = adicao.produtos && adicao.produtos.length > 0 
+            ? adicao.produtos.map((produto, index) => `
+                <tr>
+                    <td>${produto.numero_sequencial_item || (index + 1)}</td>
+                    <td>${produto.descricao_mercadoria || 'N/I'}</td>
+                    <td>${this.formatNumber(produto.quantidade || 0)}</td>
+                    <td>${produto.unidade_medida || 'N/I'}</td>
+                    <td>${this.formatCurrency(produto.valor_total_item || 0)}</td>
+                    <td>${this.formatCurrency(produto.valor_unitario || 0)}</td>
+                    <td>${produto.fabricante_nome || 'N/I'}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="7" class="text-center text-muted">Nenhum produto encontrado para esta adição</td></tr>';
+
+        return `
+            <!-- Informações Gerais da Adição -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-info-circle"></i> Informações Gerais</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless">
+                                <tr><td><strong>Número da Adição:</strong></td><td>${adicao.numero_adicao}</td></tr>
+                                <tr><td><strong>NCM:</strong></td><td>${adicao.ncm}</td></tr>
+                                <tr><td><strong>Descrição NCM:</strong></td><td>${adicao.descricao_ncm}</td></tr>
+                                <tr><td><strong>Quantidade:</strong></td><td>${this.formatNumber(adicao.quantidade_estatistica)} ${adicao.unidade_estatistica}</td></tr>
+                                <tr><td><strong>Condição:</strong></td><td>${adicao.condicao_mercadoria || 'N/I'}</td></tr>
+                                <tr><td><strong>Aplicação:</strong></td><td>${adicao.aplicacao_mercadoria || 'N/I'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-dollar-sign"></i> Valores e Condições</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless">
+                                <tr><td><strong>Valor FOB (${adicao.moeda_negociacao_codigo}):</strong></td><td>${this.formatCurrency(adicao.valor_moeda_negociacao)}</td></tr>
+                                <tr><td><strong>Valor FOB (R$):</strong></td><td>${this.formatCurrency(adicao.valor_reais)}</td></tr>
+                                <tr><td><strong>Frete (R$):</strong></td><td>${this.formatCurrency(adicao.frete_valor_reais)}</td></tr>
+                                <tr><td><strong>Seguro (R$):</strong></td><td>${this.formatCurrency(adicao.seguro_valor_reais)}</td></tr>
+                                <tr><td><strong>Incoterm:</strong></td><td>${adicao.condicao_venda_incoterm}</td></tr>
+                                <tr><td><strong>Local:</strong></td><td>${adicao.condicao_venda_local || 'N/I'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tributos -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-receipt"></i> Tributos Federais</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    <h5 class="text-primary">${this.formatCurrency(adicao.tributos?.ii_valor_devido || 0)}</h5>
+                                    <small>II - Imposto de Importação<br>
+                                    Alíquota: ${this.formatNumber(adicao.tributos?.ii_aliquota_aplicada || 0)}%</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h5 class="text-warning">${this.formatCurrency(adicao.tributos?.ipi_valor_devido || 0)}</h5>
+                                    <small>IPI - Imposto sobre Produtos Industrializados<br>
+                                    Alíquota: ${this.formatNumber(adicao.tributos?.ipi_aliquota_aplicada || 0)}%</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h5 class="text-info">${this.formatCurrency(adicao.tributos?.pis_valor_devido || 0)}</h5>
+                                    <small>PIS - Programa de Integração Social<br>
+                                    Alíquota: ${this.formatNumber(adicao.tributos?.pis_aliquota_aplicada || 0)}%</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h5 class="text-success">${this.formatCurrency(adicao.tributos?.cofins_valor_devido || 0)}</h5>
+                                    <small>COFINS - Contribuição para Financiamento da Seguridade Social<br>
+                                    Alíquota: ${this.formatNumber(adicao.tributos?.cofins_aliquota_aplicada || 0)}%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Produtos/Itens da Adição -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-list"></i> Produtos/Itens da Adição (${adicao.produtos ? adicao.produtos.length : 0} itens)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Descrição</th>
+                                            <th>Quantidade</th>
+                                            <th>Unidade</th>
+                                            <th>Valor Total</th>
+                                            <th>Valor Unitário</th>
+                                            <th>Fabricante</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${produtosHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Exporta dados específicos de uma adição
+     */
+    exportAdicao(numeroAdicao) {
+        if (!this.currentDI) {
+            this.showError('Nenhuma DI carregada.');
+            return;
+        }
+
+        const adicao = this.currentDI.adicoes.find(a => a.numero_adicao === numeroAdicao);
+        if (!adicao) {
+            this.showError(`Adição ${numeroAdicao} não encontrada.`);
+            return;
+        }
+
+        const data = {
+            di_numero: this.currentDI.numero_di,
+            adicao: adicao,
+            timestamp: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `adicao_${numeroAdicao}_di_${this.currentDI.numero_di}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showSuccess(`Adição ${numeroAdicao} exportada com sucesso!`);
+    }
+
+    /**
+     * Mostra interface de memória de cálculo
+     */
+    showCalculationMemory() {
+        const stats = this.calculationMemory.getSessionStats();
+        const operations = this.calculationMemory.operations;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'calculationMemoryModal';
+        modal.setAttribute('tabindex', '-1');
+
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calculator"></i> Memória de Cálculo Auditável
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        ${this.generateCalculationMemoryContent(stats, operations)}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-info" onclick="app.calculationMemory.exportMemory('json')">
+                            <i class="fas fa-download"></i> Exportar Memória
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="app.clearCalculationMemory()">
+                            <i class="fas fa-trash"></i> Limpar Memória
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        $(modal).modal('show');
+
+        // Remover modal quando fechado
+        $(modal).on('hidden.bs.modal', function() {
+            modal.remove();
+        });
+    }
+
+    /**
+     * Gera conteúdo da interface de memória de cálculo
+     */
+    generateCalculationMemoryContent(stats, operations) {
+        const operationsByType = this.calculationMemory.getOperationsSummaryByType();
+
+        const statsHtml = `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-primary">${stats.total_operations}</h5>
+                            <small>Total de Operações</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-info">${stats.types_used}</h5>
+                            <small>Tipos de Operação</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-success">${stats.duration_formatted}</h5>
+                            <small>Duração da Sessão</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-warning">${stats.operations_per_minute.toFixed(1)}</h5>
+                            <small>Ops/Minuto</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const typesSummaryHtml = Object.keys(operationsByType).length > 0 ? `
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-chart-bar"></i> Resumo por Tipo de Operação</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Quantidade</th>
+                                            <th>Primeira Ocorrência</th>
+                                            <th>Última Ocorrência</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Object.entries(operationsByType).map(([type, info]) => `
+                                            <tr>
+                                                <td><span class="badge badge-primary">${type}</span></td>
+                                                <td>${info.count}</td>
+                                                <td>${new Date(info.first_occurrence).toLocaleString('pt-BR')}</td>
+                                                <td>${new Date(info.last_occurrence).toLocaleString('pt-BR')}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : '';
+
+        const operationsHtml = operations.length > 0 ? `
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6><i class="fas fa-list"></i> Operações Detalhadas (${operations.length} registros)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-striped table-sm">
+                                    <thead class="thead-dark sticky-top">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Tipo</th>
+                                            <th>Descrição</th>
+                                            <th>Fórmula</th>
+                                            <th>Resultado</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${operations.slice(-50).reverse().map((op, index) => `
+                                            <tr>
+                                                <td><small>${new Date(op.timestamp).toLocaleTimeString('pt-BR')}</small></td>
+                                                <td><span class="badge badge-${this.getTypeColor(op.type)}">${op.type}</span></td>
+                                                <td><small>${op.description}</small></td>
+                                                <td><small class="text-monospace">${op.formula || 'N/A'}</small></td>
+                                                <td><small>${this.formatOperationResult(op.result)}</small></td>
+                                                <td>
+                                                    <button class="btn btn-xs btn-outline-info" onclick="app.showOperationDetails('${op.id}')" title="Detalhes">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            ${operations.length > 50 ? '<small class="text-muted">Mostrando as últimas 50 operações</small>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : '<div class="alert alert-info">Nenhuma operação de cálculo registrada ainda.</div>';
+
+        return statsHtml + typesSummaryHtml + operationsHtml;
+    }
+
+    /**
+     * Obtém cor do badge por tipo de operação
+     */
+    getTypeColor(type) {
+        const colors = {
+            'TRIBUTO': 'primary',
+            'CONVERSAO_MOEDA': 'info',
+            'BENEFICIO_FISCAL': 'success',
+            'RATEIO_CUSTOS': 'warning',
+            'CUSTO_TOTAL': 'dark'
+        };
+        return colors[type] || 'secondary';
+    }
+
+    /**
+     * Formata resultado da operação para exibição
+     */
+    formatOperationResult(result) {
+        if (typeof result === 'object' && result !== null) {
+            if (result.valor_calculado !== undefined) return this.formatCurrency(result.valor_calculado);
+            if (result.valor_convertido !== undefined) return this.formatCurrency(result.valor_convertido);
+            if (result.custo_total !== undefined) return this.formatCurrency(result.custo_total);
+            return 'Objeto complexo';
+        }
+        if (typeof result === 'number') return this.formatCurrency(result);
+        return String(result);
+    }
+
+    /**
+     * Mostra detalhes de uma operação específica
+     */
+    showOperationDetails(operationId) {
+        const operation = this.calculationMemory.operations.find(op => op.id === operationId);
+        if (!operation) {
+            this.showError('Operação não encontrada.');
+            return;
+        }
+
+        const detailsModal = document.createElement('div');
+        detailsModal.className = 'modal fade';
+        detailsModal.id = 'operationDetailsModal';
+        
+        detailsModal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-info-circle"></i> Detalhes da Operação
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="bg-light p-3 rounded">${JSON.stringify(operation, null, 2)}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(detailsModal);
+        $(detailsModal).modal('show');
+
+        $(detailsModal).on('hidden.bs.modal', function() {
+            detailsModal.remove();
+        });
+    }
+
+    /**
+     * Limpa memória de cálculo
+     */
+    clearCalculationMemory() {
+        if (confirm('Tem certeza que deseja limpar toda a memória de cálculo? Esta ação não pode ser desfeita.')) {
+            this.calculationMemory.clear();
+            this.showSuccess('Memória de cálculo limpa com sucesso.');
+            
+            // Fechar modal se estiver aberto
+            $('#calculationMemoryModal').modal('hide');
+        }
     }
 
     // ========== MÉTODOS DE INTERFACE ==========
