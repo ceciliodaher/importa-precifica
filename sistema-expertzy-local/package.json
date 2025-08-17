@@ -1,0 +1,25 @@
+{
+  "name": "sistema-expertzy-local",
+  "version": "1.0.0",
+  "description": "Sistema Expertzy de Importação e Precificação",
+  "main": "index.html",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:debug": "npx playwright test --debug",
+    "test:headed": "npx playwright test --headed",
+    "show-report": "npx playwright show-report"
+  },
+  "keywords": [
+    "importação",
+    "tributário",
+    "expertzy"
+  ],
+  "author": "Expertzy",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
