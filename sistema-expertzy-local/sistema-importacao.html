@@ -34,8 +34,11 @@
             </a>
             
             <div class="navbar-nav ml-auto">
-                <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData('json')">
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData()">
                     <i class="fas fa-download"></i> Exportar
+                </button>
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="app.showCalculationMemory()">
+                    <i class="fas fa-calculator"></i> Memória
                 </button>
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="loadSample()">
                     <i class="fas fa-file-alt"></i> Exemplo
@@ -576,6 +579,7 @@
     <script src="js/storage.js"></script>
     <script src="js/xmlParser.js"></script>
     <script src="js/calculator.js"></script>
+    <script src="js/calculationMemory.js"></script>
     <script src="js/pricing.js"></script>
     <script src="js/app.js"></script>
     <script src="js/globals.js"></script>
