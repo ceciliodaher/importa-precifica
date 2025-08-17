@@ -260,6 +260,8 @@ class ExpertzyApp {
                     </div>
                 </div>
             `;
+            // Mostrar o elemento quando houver dados
+            diInfoDiv.style.display = 'block';
         }
     }
 
@@ -267,6 +269,15 @@ class ExpertzyApp {
      * Popula aba de dados com informações da DI
      */
     populateDataTab(diData) {
+        // Mostrar interface de dados
+        const dadosContent = document.getElementById('dadosContent');
+        const dadosInterface = document.getElementById('dadosInterface');
+        
+        if (dadosContent && dadosInterface) {
+            dadosContent.style.display = 'none';
+            dadosInterface.style.display = 'block';
+        }
+        
         // Tabela de adições
         this.populateAdicoesTable(diData.adicoes);
         
