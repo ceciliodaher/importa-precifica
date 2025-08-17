@@ -493,6 +493,141 @@ const estadoImportacao = this.currentDI.urf_despacho_codigo; // Estado da URF
 
 ---
 
+## 🚨 ERRO SISTEMÁTICO: DIVISORES DE CONVERSÃO INCORRETOS
+
+**Data:** 17/08/2025  
+**Problema Crítico:** Erro sistemático nos divisores de conversão do XML afetando TODOS os valores monetários  
+**Status:** Investigação profunda realizada, correção urgente necessária  
+
+### 🔍 **Descoberta do Problema**
+
+#### **Evidência Concreta**
+**Comparação Extrato PDF vs XML vs Sistema:**
+
+| Campo | Extrato PDF | XML | Divisor Atual | Resultado Atual | Divisor Correto | Resultado Correto |
+|-------|-------------|-----|---------------|-----------------|-----------------|-------------------|
+| **Valor Unitário** | `53,1254316 USD` | `00000000000531254316` | `100000000000000` | `0.00531254316` ❌ | `10000000` | `53.1254316` ✅ |
+| **Quantidade** | `1,00000 CAIXA` | `00000000100000` | `100000` | `1.0` ✅ | `100000` | `1.0` ✅ |
+
+#### **Problema Identificado**
+```javascript
+// ATUAL (INCORRETO):
+valor_unitario: this.parseNumber(valor, 100000000000000) // 14 zeros = erro de 7 ordens de grandeza
+
+// CORRETO:
+valor_unitario: this.parseNumber(valor, 10000000) // 7 zeros = 7 casas decimais
+```
+
+### 🔧 **Investigação Sistemática com Thinking Tools**
+
+#### **Padrão de Campos do XML da DI:**
+
+**1. Valores Monetários (7 casas decimais - divisor 10000000):**
+- ❌ `valorUnitario`: usando `100000000000000` (14 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `condicaoVendaValorMoeda`: usando `100000` (5 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `condicaoVendaValorReais`: usando `100` (2 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `freteValorReais`: usando `100` (2 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `seguroValorReais`: usando `100` (2 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `iiBaseCalculo`: usando `100` (2 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ `iiAliquotaValorDevido`: usando `100` (2 zeros) → deveria ser `10000000` (7 zeros)
+- ❌ **E TODOS os outros tributos** (IPI, PIS, COFINS)
+
+**2. Quantidades (5 casas decimais - divisor 100000):**
+- ✅ `quantidade`: usando `100000` → CORRETO
+
+**3. Pesos (6 casas decimais - divisor 1000000):**
+- ✅ `peso_liquido`: usando `1000000` → CORRETO (gramas)
+
+**4. Alíquotas/Porcentagens (4 casas decimais - divisor 10000):**
+- ✅ `ii_aliquota_ad_valorem`: usando `10000` → CORRETO
+
+### 📊 **Campos Afetados (Lista Completa)**
+
+#### **extractAdicao() - 8 campos incorretos:**
+```javascript
+// ATUAL (ERRADO)                                    // CORRETO
+valor_moeda_negociacao: parseNumber(valor, 100000),     // 10000000
+valor_reais: parseNumber(valor, 100),                   // 10000000
+frete_valor_moeda_negociada: parseNumber(valor, 100),   // 10000000
+frete_valor_reais: parseNumber(valor, 100),             // 10000000
+seguro_valor_moeda_negociada: parseNumber(valor, 100),  // 10000000
+seguro_valor_reais: parseNumber(valor, 100),            // 10000000
+dcr_valor_devido: parseNumber(valor, 100),              // 10000000
+dcr_valor_recolher: parseNumber(valor, 100),            // 10000000
+```
+
+#### **extractTributos() - 12 campos incorretos:**
+```javascript
+// ATUAL (ERRADO)                                    // CORRETO
+ii_base_calculo: parseNumber(valor, 100),               // 10000000
+ii_valor_calculado: parseNumber(valor, 100),            // 10000000
+ii_valor_devido: parseNumber(valor, 100),               // 10000000
+ii_valor_recolher: parseNumber(valor, 100),             // 10000000
+ipi_valor_devido: parseNumber(valor, 100),              // 10000000
+ipi_valor_recolher: parseNumber(valor, 100),            // 10000000
+pis_valor_devido: parseNumber(valor, 100),              // 10000000
+pis_valor_recolher: parseNumber(valor, 100),            // 10000000
+cofins_valor_devido: parseNumber(valor, 100),           // 10000000
+cofins_valor_recolher: parseNumber(valor, 100),         // 10000000
+```
+
+#### **extractProdutos() - 1 campo incorreto:**
+```javascript
+// ATUAL (ERRADO)                                    // CORRETO
+valor_unitario: parseNumber(valor, 100000000000000),    // 10000000
+```
+
+### 🎯 **Impacto do Erro**
+
+**Este erro sistemático causa:**
+1. ❌ **Todos os valores FOB zerados/incorretos**
+2. ❌ **Todos os tributos zerados/incorretos** 
+3. ❌ **Frete e seguro zerados/incorretos**
+4. ❌ **Custos totais completamente errados**
+5. ❌ **Rateios baseados em valores incorretos**
+6. ❌ **Sistema inutilizável para cálculos reais**
+
+### 🔧 **Plano de Correção Sistemática**
+
+#### **Etapa 1: Corrigir extractProdutos()**
+```javascript
+valor_unitario: this.parseNumber(this.getTextContent(produtoNode, 'valorUnitario'), 10000000)
+```
+
+#### **Etapa 2: Corrigir extractAdicao()**
+Alterar 8 campos para usar divisor `10000000`
+
+#### **Etapa 3: Corrigir extractTributos()**
+Alterar 12 campos para usar divisor `10000000`
+
+#### **Etapa 4: Validação**
+- Comparar valores resultantes com extrato PDF
+- Verificar se valor unitário = 53.13 USD
+- Verificar se valor total = quantidade × valor unitário
+- Validar todos os tributos
+
+### 📋 **Checklist de Correção**
+
+- [ ] Corrigir `valor_unitario` (extractProdutos)
+- [ ] Corrigir 8 campos monetários (extractAdicao)
+- [ ] Corrigir 12 campos de tributos (extractTributos)
+- [ ] Testar parsing com XML real
+- [ ] Validar contra extrato PDF
+- [ ] Verificar cálculos de rateio
+- [ ] Confirmar valores na tabela de resultados
+
+### 🎯 **Resultado Esperado Pós-Correção**
+
+**Tabela deve mostrar valores corretos:**
+- ✅ Valor FOB unitário: `R$ 53,13` (baseado em USD)
+- ✅ Quantidade: `1,00 CAIXA`
+- ✅ Valor total item: `R$ 53,13`
+- ✅ Tributos proporcionais corretos
+- ✅ Custos totais realistas
+- ✅ **Sistema funcional para uso real**
+
+---
+
 ## 📊 MÉTRICAS
 
 - **Arquivos criados:** 8/20
