@@ -290,15 +290,101 @@
 
 ---
 
+## 🔍 ANÁLISE PROFUNDA: CUSTOS ZERADOS POR ITEM
+
+**Data:** 17/08/2025  
+**Problema:** Valores de custo por item aparecem zerados na tabela de resultados  
+**Status:** Causa raiz identificada, correções planejadas  
+
+### 🚨 Problemas Identificados
+
+#### 1. **Custos Extras Não Rateados** 
+**Localização:** `js/app.js:736`
+```javascript
+custos_extra_rateados: 0, // ❌ Hardcoded como 0
+```
+**Impacto:** Custos extras nunca aparecem por item
+
+#### 2. **ICMS Não Incluído**
+**Localização:** `js/app.js:747-754`
+```javascript
+calculateItemTotalCost(adicao, produto, cenario, ratios) {
+    const custoBase = produto.valor_total_item || 0;
+    const tributos = ratios.ii_rateado + ratios.ipi_rateado + ratios.pis_rateado + ratios.cofins_rateado;
+    // ❌ ICMS não incluído no cálculo
+    const freteSeguro = ratios.frete_rateado + ratios.seguro_rateado;
+    const custosExtras = ratios.custos_extra_rateados; // ❌ Sempre 0
+    return custoBase + tributos + freteSeguro + custosExtras;
+}
+```
+
+#### 3. **Tabela de Variáveis do Sistema**
+
+| Categoria | Variável | Onde é Criada | Onde é Chamada | Status |
+|-----------|----------|---------------|----------------|--------|
+| **Parser XML** | `produtos` | `extractProdutos()` (xmlParser.js:363) | `createItemRow()` (app.js:647) | **🚨 Base dos custos por item** |
+| **Interface** | `ratios` | `calculateItemRatios()` (app.js:728) | `createItemRow()` (app.js:699) | **🚨 custos_extra_rateados = 0** |
+| **Cálculos** | `cenario` | `populateTabelaResultados()` (app.js:640) | `createItemRow()` (app.js:700) | **🚨 Pode ser NULL** |
+| **Resultado** | `custoTotalItem` | `calculateItemTotalCost()` (app.js:747) | `createItemRow()` (app.js:700) | **❌ Incompleto** |
+
+### 🔧 Plano de Correção
+
+#### **Etapa 1: Corrigir Rateio de Custos Extras**
+```javascript
+// js/app.js:728-741 - CORREÇÃO
+calculateItemRatios(adicao, produto, cenario) {
+    const totalQuantidade = adicao.produtos.reduce((sum, p) => sum + (p.quantidade || 0), 0);
+    
+    if (totalQuantidade === 0) {
+        console.warn(`Adição ${adicao.numero_adicao}: Quantidade total zero`);
+        return this.createEmptyRatios();
+    }
+    
+    const proporcao = (produto.quantidade || 0) / totalQuantidade;
+    return {
+        proporcao: proporcao,
+        custos_extra_rateados: (cenario?.total_custos_extras || 0) * proporcao, // ✅ CORRIGIDO
+        // ... outros rateios
+    };
+}
+```
+
+#### **Etapa 2: Incluir ICMS no Custo Total**
+```javascript
+// js/app.js:747-754 - CORREÇÃO
+calculateItemTotalCost(adicao, produto, cenario, ratios) {
+    const custoBase = produto.valor_total_item || 0;
+    const tributosFederais = ratios.ii_rateado + ratios.ipi_rateado + ratios.pis_rateado + ratios.cofins_rateado;
+    const icmsRateado = (cenario?.icms_calculado?.valor_total || 0) * (ratios.proporcao || 0); // ✅ ADICIONADO
+    const freteSeguro = ratios.frete_rateado + ratios.seguro_rateado;
+    const custosExtras = ratios.custos_extra_rateados;
+    
+    return custoBase + tributosFederais + icmsRateado + freteSeguro + custosExtras; // ✅ COMPLETO
+}
+```
+
+### 📋 Checklist de Implementação
+
+- [ ] Modificar `calculateItemRatios()` para receber cenário
+- [ ] Corrigir cálculo de `custos_extra_rateados`
+- [ ] Incluir ICMS em `calculateItemTotalCost()`
+- [ ] Adicionar validações para quantidade zero
+- [ ] Criar método `createEmptyRatios()`
+- [ ] Atualizar chamadas da função em `createItemRow()`
+- [ ] Testar com dados reais (DI 2300120746)
+- [ ] Validar que soma dos itens = custo da adição
+
+---
+
 ## 📊 MÉTRICAS
 
-- **Arquivos criados:** 3/20
-- **Funcionalidades implementadas:** 0/14
-- **Testes realizados:** 0/5
-- **Bugs conhecidos:** 0
+- **Arquivos criados:** 8/20
+- **Funcionalidades implementadas:** 7/14
+- **Testes realizados:** 16/19 (3 falhando)
+- **Bugs conhecidos:** 1 (custos zerados por item)
 
 ---
 
 **Responsável:** Sistema Expertzy  
-**Versão:** 0.0.1  
+**Versão:** 0.3.1  
 **Ambiente:** Local (navegador)
