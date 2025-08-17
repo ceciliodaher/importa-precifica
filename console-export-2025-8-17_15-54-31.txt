@@ -1,0 +1,66 @@
+Configurações carregadas: 
+Object { aliquotas: "2025.1", beneficios: "2025.1", config: "2025.1" }
+calculator.js:30:21
+Configurações carregadas: 
+Object { aliquotas: "2025.1", beneficios: "2025.1", config: "2025.1" }
+calculator.js:30:21
+Alert info: DI anterior encontrada. Dados carregados automaticamente. app.js:1548:17
+Sistema Expertzy inicializado com sucesso app.js:37:21
+Loading: Processando arquivo XML... app.js:1526:17
+Incoterm identificado: CFR - Cost and Freight - Custo e frete xmlParser.js:83:25
+[CALC MEMORY] PROCESSAMENTO_XML: Processamento do arquivo 2300120746.xml 
+Object { id: "op_1755456764888_0", timestamp: "2025-08-17T18:52:44.888Z", type: "PROCESSAMENTO_XML", description: "Processamento do arquivo 2300120746.xml", inputs: {…}, formula: "Parser XML -> Estrutura de dados da DI", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764889_1", timestamp: "2025-08-17T18:52:44.889Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 6,35 220 × Taxa 5217.699605901549", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764889_2", timestamp: "2025-08-17T18:52:44.889Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 1,00 220 × Taxa 5217.695678151762", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764889_3", timestamp: "2025-08-17T18:52:44.889Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 0,99 220 × Taxa 5217.698543292382", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764889_4", timestamp: "2025-08-17T18:52:44.889Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 0,35 220 × Taxa 5217.674445174374", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_5", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 0,41 220 × Taxa 5217.695766480749", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_6", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 33,39 220 × Taxa 5217.699844391444", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_7", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 1,76 220 × Taxa 5217.695974154504", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_8", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 2,68 220 × Taxa 5217.698811657605", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_9", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 0,47 220 × Taxa 5217.690575747829", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_10", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 2,27 220 × Taxa 5217.6970446067935", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_11", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 1,04 220 × Taxa 5217.6990810904135", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_12", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 26,01 220 × Taxa 5217.699686064237", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_13", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 14,35 220 × Taxa 5217.699435658051", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_14", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 15,80 220 × Taxa 5217.6998262861625", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_15", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 1,18 220 × Taxa 5217.692040024783", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+[CALC MEMORY] CONVERSAO_MOEDA: Conversão de 220 para BRL 
+Object { id: "op_1755456764890_16", timestamp: "2025-08-17T18:52:44.890Z", type: "CONVERSAO_MOEDA", description: "Conversão de 220 para BRL", inputs: {…}, formula: "Valor em BRL = R$ 0,34 220 × Taxa 5217.697498305684", result: {…}, metadata: {…} }
+calculationMemory.js:40:17
+DI salva com sucesso: 2300120746 storage.js:93:21
+Loading hidden app.js:1531:17
+Alert success: Arquivo 2300120746.xml processado com sucesso! app.js:1548:17
+Exportando dados em formato: excel globals.js:90:13
+Alert success: Planilha Excel exportada com sucesso! app.js:1548:17

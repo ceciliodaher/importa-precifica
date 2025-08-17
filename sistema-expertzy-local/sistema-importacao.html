@@ -270,8 +270,30 @@
                                 </div>
                             </div>
 
-                            <!-- Custos Extras por Categoria -->
+                            <!-- Pergunta sobre Custos Extras -->
                             <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-question-circle"></i> Custos Extra-DI</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-3">Além dos custos já incluídos na DI (FOB, frete, seguro, tributos), você possui custos extras?</p>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="temCustosExtras" id="semCustosExtras" value="nao" checked>
+                                        <label class="form-check-label" for="semCustosExtras">
+                                            <i class="fas fa-times-circle text-danger"></i> Não, trabalhar apenas com dados da DI
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="temCustosExtras" id="comCustosExtras" value="sim">
+                                        <label class="form-check-label" for="comCustosExtras">
+                                            <i class="fas fa-check-circle text-success"></i> Sim, tenho custos extras para configurar
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custos Extras por Categoria (inicialmente oculto) -->
+                            <div class="card mb-4" id="interfaceCustosExtras" style="display: none;">
                                 <div class="card-header">
                                     <h6><i class="fas fa-money-bill"></i> Despesas Extra-DI</h6>
                                 </div>
