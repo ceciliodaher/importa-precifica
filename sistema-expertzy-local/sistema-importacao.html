@@ -72,7 +72,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link disabled" href="#custos" data-tab="custos">
-                                <i class="fas fa-dollar-sign"></i> Custos Extras
+                                <i class="fas fa-dollar-sign"></i> Custos de Importação
                             </a>
                         </li>
                     </ul>
@@ -224,8 +224,8 @@
                     <!-- Custos Tab -->
                     <div class="tab-pane fade" id="custos">
                         <div class="page-header">
-                            <h2><i class="fas fa-dollar-sign"></i> Configuração de Custos Extras</h2>
-                            <p class="text-muted">Adicione despesas extras não contempladas na DI e configure o rateio</p>
+                            <h2><i class="fas fa-dollar-sign"></i> Configuração de Custos de Importação</h2>
+                            <p class="text-muted">Configure custos adicionais do processo de importação (opcionais)</p>
                         </div>
 
                         <div id="custosContent">
@@ -237,38 +237,6 @@
 
                         <!-- Interface de configuração de custos (será populada dinamicamente) -->
                         <div id="custosInterface" style="display: none;">
-                            <!-- Configurações Gerais -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h6><i class="fas fa-cog"></i> Configurações de Operação</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <label for="estadoDestino">Estado de Destino:</label>
-                                            <select class="form-control" id="estadoDestino">
-                                                <option value="">Selecione o estado...</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label for="regimeTributario">Regime Tributário:</label>
-                                            <select class="form-control" id="regimeTributario">
-                                                <option value="real">Lucro Real</option>
-                                                <option value="presumido">Lucro Presumido</option>
-                                                <option value="simples">Simples Nacional</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label for="tipoOperacao">Tipo de Operação:</label>
-                                            <select class="form-control" id="tipoOperacao">
-                                                <option value="interestadual">Venda Interestadual</option>
-                                                <option value="interna">Venda Interna</option>
-                                                <option value="consumidor_final">Consumidor Final</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Pergunta sobre Custos Extras -->
                             <div class="card mb-4">
