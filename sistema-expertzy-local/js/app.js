@@ -23,7 +23,7 @@ class ExpertzyApp {
             await this.calculator.loadConfigurations();
             
             // Popular selects da interface
-            this.populateEstados();
+            // Estados não mais necessários - foco em importação
             
             // Configurar event listeners
             this.setupEventListeners();
@@ -85,23 +85,7 @@ class ExpertzyApp {
      * Configura listeners para as configurações
      */
     setupConfigEventListeners() {
-        // Estado de destino
-        const estadoSelect = document.getElementById('estadoDestino');
-        if (estadoSelect) {
-            estadoSelect.addEventListener('change', () => this.saveCurrentConfig());
-        }
-
-        // Regime tributário
-        const regimeSelect = document.getElementById('regimeTributario');
-        if (regimeSelect) {
-            regimeSelect.addEventListener('change', () => this.saveCurrentConfig());
-        }
-
-        // Tipo de operação
-        const tipoSelect = document.getElementById('tipoOperacao');
-        if (tipoSelect) {
-            tipoSelect.addEventListener('change', () => this.saveCurrentConfig());
-        }
+        // Configurações de importação removidas - foco apenas no processamento da DI
 
         // Custos extras
         document.querySelectorAll('[data-custo-tipo]').forEach(input => {
@@ -503,14 +487,35 @@ class ExpertzyApp {
     }
 
     /**
-     * Obtém configuração atual da interface
+     * Obtém configuração atual para importação
      */
     getCurrentConfig() {
+        // Para importação, usar estado da URF de despacho, não destino de venda
+        const estadoURF = this.getEstadoFromURF();
         return {
-            estado: document.getElementById('estadoDestino')?.value || 'GO',
-            regime: document.getElementById('regimeTributario')?.value || 'real',
-            operacao: document.getElementById('tipoOperacao')?.value || 'interestadual'
+            estado: estadoURF,
+            regime: 'importacao', // Processo de importação sempre usa regime de importação
+            operacao: 'importacao' // Operação de importação, não venda
         };
+    }
+
+    /**
+     * Extrai estado da URF de despacho
+     */
+    getEstadoFromURF() {
+        if (!this.currentDI || !this.currentDI.urf_despacho_codigo) {
+            return 'GO'; // Default Goiânia
+        }
+        
+        // Mapear códigos de URF para estados
+        const urfParaEstado = {
+            '0120100': 'GO', // Goiânia
+            '0717500': 'RS', // Porto Alegre
+            '0321400': 'SP', // Santos
+            // Adicionar mais URFs conforme necessário
+        };
+        
+        return urfParaEstado[this.currentDI.urf_despacho_codigo] || 'GO';
     }
 
     /**
@@ -917,18 +922,7 @@ class ExpertzyApp {
      * Carrega configuração do usuário
      */
     loadUserConfig() {
-        const config = this.storage.getConfig();
-        if (config) {
-            const estadoSelect = document.getElementById('estadoDestino');
-            const regimeSelect = document.getElementById('regimeTributario');
-            const tipoSelect = document.getElementById('tipoOperacao');
-            
-            if (estadoSelect) estadoSelect.value = config.estado_padrao || 'GO';
-            if (regimeSelect) regimeSelect.value = config.regime_tributario || 'real';
-            if (tipoSelect) tipoSelect.value = config.tipo_operacao_padrao || 'interestadual';
-        }
-
-        // Carregar custos extras
+        // Carregar apenas custos extras de importação
         const custosExtras = this.storage.getCustosExtras();
         Object.keys(custosExtras).forEach(tipo => {
             const input = document.getElementById(`custos${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
@@ -1623,50 +1617,7 @@ class ExpertzyApp {
         console.log(`Alert ${type}:`, message);
     }
 
-    /**
-     * Popula select de estados com dados dos arquivos de configuração
-     */
-    populateEstados() {
-        const estadoSelect = document.getElementById('estadoDestino');
-        if (!estadoSelect || !this.calculator.aliquotas) return;
-
-        // Limpar options existentes
-        estadoSelect.innerHTML = '<option value="">Selecione o estado...</option>';
-
-        // Obter estados do arquivo de alíquotas
-        const estados = this.calculator.aliquotas.aliquotas_icms_2025;
-        
-        // Criar array ordenado de estados
-        const estadosOrdenados = Object.keys(estados).sort().map(uf => ({
-            uf: uf,
-            nome: this.getNomeEstado(uf),
-            aliquota: estados[uf].aliquota_interna
-        }));
-
-        // Adicionar options
-        estadosOrdenados.forEach(estado => {
-            const option = document.createElement('option');
-            option.value = estado.uf;
-            option.textContent = `${estado.nome} (${estado.uf}) - ${estado.aliquota}%`;
-            estadoSelect.appendChild(option);
-        });
-    }
-
-    /**
-     * Retorna nome completo do estado pela UF
-     */
-    getNomeEstado(uf) {
-        const nomes = {
-            'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas',
-            'BA': 'Bahia', 'CE': 'Ceará', 'DF': 'Distrito Federal', 'ES': 'Espírito Santo',
-            'GO': 'Goiás', 'MA': 'Maranhão', 'MT': 'Mato Grosso', 'MS': 'Mato Grosso do Sul',
-            'MG': 'Minas Gerais', 'PA': 'Pará', 'PB': 'Paraíba', 'PR': 'Paraná',
-            'PE': 'Pernambuco', 'PI': 'Piauí', 'RJ': 'Rio de Janeiro', 'RN': 'Rio Grande do Norte',
-            'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima', 'SC': 'Santa Catarina',
-            'SP': 'São Paulo', 'SE': 'Sergipe', 'TO': 'Tocantins'
-        };
-        return nomes[uf] || uf;
-    }
+    // Funções relacionadas aos estados de venda removidas - foco apenas em importação
 
     // ========== MÉTODOS DE FORMATAÇÃO ==========
 
