@@ -726,18 +726,19 @@ class ExpertzyApp {
      * Calcula rateios de valores para um item específico
      */
     calculateItemRatios(adicao, produto) {
-        const totalQuantidade = adicao.produtos.reduce((sum, p) => sum + (p.quantidade || 0), 0);
-        const proporcao = (produto.quantidade || 0) / totalQuantidade;
+        const proporcao = this.calculateProporcaoRateio(adicao, produto);
 
         return {
+            proporcao: proporcao,
             peso_rateado: (adicao.peso_liquido || 0) * proporcao,
             frete_rateado: (adicao.frete_valor_reais || 0) * proporcao,
             seguro_rateado: (adicao.seguro_valor_reais || 0) * proporcao,
-            custos_extra_rateados: 0, // Será calculado com base no cenário
             ii_rateado: (adicao.tributos.ii_valor_devido || 0) * proporcao,
             ipi_rateado: (adicao.tributos.ipi_valor_devido || 0) * proporcao,
             pis_rateado: (adicao.tributos.pis_valor_devido || 0) * proporcao,
-            cofins_rateado: (adicao.tributos.cofins_valor_devido || 0) * proporcao
+            cofins_rateado: (adicao.tributos.cofins_valor_devido || 0) * proporcao,
+            // Custos extras opcionais - só aplicados se configurados
+            custos_extra_rateados: this.getCustosExtrasRateados(proporcao)
         };
     }
 
@@ -1003,6 +1004,20 @@ class ExpertzyApp {
         document.querySelectorAll('input[name="criterioRateio"]').forEach(radio => {
             radio.addEventListener('change', () => {
                 this.saveCustosExtras();
+            });
+        });
+
+        // Listeners para custos extras opcionais
+        document.querySelectorAll('input[name="temCustosExtras"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const interfaceCustos = document.getElementById('interfaceCustosExtras');
+                if (e.target.value === 'sim') {
+                    interfaceCustos.style.display = 'block';
+                } else {
+                    interfaceCustos.style.display = 'none';
+                    // Zerar todos os custos extras quando desabilitado
+                    this.limparCustosExtras();
+                }
             });
         });
     }
@@ -1517,6 +1532,66 @@ class ExpertzyApp {
             // Fechar modal se estiver aberto
             $('#calculationMemoryModal').modal('hide');
         }
+    }
+
+    /**
+     * Calcula proporção para rateio usando abordagem robusta (Opção 4)
+     * 1. Tenta rateio por quantidade
+     * 2. Se falhar, tenta rateio por valor FOB
+     * 3. Se falhar, usa distribuição igualitária
+     */
+    calculateProporcaoRateio(adicao, produto) {
+        // Método 1: Rateio por quantidade (preferencial)
+        const totalQuantidade = adicao.produtos.reduce((sum, p) => sum + (p.quantidade || 0), 0);
+        
+        if (totalQuantidade > 0) {
+            const proporcaoQuantidade = (produto.quantidade || 0) / totalQuantidade;
+            console.log(`Adição ${adicao.numero_adicao}: Rateio por quantidade - proporção ${proporcaoQuantidade.toFixed(4)}`);
+            return proporcaoQuantidade;
+        }
+        
+        // Método 2: Rateio por valor FOB (fallback 1)
+        const totalValorFOB = adicao.produtos.reduce((sum, p) => sum + (p.valor_total_item || 0), 0);
+        
+        if (totalValorFOB > 0) {
+            const proporcaoValor = (produto.valor_total_item || 0) / totalValorFOB;
+            console.warn(`Adição ${adicao.numero_adicao}: Quantidade zero - usando rateio por valor FOB - proporção ${proporcaoValor.toFixed(4)}`);
+            return proporcaoValor;
+        }
+        
+        // Método 3: Distribuição igualitária (fallback 2)
+        const proporcaoIgual = 1 / adicao.produtos.length;
+        console.warn(`Adição ${adicao.numero_adicao}: Sem quantidade nem valor FOB - usando distribuição igualitária - proporção ${proporcaoIgual.toFixed(4)}`);
+        return proporcaoIgual;
+    }
+
+    /**
+     * Calcula custos extras rateados se configurados pelo usuário
+     */
+    getCustosExtrasRateados(proporcao) {
+        // Verificar se usuário optou por incluir custos extras
+        const temCustosExtras = document.querySelector('input[name="temCustosExtras"]:checked');
+        
+        if (!temCustosExtras || temCustosExtras.value === 'nao') {
+            return 0; // Sem custos extras
+        }
+        
+        // Calcular total de custos extras configurados
+        const custosExtras = this.getCustosExtrasFromForm();
+        const totalCustosExtras = Object.values(custosExtras).reduce((sum, value) => sum + (value || 0), 0);
+        
+        return totalCustosExtras * proporcao;
+    }
+
+    /**
+     * Limpa todos os campos de custos extras
+     */
+    limparCustosExtras() {
+        document.querySelectorAll('[data-custo-tipo]').forEach(input => {
+            input.value = 0;
+        });
+        this.updateCustosTotals();
+        this.saveCustosExtras();
     }
 
     // ========== MÉTODOS DE INTERFACE ==========
