@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Importação - Expertzy</title>
+    
+    <!-- Bootstrap 4 CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/sistema.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="loading-content">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Carregando...</span>
+            </div>
+            <p class="mt-3">Processando arquivo...</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-expertzy-navy">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <img src="assets/images/logo-expertzy.png" alt="Expertzy" height="35">
+                <span class="ml-2">Sistema de Importação</span>
+            </a>
+            
+            <div class="navbar-nav ml-auto">
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData('json')">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="loadSample()">
+                    <i class="fas fa-file-alt"></i> Exemplo
+                </button>
+                <a href="index.html" class="btn btn-light btn-sm">
+                    <i class="fas fa-home"></i> Início
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 sidebar">
+                <div class="sidebar-sticky">
+                    <h6 class="sidebar-heading">
+                        <i class="fas fa-tasks"></i> Processamento
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#upload" data-tab="upload">
+                                <i class="fas fa-upload"></i> Upload XML
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#dados" data-tab="dados">
+                                <i class="fas fa-file-alt"></i> Dados da DI
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#custos" data-tab="custos">
+                                <i class="fas fa-dollar-sign"></i> Custos Extras
+                            </a>
+                        </li>
+                    </ul>
+
+                    <h6 class="sidebar-heading mt-4">
+                        <i class="fas fa-calculator"></i> Análise
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#resultados" data-tab="resultados">
+                                <i class="fas fa-chart-bar"></i> Resultados
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#precificacao" data-tab="precificacao">
+                                <i class="fas fa-tags"></i> Precificação
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#exportacao" data-tab="exportacao">
+                                <i class="fas fa-file-export"></i> Exportação
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt"></i> Dados seguros<br>
+                            <i class="fas fa-hdd"></i> Armazenamento local
+                        </small>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 content-area">
+                <div class="tab-content">
+                    <!-- Upload Tab -->
+                    <div class="tab-pane fade show active" id="upload">
+                        <div class="page-header">
+                            <h2><i class="fas fa-upload"></i> Upload de Arquivo XML</h2>
+                            <p class="text-muted">Faça upload do arquivo XML da Declaração de Importação (DI)</p>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <div class="upload-area" id="dropZone">
+                                    <div class="upload-content">
+                                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                        <h4>Arraste o arquivo XML aqui</h4>
+                                        <p>ou clique para selecionar</p>
+                                        <input type="file" id="xmlFile" accept=".xml" style="display: none;">
+                                        <button class="btn btn-primary" onclick="document.getElementById('xmlFile').click()">
+                                            Selecionar Arquivo
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="file-info mt-3 d-none" id="fileInfo">
+                                    <div class="alert alert-info">
+                                        <h6><i class="fas fa-file"></i> Arquivo Selecionado:</h6>
+                                        <p class="mb-1"><strong>Nome:</strong> <span id="fileName"></span></p>
+                                        <p class="mb-1"><strong>Tamanho:</strong> <span id="fileSize"></span></p>
+                                        <p class="mb-0"><strong>Tipo:</strong> <span id="fileType"></span></p>
+                                    </div>
+                                    <button class="btn btn-success" onclick="processFile()">
+                                        <i class="fas fa-play"></i> Processar Arquivo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <div class="info-panel">
+                                    <h5><i class="fas fa-info-circle"></i> Informações</h5>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Formatos aceitos: XML</li>
+                                        <li><i class="fas fa-check text-success"></i> Tamanho máximo: 50MB</li>
+                                        <li><i class="fas fa-check text-success"></i> Dados processados localmente</li>
+                                        <li><i class="fas fa-check text-success"></i> Nenhum envio para servidor</li>
+                                    </ul>
+
+                                    <div class="mt-4">
+                                        <h6>Arquivo de Exemplo</h6>
+                                        <p class="small text-muted">Use nosso arquivo de exemplo para testar o sistema:</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="loadSample()">
+                                            <i class="fas fa-download"></i> Carregar Exemplo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados Tab -->
+                    <div class="tab-pane fade" id="dados">
+                        <div class="page-header">
+                            <h2><i class="fas fa-file-alt"></i> Dados da Declaração de Importação</h2>
+                            <p class="text-muted">Informações extraídas do arquivo XML</p>
+                        </div>
+
+                        <div id="dadosContent">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Faça upload de um arquivo XML para visualizar os dados.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custos Tab -->
+                    <div class="tab-pane fade" id="custos">
+                        <div class="page-header">
+                            <h2><i class="fas fa-dollar-sign"></i> Configuração de Custos Extras</h2>
+                            <p class="text-muted">Adicione despesas extras não contempladas na DI e configure o rateio</p>
+                        </div>
+
+                        <div id="custosContent">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Processe um arquivo XML primeiro para configurar custos extras.
+                            </div>
+                        </div>
+
+                        <!-- Interface de configuração de custos (será populada dinamicamente) -->
+                        <div id="custosInterface" style="display: none;">
+                            <!-- Configurações Gerais -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-cog"></i> Configurações de Operação</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label for="estadoDestino">Estado de Destino:</label>
+                                            <select class="form-control" id="estadoDestino">
+                                                <option value="">Selecione o estado...</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="regimeTributario">Regime Tributário:</label>
+                                            <select class="form-control" id="regimeTributario">
+                                                <option value="real">Lucro Real</option>
+                                                <option value="presumido">Lucro Presumido</option>
+                                                <option value="simples">Simples Nacional</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="tipoOperacao">Tipo de Operação:</label>
+                                            <select class="form-control" id="tipoOperacao">
+                                                <option value="interestadual">Venda Interestadual</option>
+                                                <option value="interna">Venda Interna</option>
+                                                <option value="consumidor_final">Consumidor Final</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custos Extras por Categoria -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-money-bill"></i> Despesas Extra-DI</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary">Despesas Portuárias</h6>
+                                            <div class="mb-2">
+                                                <label>Capatazia (R$):</label>
+                                                <input type="number" class="form-control" id="custosPortuarios" value="0" step="0.01" data-custo-tipo="portuarios">
+                                            </div>
+                                            <small class="text-muted">Inclui na base do ICMS</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-secondary">Despesas Bancárias</h6>
+                                            <div class="mb-2">
+                                                <label>Taxas de Câmbio/Remessa (R$):</label>
+                                                <input type="number" class="form-control" id="custosBancarios" value="0" step="0.01" data-custo-tipo="bancarios">
+                                            </div>
+                                            <small class="text-muted">Não inclui na base do ICMS</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <h6 class="text-success">Despesas Logísticas</h6>
+                                            <div class="mb-2">
+                                                <label>Frete Interno/Seguro (R$):</label>
+                                                <input type="number" class="form-control" id="custosLogisticos" value="0" step="0.01" data-custo-tipo="logisticos">
+                                            </div>
+                                            <small class="text-muted">Inclui na base do ICMS</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-warning">Despesas Administrativas</h6>
+                                            <div class="mb-2">
+                                                <label>Despachante/Honorários (R$):</label>
+                                                <input type="number" class="form-control" id="custosAdministrativos" value="0" step="0.01" data-custo-tipo="administrativos">
+                                            </div>
+                                            <small class="text-muted">Não inclui na base do ICMS</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Critérios de Rateio -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-chart-pie"></i> Critérios de Rateio</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label>
+                                                <input type="radio" name="criterioRateio" value="valor_fob" checked>
+                                                Valor FOB
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>
+                                                <input type="radio" name="criterioRateio" value="peso_liquido">
+                                                Peso Líquido
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>
+                                                <input type="radio" name="criterioRateio" value="peso_bruto">
+                                                Peso Bruto
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>
+                                                <input type="radio" name="criterioRateio" value="quantidade">
+                                                Quantidade
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            O rateio será aplicado proporcionalmente entre as adições conforme critério selecionado
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Resumo dos Custos -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-calculator"></i> Resumo dos Custos Extra-DI</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row" id="resumoCustos">
+                                        <div class="col-md-3 text-center">
+                                            <h5 class="text-primary" id="totalPortuarios">R$ 0,00</h5>
+                                            <small>Portuários</small>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <h5 class="text-secondary" id="totalBancarios">R$ 0,00</h5>
+                                            <small>Bancários</small>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <h5 class="text-success" id="totalLogisticos">R$ 0,00</h5>
+                                            <small>Logísticos</small>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <h5 class="text-warning" id="totalAdministrativos">R$ 0,00</h5>
+                                            <small>Administrativos</small>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-6 text-center">
+                                            <h4 class="text-success" id="totalBaseICMS">R$ 0,00</h4>
+                                            <small>Total que compõe base ICMS</small>
+                                        </div>
+                                        <div class="col-md-6 text-center">
+                                            <h4 class="text-dark" id="totalGeral">R$ 0,00</h4>
+                                            <small>Total geral de custos extras</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botão de Cálculo -->
+                            <div class="text-center">
+                                <button class="btn btn-success btn-lg" id="calculateAll">
+                                    <i class="fas fa-calculator"></i> Calcular Cenários Tributários
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resultados Tab -->
+                    <div class="tab-pane fade" id="resultados">
+                        <div class="page-header">
+                            <h2><i class="fas fa-chart-bar"></i> Custos de Entrada</h2>
+                            <p class="text-muted">Análise detalhada dos custos de importação por item</p>
+                        </div>
+
+                        <div id="resultadosContent">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Configure os custos extras e execute os cálculos para visualizar os resultados.
+                            </div>
+                        </div>
+
+                        <!-- Interface de resultados -->
+                        <div id="resultadosInterface" style="display: none;">
+                            <!-- Resumo Geral -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-chart-pie"></i> Resumo Geral da Importação</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row" id="resumoGeral"></div>
+                                </div>
+                            </div>
+
+                            <!-- Controles -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <label>Filtrar por NCM:</label>
+                                            <input type="text" class="form-control" id="filtroNCM" placeholder="Digite o NCM...">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Filtrar por Adição:</label>
+                                            <select class="form-control" id="filtroAdicao">
+                                                <option value="">Todas as adições</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Visualização:</label>
+                                            <select class="form-control" id="modoVisualizacao">
+                                                <option value="hierarquico">Hierárquico</option>
+                                                <option value="plano">Lista Plana</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>&nbsp;</label>
+                                            <div>
+                                                <button class="btn btn-info btn-sm" id="expandirTodos">
+                                                    <i class="fas fa-expand"></i> Expandir
+                                                </button>
+                                                <button class="btn btn-secondary btn-sm ml-1" id="recolherTodos">
+                                                    <i class="fas fa-compress"></i> Recolher
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabela Expansível -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-table"></i> Custos Detalhados por Item</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover table-sm" id="tabelaResultados">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th width="30"></th>
+                                                    <th>Adição/Item</th>
+                                                    <th>NCM</th>
+                                                    <th>Descrição</th>
+                                                    <th>Qtd.</th>
+                                                    <th>Unid.</th>
+                                                    <th>Peso (kg)</th>
+                                                    <th>Valor FOB</th>
+                                                    <th>Frete</th>
+                                                    <th>Seguro</th>
+                                                    <th>Custos Extra</th>
+                                                    <th>II</th>
+                                                    <th>IPI</th>
+                                                    <th>PIS</th>
+                                                    <th>COFINS</th>
+                                                    <th>Custo Total</th>
+                                                    <th>Custo Unit.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelaResultadosBody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Totais Gerais -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-calculator"></i> Totais Gerais</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row" id="totaisGerais"></div>
+                                </div>
+                            </div>
+
+                            <!-- Ações -->
+                            <div class="text-center mt-4">
+                                <button class="btn btn-primary btn-lg" id="prosseguirPrecificacao">
+                                    <i class="fas fa-tags"></i> Prosseguir para Precificação
+                                </button>
+                                <button class="btn btn-outline-success ml-2" id="exportarCustos">
+                                    <i class="fas fa-download"></i> Exportar Custos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Precificação Tab -->
+                    <div class="tab-pane fade" id="precificacao">
+                        <div class="page-header">
+                            <h2><i class="fas fa-tags"></i> Estratégias de Precificação</h2>
+                            <p class="text-muted">Defina preços com base nos custos e benefícios fiscais</p>
+                        </div>
+
+                        <div id="precificacaoContent">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Complete os cálculos tributários para acessar o módulo de precificação.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relatórios Tab -->
+                    <div class="tab-pane fade" id="relatorios">
+                        <div class="page-header">
+                            <h2><i class="fas fa-file-export"></i> Exportação de Relatórios</h2>
+                            <p class="text-muted">Gere e baixe relatórios em diferentes formatos</p>
+                        </div>
+
+                        <div id="relatoriosContent">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Complete todo o processo para gerar relatórios.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- Scripts -->
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script src="js/storage.js"></script>
+    <script src="js/xmlParser.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/pricing.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
