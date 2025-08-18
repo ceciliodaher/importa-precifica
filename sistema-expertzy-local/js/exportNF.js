@@ -801,10 +801,15 @@ class NFExporter {
     }
 }
 
-// Função global para exportar croqui
-async function exportarCroquisNF(diData) {
+// Função global para gerar croqui (renomeada para evitar conflito com globals.js)
+async function gerarCroquisNF(diData) {
     try {
-        console.log('Iniciando exportação do croqui NF...');
+        console.log('Iniciando geração do croqui NF...');
+        console.log('Dados da DI recebidos:', diData ? `DI ${diData.numero_di}` : 'undefined');
+        
+        if (!diData) {
+            throw new Error('Dados da DI não fornecidos');
+        }
         
         const exporter = new NFExporter(diData);
         const buffer = await exporter.generateCroqui();

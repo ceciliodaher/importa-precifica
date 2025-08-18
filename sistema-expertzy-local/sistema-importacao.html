@@ -37,7 +37,7 @@
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData()">
                     <i class="fas fa-download"></i> Exportar
                 </button>
-                <button class="btn btn-outline-light btn-sm mr-2" onclick="exportarCroquisNF()" id="btnCroquisNavbar" disabled title="Carregue uma DI primeiro">
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="if(window.app && window.app.currentDI){window.app.exportarCroquisNF();}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisNavbar" disabled title="Carregue uma DI primeiro">
                     <i class="fas fa-file-invoice"></i> Croqui NF
                 </button>
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="app.showCalculationMemory()">

@@ -1708,8 +1708,17 @@ class ExpertzyApp {
                 return;
             }
 
-            // Chamar função global do módulo exportNF.js
-            const sucesso = await exportarCroquisNF(this.currentDI);
+            // Verificar se função existe
+            if (typeof gerarCroquisNF !== 'function') {
+                this.showError('Módulo de exportação não carregado.');
+                console.error('Função gerarCroquisNF não encontrada. Verifique se exportNF.js foi carregado.');
+                return;
+            }
+
+            console.log('Exportando croqui com DI:', this.currentDI.numero_di);
+            
+            // Chamar função renomeada do módulo exportNF.js
+            const sucesso = await gerarCroquisNF(this.currentDI);
 
             if (sucesso) {
                 this.showSuccess('Croqui de Nota Fiscal exportado com sucesso!');

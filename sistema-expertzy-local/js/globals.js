@@ -337,3 +337,6 @@ function exportarCroquisNF() {
     console.log('Iniciando exportação do croqui NF via navbar...');
     window.app.exportarCroquisNF();
 }
+
+// Garantir que a função esteja disponível globalmente
+window.exportarCroquisNF = exportarCroquisNF;
