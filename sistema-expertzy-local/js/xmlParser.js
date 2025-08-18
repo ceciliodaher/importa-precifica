@@ -346,9 +346,9 @@ class DiParser {
             ipi_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorRecolher'), 100),
             
             // PIS
-            pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaAdValorem'), 100),
-            pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorDevido'), 100),
-            pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorRecolher'), 100),
+            pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaAdValorem'), 100),
+            pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorDevido'), 100),
+            pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorRecolher'), 100),
             
             // COFINS
             cofins_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaAdValorem'), 100),

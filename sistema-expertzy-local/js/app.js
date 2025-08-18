@@ -392,7 +392,7 @@ class ExpertzyApp {
         if (totalsDiv) {
             totalsDiv.innerHTML = `
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h5 class="card-title">${this.formatCurrency(totais.valor_total_fob_brl)}</h5>
@@ -400,7 +400,7 @@ class ExpertzyApp {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.ii_total)}</h5>
@@ -408,7 +408,7 @@ class ExpertzyApp {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.ipi_total)}</h5>
@@ -416,11 +416,27 @@ class ExpertzyApp {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
                         <div class="card text-center">
                             <div class="card-body">
-                                <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.pis_total + totais.tributos_totais.cofins_total)}</h5>
-                                <p class="card-text">PIS+COFINS</p>
+                                <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.pis_total)}</h5>
+                                <p class="card-text">PIS Total</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.cofins_total)}</h5>
+                                <p class="card-text">COFINS Total</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.ii_total + totais.tributos_totais.ipi_total + totais.tributos_totais.pis_total + totais.tributos_totais.cofins_total)}</h5>
+                                <p class="card-text">Tributos Total</p>
                             </div>
                         </div>
                     </div>
