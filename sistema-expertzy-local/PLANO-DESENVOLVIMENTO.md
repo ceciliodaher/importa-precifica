@@ -820,6 +820,85 @@ ii_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaVal
 
 ---
 
+## ❌ PROBLEMA SOLUCIONADO: PIS COM VALOR ZERO + SEPARAÇÃO PIS/COFINS
+
+**Data:** 18/08/2025  
+**Problema:** PIS aparecendo com valor R$ 0,00 na interface  
+**Status:** ✅ **RESOLVIDO COMPLETAMENTE**
+
+### 🔍 **Investigação e Descoberta**
+
+#### **Problema Identificado**
+```javascript
+// xmlParser.js linha 349-351 (INCORRETO):
+pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaAdValorem'), 100),
+pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorDevido'), 100),
+pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorRecolher'), 100),
+```
+
+#### **Descoberta da Causa Raiz**
+**Análise do XML real revelou nomenclatura diferente para PIS:**
+- ❌ **JavaScript buscava:** `pisAliquotaAdValorem`, `pisAliquotaValorDevido`
+- ✅ **XML real contém:** `pisPasepAliquotaAdValorem`, `pisPasepAliquotaValorDevido`
+- ✅ **COFINS estava correto:** `cofinsAliquotaAdValorem`, `cofinsAliquotaValorDevido`
+
+### 🔧 **Correção Aplicada**
+
+#### **xmlParser.js - linhas 349-351**
+```javascript
+// DEPOIS (CORRETO):
+pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaAdValorem'), 100),
+pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorDevido'), 100),
+pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorRecolher'), 100),
+```
+
+### ✨ **Melhoria Adicional: Separação PIS/COFINS**
+
+**Solicitação do usuário:** "Na apresentação, é preciso apresentar separadamente o pis e a cofins e não juntos"
+
+#### **app.js - Interface de Totais (linhas 420-440)**
+```javascript
+// ANTES (PIS+COFINS juntos):
+<h5>${this.formatCurrency(totais.tributos_totais.pis_total + totais.tributos_totais.cofins_total)}</h5>
+<p>PIS+COFINS</p>
+
+// DEPOIS (separados com layout responsivo):
+<div class="col-md col-6">
+    <div class="card text-center border-warning">
+        <div class="card-body">
+            <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.pis_total)}</h5>
+            <p class="card-text">PIS</p>
+        </div>
+    </div>
+</div>
+<div class="col-md col-6">
+    <div class="card text-center border-secondary">
+        <div class="card-body">
+            <h5 class="card-title">${this.formatCurrency(totais.tributos_totais.cofins_total)}</h5>
+            <p class="card-text">COFINS</p>
+        </div>
+    </div>
+</div>
+```
+
+### 🎯 **Resultado Final**
+
+#### **Valores Corretos Extraídos (exemplo Adição 001):**
+- ✅ **PIS alíquota:** 2,10% (do XML: `00210`)
+- ✅ **PIS valor devido:** R$ 695,35 (do XML: `000000000069535`)
+- ✅ **COFINS alíquota:** 9,65% (do XML: `00965`)  
+- ✅ **COFINS valor devido:** R$ 3.195,32 (do XML: `000000000319532`)
+
+#### **Interface Atualizada:**
+- ✅ **5 cartões de tributos:** II | IPI | PIS | COFINS | (flexível)
+- ✅ **PIS total:** R$ 14.050,41 (vs PDF: R$ 14.050,41) ✅
+- ✅ **COFINS total:** R$ 67.648,25 (vs PDF: R$ 67.648,25) ✅
+- ✅ **Layout responsivo:** Funciona em desktop e mobile
+
+**Status:** ✅ **PROBLEMA 100% RESOLVIDO**
+
+---
+
 ## 📊 MÉTRICAS
 
 - **Arquivos criados:** 8/20
