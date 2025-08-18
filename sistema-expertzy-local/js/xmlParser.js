@@ -255,8 +255,8 @@ class DiParser {
             condicao_venda_local: this.getTextContent(adicaoNode, 'condicaoVendaLocal'),
             moeda_negociacao_codigo: this.getTextContent(adicaoNode, 'condicaoVendaMoedaCodigo'),
             moeda_negociacao_nome: this.getTextContent(adicaoNode, 'condicaoVendaMoedaNome'),
-            valor_moeda_negociacao: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorMoeda'), 10000000),
-            valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorReais'), 10000000),
+            valor_moeda_negociacao: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorMoeda'), 100000),
+            valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorReais'), 100),
             
             // Método de valoração
             metodo_valoracao_codigo: this.getTextContent(adicaoNode, 'condicaoVendaMetodoValoracaoCodigo'),
@@ -272,11 +272,11 @@ class DiParser {
             tributos: this.extractTributos(adicaoNode),
             
             // Frete e seguro (com análise baseada no incoterm)
-            frete_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorMoedaNegociada'), 10000000),
-            frete_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorReais'), 10000000),
+            frete_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorMoedaNegociada'), 100),
+            frete_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorReais'), 100),
             frete_responsabilidade: this.isFreteIncluidoIncoterm(incoterm) ? 'Exportador' : 'Importador',
-            seguro_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorMoedaNegociada'), 10000000),
-            seguro_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorReais'), 10000000),
+            seguro_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorMoedaNegociada'), 100),
+            seguro_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorReais'), 100),
             seguro_responsabilidade: this.isSeguroIncluidoIncoterm(incoterm) ? 'Exportador' : 'Importador',
             
             // Relacionamento comercial
@@ -285,8 +285,8 @@ class DiParser {
             
             // DCR (Drawback)
             dcr_identificacao: this.getTextContent(adicaoNode, 'dcrIdentificacao'),
-            dcr_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorDevido'), 10000000),
-            dcr_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorRecolher'), 10000000),
+            dcr_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorDevido'), 100),
+            dcr_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorRecolher'), 100),
             
             // Produtos
             produtos: this.extractProdutos(adicaoNode, numeroAdicao)
@@ -332,28 +332,28 @@ class DiParser {
             // Imposto de Importação (II)
             ii_regime_codigo: this.getTextContent(adicaoNode, 'iiRegimeTributacaoCodigo'),
             ii_regime_nome: this.getTextContent(adicaoNode, 'iiRegimeTributacaoNome'),
-            ii_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaAdValorem'), 10000),
-            ii_base_calculo: this.parseNumber(this.getTextContent(adicaoNode, 'iiBaseCalculo'), 10000000),
-            ii_valor_calculado: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorCalculado'), 10000000),
-            ii_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorDevido'), 10000000),
-            ii_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorRecolher'), 10000000),
+            ii_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaAdValorem'), 100),
+            ii_base_calculo: this.parseNumber(this.getTextContent(adicaoNode, 'iiBaseCalculo'), 100),
+            ii_valor_calculado: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorCalculado'), 100),
+            ii_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorDevido'), 100),
+            ii_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorRecolher'), 100),
             
             // IPI
             ipi_regime_codigo: this.getTextContent(adicaoNode, 'ipiRegimeTributacaoCodigo'),
             ipi_regime_nome: this.getTextContent(adicaoNode, 'ipiRegimeTributacaoNome'),
-            ipi_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaAdValorem'), 10000),
-            ipi_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorDevido'), 10000000),
-            ipi_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorRecolher'), 10000000),
+            ipi_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaAdValorem'), 100),
+            ipi_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorDevido'), 100),
+            ipi_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorRecolher'), 100),
             
             // PIS
-            pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaAdValorem'), 10000),
-            pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorDevido'), 10000000),
-            pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorRecolher'), 10000000),
+            pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaAdValorem'), 100),
+            pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorDevido'), 100),
+            pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisAliquotaValorRecolher'), 100),
             
             // COFINS
-            cofins_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaAdValorem'), 10000),
-            cofins_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorDevido'), 10000000),
-            cofins_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorRecolher'), 10000000)
+            cofins_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaAdValorem'), 100),
+            cofins_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorDevido'), 100),
+            cofins_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorRecolher'), 100)
         };
     }
 
