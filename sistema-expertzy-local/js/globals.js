@@ -317,3 +317,23 @@ function exportAsExcel() {
 function exportAsPDF() {
     window.app.showInfo('Exportação para PDF será implementada em versão futura.');
 }
+
+/**
+ * Exporta Croqui de Nota Fiscal
+ * Função global para acesso direto via navbar
+ */
+function exportarCroquisNF() {
+    if (!window.app) {
+        console.error('Sistema não inicializado');
+        return;
+    }
+
+    if (!window.app.currentDI) {
+        alert('Carregue uma DI primeiro para gerar o croqui da nota fiscal.');
+        return;
+    }
+
+    // Chamar método do app para gerar o croqui
+    console.log('Iniciando exportação do croqui NF via navbar...');
+    window.app.exportarCroquisNF();
+}

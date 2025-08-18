@@ -77,8 +77,19 @@ class ExpertzyApp {
             calculateBtn.addEventListener('click', () => this.calculateAll());
         }
 
+        // Botões de exportação
+        const exportCustosBtn = document.getElementById('exportarCustos');
+        if (exportCustosBtn) {
+            exportCustosBtn.addEventListener('click', () => this.exportarCustos());
+        }
+
+        // Botão Croqui NF removido da seção de ações - agora apenas no navbar
+
         // Configurações
         this.setupConfigEventListeners();
+        
+        // Inicializar estado do botão Croqui NF (desabilitado até carregar DI)
+        this.disableCroquisButton();
     }
 
     /**
@@ -278,6 +289,9 @@ class ExpertzyApp {
      * Atualiza informações da DI na interface
      */
     updateDIInfo(diData) {
+        // Habilitar botão Croqui NF no navbar quando DI for carregada
+        this.enableCroquisButton();
+        
         const diInfoDiv = document.getElementById('diInfo');
         if (diInfoDiv) {
             diInfoDiv.innerHTML = `
@@ -1656,6 +1670,96 @@ class ExpertzyApp {
         if (bytes === 0) return '0 Bytes';
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    /**
+     * Habilita botão Croqui NF no navbar quando DI está carregada
+     */
+    enableCroquisButton() {
+        const btn = document.getElementById('btnCroquisNavbar');
+        if (btn) {
+            btn.disabled = false;
+            btn.title = 'Clique para exportar o croqui da nota fiscal';
+            console.log('Botão Croqui NF habilitado no navbar');
+        }
+    }
+
+    /**
+     * Desabilita botão Croqui NF no navbar
+     */
+    disableCroquisButton() {
+        const btn = document.getElementById('btnCroquisNavbar');
+        if (btn) {
+            btn.disabled = true;
+            btn.title = 'Carregue uma DI primeiro';
+            console.log('Botão Croqui NF desabilitado no navbar');
+        }
+    }
+
+    // ========== MÉTODOS DE EXPORTAÇÃO ==========
+
+    /**
+     * Exporta croqui de nota fiscal
+     */
+    async exportarCroquisNF() {
+        try {
+            if (!this.currentDI) {
+                this.showError('Nenhuma DI carregada para gerar croqui.');
+                return;
+            }
+
+            // Chamar função global do módulo exportNF.js
+            const sucesso = await exportarCroquisNF(this.currentDI);
+
+            if (sucesso) {
+                this.showSuccess('Croqui de Nota Fiscal exportado com sucesso!');
+            }
+
+        } catch (error) {
+            console.error('Erro ao exportar croqui NF:', error);
+            this.showError('Erro ao exportar croqui: ' + error.message);
+        }
+    }
+
+    /**
+     * Exporta custos básicos
+     */
+    async exportarCustos() {
+        try {
+            if (!this.currentDI) {
+                this.showError('Nenhuma DI carregada para exportar.');
+                return;
+            }
+
+            // Implementação básica usando SheetJS
+            const wb = XLSX.utils.book_new();
+            
+            // Dados de resumo simples
+            const resumo = [
+                ['DI', this.currentDI.numero_di],
+                ['Data', this.currentDI.data_registro],
+                ['Importador', this.currentDI.importador?.nome || 'N/I'],
+                [''],
+                ['Valor FOB Total', this.formatCurrency(this.currentDI.totais?.valor_total_fob_brl || 0)],
+                ['II Total', this.formatCurrency(this.currentDI.totais?.tributos_totais?.ii_total || 0)],
+                ['IPI Total', this.formatCurrency(this.currentDI.totais?.tributos_totais?.ipi_total || 0)],
+                ['PIS Total', this.formatCurrency(this.currentDI.totais?.tributos_totais?.pis_total || 0)],
+                ['COFINS Total', this.formatCurrency(this.currentDI.totais?.tributos_totais?.cofins_total || 0)]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(resumo);
+            XLSX.utils.book_append_sheet(wb, ws, "Resumo");
+
+            // Gerar arquivo
+            const nomeArquivo = `Custos_DI_${this.currentDI.numero_di}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, nomeArquivo);
+
+            this.showSuccess('Custos exportados com sucesso!');
+
+        } catch (error) {
+            console.error('Erro ao exportar custos:', error);
+            this.showError('Erro ao exportar custos: ' + error.message);
+        }
     }
 }
 
