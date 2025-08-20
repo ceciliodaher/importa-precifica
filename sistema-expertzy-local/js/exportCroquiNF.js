@@ -284,11 +284,10 @@ class CroquiNFExporter {
             totais.valor_cofins += produto.valor_cofins;
         });
         
-        // Calcular total da nota
-        totais.valor_total_nota = totais.valor_total_produtos + 
-                                  totais.valor_ipi + 
-                                  totais.outras_despesas -
-                                  totais.valor_desconto;
+        // ===== CALCULAR TOTAL DA NOTA CONFORME LEGISLAÇÃO =====
+        // Para importação, total da nota = Base ICMS (que já inclui mercadoria + tributos + despesas)
+        // O ICMS não é cobrado na importação (fica exonerado), mas a base é usada para o total
+        totais.valor_total_nota = totais.base_calculo_icms;
         
         return totais;
     }
@@ -310,27 +309,46 @@ class CroquiNFExporter {
     }
     
     calculateBaseICMS(adicao, valorMercadoria) {
-        // Base ICMS = Valor da Mercadoria + II + IPI + PIS + COFINS + Despesas
-        let base = valorMercadoria;
+        // ===== FÓRMULA OFICIAL CONFORME LEGISLAÇÃO =====
+        // Base ICMS = (VMLD + II + IPI + PIS + COFINS + Despesas Aduaneiras) / (1 - alíquota ICMS)
+        
+        let baseAntesICMS = valorMercadoria;
         
         // Adicionar tributos (já convertidos pelo XMLParser)
         if (adicao.tributos?.ii_valor_devido) {
-            base += adicao.tributos.ii_valor_devido;
+            baseAntesICMS += adicao.tributos.ii_valor_devido;
         }
         
         if (adicao.tributos?.ipi_valor_devido) {
-            base += adicao.tributos.ipi_valor_devido;
+            baseAntesICMS += adicao.tributos.ipi_valor_devido;
         }
         
         if (adicao.tributos?.pis_valor_devido) {
-            base += adicao.tributos.pis_valor_devido;
+            baseAntesICMS += adicao.tributos.pis_valor_devido;
         }
         
         if (adicao.tributos?.cofins_valor_devido) {
-            base += adicao.tributos.cofins_valor_devido;
+            baseAntesICMS += adicao.tributos.cofins_valor_devido;
         }
         
-        return base;
+        // ===== ADICIONAR DESPESAS ADUANEIRAS (CORREÇÃO CRÍTICA) =====
+        if (this.di.despesas_aduaneiras?.total_despesas_aduaneiras) {
+            baseAntesICMS += this.di.despesas_aduaneiras.total_despesas_aduaneiras;
+            console.log(`📊 Despesas aduaneiras adicionadas à base: R$ ${this.di.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
+        }
+        
+        // ===== APLICAR FÓRMULA "POR DENTRO" =====
+        const aliquotaICMS = this.getAliquotaICMS();
+        const fatorDivisao = 1 - (aliquotaICMS / 100);
+        const baseICMS = baseAntesICMS / fatorDivisao;
+        
+        console.log(`📊 Cálculo Base ICMS:
+        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}
+        - Alíquota ICMS: ${aliquotaICMS}%
+        - Fator divisão: ${fatorDivisao.toFixed(4)}
+        - Base ICMS final: R$ ${baseICMS.toFixed(2)}`);
+        
+        return baseICMS;
     }
     
     calculateBaseIPI(adicao, valorMercadoria) {
@@ -672,7 +690,7 @@ class CroquiNFExporter {
             }
             
             const { jsPDF } = window.jspdf || jspdf;
-            const doc = new jsPDF('portrait', 'mm', 'a4');
+            const doc = new jsPDF('landscape', 'mm', 'a4');
             
             // Configurar fontes
             doc.setFont('helvetica');
@@ -730,33 +748,35 @@ class CroquiNFExporter {
     }
     
     addLogoAndHeader(doc) {
-        // LOGO EXPERTZY
-        doc.setFillColor(0, 51, 102);
-        doc.rect(15, 10, 40, 25, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('EXPERTZY', 35, 20, { align: 'center' });
-        doc.setFontSize(8);
-        doc.text('SISTEMA DE IMPORTAÇÃO', 35, 26, { align: 'center' });
-        doc.text('E PRECIFICAÇÃO', 35, 30, { align: 'center' });
+        // ===== LAYOUT PAISAGEM (297mm x 210mm) =====
         
-        // TÍTULO PRINCIPAL
-        doc.setTextColor(0, 0, 0);
+        // LOGO EXPERTZY (lado esquerdo)
+        doc.setFillColor(0, 51, 102);
+        doc.rect(15, 10, 50, 30, 'F');
+        doc.setTextColor(255, 255, 255);
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        doc.text('CROQUI NOTA FISCAL DE ENTRADA', 105, 20, { align: 'center' });
+        doc.text('EXPERTZY', 40, 20, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text('SISTEMA DE IMPORTAÇÃO', 40, 27, { align: 'center' });
+        doc.text('E PRECIFICAÇÃO', 40, 33, { align: 'center' });
         
-        // INFORMAÇÕES DA DI
+        // TÍTULO PRINCIPAL (centro)
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CROQUI NOTA FISCAL DE ENTRADA', 148, 20, { align: 'center' });
+        
+        // INFORMAÇÕES DA DI (distribuídas horizontalmente)
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`DI: ${this.header.di_numero}`, 15, 45);
-        doc.text(`DATA REGISTRO: ${this.header.data_registro}`, 70, 45);
-        doc.text(`CÂMBIO USD: ${this.header.taxa_cambio}`, 140, 45);
+        doc.text(`DI: ${this.header.di_numero}`, 80, 45);
+        doc.text(`DATA REGISTRO: ${this.header.data_registro}`, 140, 45);
+        doc.text(`CÂMBIO USD: ${this.header.taxa_cambio}`, 210, 45);
         
-        // Linha separadora
+        // Linha separadora (mais larga para paisagem)
         doc.setLineWidth(0.5);
-        doc.line(15, 50, 195, 50);
+        doc.line(15, 50, 282, 50);
     }
     
     addDestinatarioSection(doc) {
@@ -814,6 +834,22 @@ class CroquiNFExporter {
                 p.aliq_ipi.toFixed(2)
             ]);
             
+            // Corrigir valor unitário e quantidade para modo paisagem
+            const tableDataCorrected = this.produtos.map(p => [
+                p.adicao,
+                p.descricao.substring(0, 40),
+                p.ncm,
+                'MG', // Unidade corrigida
+                (p.total_un * 1000).toFixed(0), // Converter kg para mg (200,00 MG)
+                (p.valor_unitario / 1000).toFixed(4), // Corrigir valor unitário
+                p.valor_total.toFixed(2),
+                p.bc_icms.toFixed(2),
+                p.valor_icms.toFixed(2),
+                p.valor_ipi.toFixed(2),
+                p.aliq_icms.toFixed(2),
+                p.aliq_ipi.toFixed(2)
+            ]);
+
             doc.autoTable({
                 startY: startY + 5,
                 head: [[
@@ -827,35 +863,35 @@ class CroquiNFExporter {
                     'B.CALC. ICMS',
                     'VALOR ICMS',
                     'VALOR IPI',
-                    'ALÍQUOTAS ICMS',
-                    'IPI'
+                    'ALIQ ICMS',
+                    'ALIQ IPI'
                 ]],
-                body: tableData,
+                body: tableDataCorrected,
                 theme: 'grid',
                 headStyles: {
-                    fillColor: [220, 220, 220],
-                    textColor: 0,
-                    fontSize: 6,
+                    fillColor: [0, 51, 102],
+                    textColor: 255,
+                    fontSize: 8,
                     halign: 'center',
-                    cellPadding: 1
+                    cellPadding: 2
                 },
                 bodyStyles: {
-                    fontSize: 6,
-                    cellPadding: 1
+                    fontSize: 7,
+                    cellPadding: 2
                 },
                 columnStyles: {
-                    0: { cellWidth: 15 },
-                    1: { cellWidth: 50 },
-                    2: { cellWidth: 20 },
-                    3: { cellWidth: 10, halign: 'center' },
-                    4: { cellWidth: 15, halign: 'right' },
-                    5: { cellWidth: 20, halign: 'right' },
-                    6: { cellWidth: 20, halign: 'right' },
-                    7: { cellWidth: 20, halign: 'right' },
-                    8: { cellWidth: 20, halign: 'right' },
-                    9: { cellWidth: 15, halign: 'right' },
-                    10: { cellWidth: 15, halign: 'center' },
-                    11: { cellWidth: 10, halign: 'center' }
+                    0: { cellWidth: 18 },      // Código
+                    1: { cellWidth: 70 },      // Descrição (mais espaço)
+                    2: { cellWidth: 22 },      // NCM
+                    3: { cellWidth: 12, halign: 'center' },   // UN
+                    4: { cellWidth: 18, halign: 'right' },    // Quantidade
+                    5: { cellWidth: 22, halign: 'right' },    // Valor Unit
+                    6: { cellWidth: 22, halign: 'right' },    // Valor Total
+                    7: { cellWidth: 22, halign: 'right' },    // BC ICMS
+                    8: { cellWidth: 20, halign: 'right' },    // Valor ICMS
+                    9: { cellWidth: 18, halign: 'right' },    // Valor IPI
+                    10: { cellWidth: 18, halign: 'center' },  // Aliq ICMS
+                    11: { cellWidth: 15, halign: 'center' }   // Aliq IPI
                 },
                 margin: { left: 15, right: 15 }
             });
@@ -909,12 +945,12 @@ class CroquiNFExporter {
                     fontSize: 7
                 },
                 columnStyles: {
-                    0: { cellWidth: 32, fontStyle: 'bold' },
-                    1: { cellWidth: 30, halign: 'right' },
-                    2: { cellWidth: 32, fontStyle: 'bold' },
-                    3: { cellWidth: 30, halign: 'right' },
-                    4: { cellWidth: 32, fontStyle: 'bold' },
-                    5: { cellWidth: 30, halign: 'right' }
+                    0: { cellWidth: 44, fontStyle: 'bold' },   // Mais espaço para paisagem
+                    1: { cellWidth: 36, halign: 'right' },
+                    2: { cellWidth: 44, fontStyle: 'bold' },
+                    3: { cellWidth: 36, halign: 'right' },
+                    4: { cellWidth: 44, fontStyle: 'bold' },
+                    5: { cellWidth: 36, halign: 'right' }
                 },
                 margin: { left: 15, right: 15 }
             });

@@ -79,6 +79,9 @@ class DiParser {
             // Extrair informações complementares
             this.extractInformacoesComplementares(xmlDoc);
             
+            // ===== CORREÇÃO CRÍTICA: Extrair despesas aduaneiras =====
+            this.extractDespesasAduaneiras(xmlDoc);
+            
             // Processar múltiplas moedas e taxas de câmbio
             this.processarMultiplasMoedas(xmlDoc);
             
@@ -822,6 +825,235 @@ class DiParser {
         ].filter(parte => parte && parte.trim());
 
         return partes.join(', ');
+    }
+
+    /**
+     * ===== MÉTODO CRÍTICO: Extrai TODAS as despesas aduaneiras =====
+     * Extrai pagamentos, acréscimos e calcula despesas obrigatórias
+     */
+    extractDespesasAduaneiras(xmlDoc) {
+        console.log('🔍 Extraindo despesas aduaneiras...');
+        
+        const despesas = {
+            pagamentos: [],
+            acrescimos: [],
+            calculadas: {},
+            total_despesas_aduaneiras: 0
+        };
+        
+        // ===== 1. EXTRAIR SEÇÃO <pagamento> =====
+        this.extractPagamentos(xmlDoc, despesas);
+        
+        // ===== 2. EXTRAIR SEÇÃO <acrescimo> =====
+        this.extractAcrescimos(xmlDoc, despesas);
+        
+        // ===== 3. CALCULAR DESPESAS AUTOMÁTICAS =====
+        this.calcularDespesasAutomaticas(xmlDoc, despesas);
+        
+        // ===== 4. FALLBACK: EXTRAIR DE informacaoComplementar =====
+        this.extractDespesasFromInfoComplementar(xmlDoc, despesas);
+        
+        // ===== 5. TOTALIZAR DESPESAS =====
+        this.totalizarDespesasAduaneiras(despesas);
+        
+        // Adicionar ao diData
+        this.diData.despesas_aduaneiras = despesas;
+        
+        console.log('✅ Despesas aduaneiras extraídas:', {
+            siscomex: despesas.calculadas.siscomex || 0,
+            afrmm: despesas.calculadas.afrmm || 0,
+            capatazia: despesas.calculadas.capatazia || 0,
+            total: despesas.total_despesas_aduaneiras
+        });
+    }
+
+    /**
+     * Extrai seção <pagamento> com códigos de receita
+     */
+    extractPagamentos(xmlDoc, despesas) {
+        const pagamentos = xmlDoc.querySelectorAll('pagamento');
+        
+        pagamentos.forEach(pagamento => {
+            const codigoReceita = this.getTextContent(pagamento, 'codigoReceita');
+            const valorReceita = this.convertValue(this.getTextContent(pagamento, 'valorReceita'), 'monetary');
+            const dataPagamento = this.getTextContent(pagamento, 'dataPagamento');
+            
+            if (codigoReceita && valorReceita > 0) {
+                const tipoDespesa = this.mapearCodigoReceita(codigoReceita);
+                
+                const pagamentoData = {
+                    codigo_receita: codigoReceita,
+                    tipo_despesa: tipoDespesa,
+                    valor: valorReceita,
+                    data_pagamento: dataPagamento
+                };
+                
+                despesas.pagamentos.push(pagamentoData);
+                
+                // Mapear para despesas calculadas
+                if (tipoDespesa === 'SISCOMEX') {
+                    despesas.calculadas.siscomex = valorReceita;
+                } else if (tipoDespesa === 'PIS') {
+                    despesas.calculadas.pis = valorReceita;
+                } else if (tipoDespesa === 'COFINS') {
+                    despesas.calculadas.cofins = valorReceita;
+                } else if (tipoDespesa === 'ANTI_DUMPING') {
+                    despesas.calculadas.anti_dumping = valorReceita;
+                } else {
+                    // Outras despesas aduaneiras
+                    if (!despesas.calculadas.outras) despesas.calculadas.outras = 0;
+                    despesas.calculadas.outras += valorReceita;
+                }
+                
+                console.log(`📋 Pagamento extraído: ${tipoDespesa} (${codigoReceita}) = R$ ${valorReceita.toFixed(2)}`);
+            }
+        });
+    }
+
+    /**
+     * Extrai seção <acrescimo> (capatazia, taxa CE, etc.)
+     */
+    extractAcrescimos(xmlDoc, despesas) {
+        const acrescimos = xmlDoc.querySelectorAll('acrescimo');
+        
+        acrescimos.forEach(acrescimo => {
+            const codigoAcrescimo = this.getTextContent(acrescimo, 'codigoAcrescimo');
+            const valorReais = this.convertValue(this.getTextContent(acrescimo, 'valorReais'), 'monetary');
+            const valorMoedaNegociada = this.convertValue(this.getTextContent(acrescimo, 'valorMoedaNegociada'), 'monetary');
+            
+            if (codigoAcrescimo && valorReais > 0) {
+                const tipoAcrescimo = this.mapearCodigoAcrescimo(codigoAcrescimo);
+                
+                const acrescimoData = {
+                    codigo_acrescimo: codigoAcrescimo,
+                    tipo_acrescimo: tipoAcrescimo,
+                    valor_reais: valorReais,
+                    valor_moeda_negociada: valorMoedaNegociada
+                };
+                
+                despesas.acrescimos.push(acrescimoData);
+                
+                // Mapear para despesas calculadas
+                if (tipoAcrescimo === 'CAPATAZIA') {
+                    despesas.calculadas.capatazia = valorReais;
+                } else if (tipoAcrescimo === 'TAXA_CE') {
+                    despesas.calculadas.taxa_ce = valorReais;
+                } else {
+                    if (!despesas.calculadas.outras) despesas.calculadas.outras = 0;
+                    despesas.calculadas.outras += valorReais;
+                }
+                
+                console.log(`📋 Acréscimo extraído: ${tipoAcrescimo} (${codigoAcrescimo}) = R$ ${valorReais.toFixed(2)}`);
+            }
+        });
+    }
+
+    /**
+     * Calcula despesas automáticas (AFRMM, etc.)
+     */
+    calcularDespesasAutomaticas(xmlDoc, despesas) {
+        // ===== AFRMM = 25% do frete marítimo =====
+        const viaTransporte = this.getTextContent(xmlDoc, 'dadosCargaViaTransporteCodigo');
+        
+        if (viaTransporte === '10') { // Via marítima
+            const freteValorReais = this.convertValue(this.getTextContent(xmlDoc, 'freteValorReais'), 'monetary');
+            
+            if (freteValorReais > 0) {
+                const afrmm = freteValorReais * 0.25; // 25% do frete
+                despesas.calculadas.afrmm = afrmm;
+                
+                console.log(`📋 AFRMM calculado: 25% de R$ ${freteValorReais.toFixed(2)} = R$ ${afrmm.toFixed(2)}`);
+            }
+        }
+    }
+
+    /**
+     * Extrai despesas do campo informacaoComplementar como fallback
+     */
+    extractDespesasFromInfoComplementar(xmlDoc, despesas) {
+        const infoComplementar = this.getTextContent(xmlDoc, 'informacaoComplementar');
+        
+        if (!infoComplementar) return;
+        
+        // Extrair Taxa Siscomex se não foi encontrada nos pagamentos
+        if (!despesas.calculadas.siscomex) {
+            const matchSiscomex = infoComplementar.match(/Taxa\s+Siscomex[^:]*:\s*(\d+[,.]?\d*)/i);
+            if (matchSiscomex) {
+                const valor = parseFloat(matchSiscomex[1].replace(',', '.'));
+                despesas.calculadas.siscomex = valor;
+                console.log(`📋 SISCOMEX extraído de informacaoComplementar: R$ ${valor.toFixed(2)}`);
+            }
+        }
+        
+        // Extrair outras despesas mencionadas no texto
+        const padroesDespesas = [
+            { padrao: /AFRMM[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'afrmm' },
+            { padrao: /Capatazia[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'capatazia' },
+            { padrao: /Taxa\s+CE[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'taxa_ce' },
+            { padrao: /Multa[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'multas' }
+        ];
+        
+        padroesDespesas.forEach(({ padrao, campo }) => {
+            if (!despesas.calculadas[campo]) {
+                const match = infoComplementar.match(padrao);
+                if (match) {
+                    const valor = parseFloat(match[1].replace(',', '.'));
+                    despesas.calculadas[campo] = valor;
+                    console.log(`📋 ${campo.toUpperCase()} extraído de informacaoComplementar: R$ ${valor.toFixed(2)}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Totaliza todas as despesas aduaneiras
+     */
+    totalizarDespesasAduaneiras(despesas) {
+        let total = 0;
+        
+        // Somar despesas que compõem a base ICMS
+        const despesasParaBaseICMS = [
+            'siscomex', 'afrmm', 'capatazia', 'taxa_ce', 
+            'anti_dumping', 'multas', 'outras'
+        ];
+        
+        despesasParaBaseICMS.forEach(campo => {
+            if (despesas.calculadas[campo]) {
+                total += despesas.calculadas[campo];
+            }
+        });
+        
+        despesas.total_despesas_aduaneiras = total;
+        
+        console.log(`💰 Total despesas aduaneiras para base ICMS: R$ ${total.toFixed(2)}`);
+    }
+
+    /**
+     * Mapeia código de receita para tipo de despesa
+     */
+    mapearCodigoReceita(codigo) {
+        const mapeamento = {
+            '7811': 'SISCOMEX',           // Taxa Siscomex
+            '5602': 'PIS',                // PIS Importação
+            '5629': 'COFINS',             // COFINS Importação
+            '5529': 'ANTI_DUMPING',       // Taxa Anti-Dumping
+            '1394': 'II_BAGAGEM',         // II Bagagem
+            '1402': 'II_BAGAGEM_2'        // II Bagagem alternativo
+        };
+        
+        return mapeamento[codigo] || `RECEITA_${codigo}`;
+    }
+
+    /**
+     * Mapeia código de acréscimo para tipo
+     */
+    mapearCodigoAcrescimo(codigo) {
+        const mapeamento = {
+            '16': 'CAPATAZIA',            // Capatazia
+            '17': 'TAXA_CE'               // Taxa CE (Conhecimento Embarque)
+        };
+        
+        return mapeamento[codigo] || `ACRESCIMO_${codigo}`;
     }
 
     /**

@@ -19,6 +19,9 @@ class ExpertzyApp {
      */
     async init() {
         try {
+            // ===== LIMPEZA AUTOMÁTICA DE DADOS =====
+            this.clearAllPersistedData();
+            
             // Aguardar carregamento das configurações da calculadora
             await this.calculator.loadConfigurations();
             
@@ -1807,6 +1810,50 @@ class ExpertzyApp {
         } catch (error) {
             console.error('Erro ao exportar custos:', error);
             this.showError('Erro ao exportar custos: ' + error.message);
+        }
+    }
+
+    /**
+     * ===== CORREÇÃO CRÍTICA: Limpa todos os dados persistidos =====
+     * Evita que dados de DIs anteriores permaneçam entre sessões
+     */
+    clearAllPersistedData() {
+        try {
+            console.log('🧹 Limpando dados persistidos...');
+            
+            // Limpar localStorage
+            const keysToPreserve = [
+                'expertzy_config',      // Preservar configurações do usuário
+                'expertzy_aliquotas',   // Preservar alíquotas configuradas
+                'expertzy_beneficios'   // Preservar benefícios configurados
+            ];
+            
+            // Obter todas as chaves do localStorage
+            const allKeys = Object.keys(localStorage);
+            
+            // Remover chaves que não estão na lista de preservação
+            allKeys.forEach(key => {
+                if (!keysToPreserve.includes(key)) {
+                    localStorage.removeItem(key);
+                    console.log(`🗑️ Removido localStorage: ${key}`);
+                }
+            });
+            
+            // Limpar sessionStorage (todos os dados)
+            sessionStorage.clear();
+            console.log('🗑️ sessionStorage limpo');
+            
+            // Resetar variáveis da aplicação
+            this.currentDI = null;
+            this.currentResults = null;
+            
+            // Desabilitar botões até nova DI ser carregada
+            this.disableCroquisButton();
+            
+            console.log('✅ Limpeza de dados concluída');
+            
+        } catch (error) {
+            console.error('❌ Erro ao limpar dados persistidos:', error);
         }
     }
 }
