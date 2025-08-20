@@ -294,6 +294,37 @@ class ExpertzyApp {
         
         const diInfoDiv = document.getElementById('diInfo');
         if (diInfoDiv) {
+            const moedas = diData.moedas || {};
+            const temMultiplasMoedas = moedas.total > 1;
+            
+            let infoMoedas = '';
+            if (temMultiplasMoedas) {
+                infoMoedas = `
+                    <div class="alert alert-info mt-2">
+                        <h6><i class="fas fa-coins"></i> Múltiplas Moedas Detectadas (${moedas.total})</h6>
+                        <div class="row">
+                            <div class="col-12">
+                                ${moedas.lista.map(moeda => 
+                                    `<span class="badge badge-primary mr-1">
+                                        ${moeda.sigla}: ${moeda.taxa.toFixed(6)}
+                                    </span>`
+                                ).join('')}
+                            </div>
+                            <div class="col-12 mt-2">
+                                <small><strong>VMLE/VMLD em:</strong> 
+                                    <span class="badge badge-warning">
+                                        ${moedas.vmle_vmld.sigla} (${moedas.vmle_vmld.taxa.toFixed(6)})
+                                    </span>
+                                </small>
+                                ${!moedas.validacao.aprovado ? 
+                                    '<br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Divergências nas conversões detectadas</small>' 
+                                    : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             diInfoDiv.innerHTML = `
                 <div class="alert alert-success">
                     <h6><i class="fas fa-file-invoice"></i> DI ${diData.numero_di}</h6>
@@ -310,6 +341,7 @@ class ExpertzyApp {
                         </div>
                     </div>
                 </div>
+                ${infoMoedas}
             `;
             // Mostrar o elemento quando houver dados
             diInfoDiv.style.display = 'block';
@@ -1673,27 +1705,43 @@ class ExpertzyApp {
     }
 
     /**
-     * Habilita botão Croqui NF no navbar quando DI está carregada
+     * Habilita botões Croqui NF no navbar quando DI está carregada
      */
     enableCroquisButton() {
-        const btn = document.getElementById('btnCroquisNavbar');
-        if (btn) {
-            btn.disabled = false;
-            btn.title = 'Clique para exportar o croqui da nota fiscal';
-            console.log('Botão Croqui NF habilitado no navbar');
+        const btnExcel = document.getElementById('btnCroquisExcel');
+        const btnPDF = document.getElementById('btnCroquisPDF');
+        
+        if (btnExcel) {
+            btnExcel.disabled = false;
+            btnExcel.title = 'Clique para exportar o croqui em Excel';
         }
+        
+        if (btnPDF) {
+            btnPDF.disabled = false;
+            btnPDF.title = 'Clique para exportar o croqui em PDF';
+        }
+        
+        console.log('Botões Croqui NF habilitados no navbar');
     }
 
     /**
-     * Desabilita botão Croqui NF no navbar
+     * Desabilita botões Croqui NF no navbar
      */
     disableCroquisButton() {
-        const btn = document.getElementById('btnCroquisNavbar');
-        if (btn) {
-            btn.disabled = true;
-            btn.title = 'Carregue uma DI primeiro';
-            console.log('Botão Croqui NF desabilitado no navbar');
+        const btnExcel = document.getElementById('btnCroquisExcel');
+        const btnPDF = document.getElementById('btnCroquisPDF');
+        
+        if (btnExcel) {
+            btnExcel.disabled = true;
+            btnExcel.title = 'Carregue uma DI primeiro';
         }
+        
+        if (btnPDF) {
+            btnPDF.disabled = true;
+            btnPDF.title = 'Carregue uma DI primeiro';
+        }
+        
+        console.log('Botões Croqui NF desabilitados no navbar');
     }
 
     // ========== MÉTODOS DE EXPORTAÇÃO ==========
