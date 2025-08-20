@@ -37,9 +37,14 @@
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData()">
                     <i class="fas fa-download"></i> Exportar
                 </button>
-                <button class="btn btn-outline-light btn-sm mr-2" onclick="if(window.app && window.app.currentDI){window.app.exportarCroquisNF();}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisNavbar" disabled title="Carregue uma DI primeiro">
-                    <i class="fas fa-file-invoice"></i> Croqui NF
-                </button>
+                <div class="btn-group mr-2" role="group">
+                    <button class="btn btn-outline-light btn-sm" onclick="if(window.app && window.app.currentDI){gerarCroquisExcel(window.app.currentDI);}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisExcel" disabled title="Carregue uma DI primeiro">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="if(window.app && window.app.currentDI){gerarCroquisPDF(window.app.currentDI);}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisPDF" disabled title="Carregue uma DI primeiro">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="app.showCalculationMemory()">
                     <i class="fas fa-calculator"></i> Memória
                 </button>
@@ -159,11 +164,16 @@
                                     </ul>
 
                                     <div class="mt-4">
-                                        <h6>Arquivo de Exemplo</h6>
-                                        <p class="small text-muted">Use nosso arquivo de exemplo para testar o sistema:</p>
-                                        <button class="btn btn-outline-primary btn-sm" onclick="loadSample()">
-                                            <i class="fas fa-download"></i> Carregar Exemplo
-                                        </button>
+                                        <h6>Arquivos de Exemplo</h6>
+                                        <p class="small text-muted">Use nossos arquivos de exemplo para testar o sistema:</p>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button class="btn btn-outline-primary btn-sm" onclick="loadSample()">
+                                                <i class="fas fa-download"></i> Carregar Exemplo Padrão
+                                            </button>
+                                            <button class="btn btn-outline-warning btn-sm" onclick="loadMultiCurrencySample()">
+                                                <i class="fas fa-coins"></i> Exemplo Múltiplas Moedas
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
