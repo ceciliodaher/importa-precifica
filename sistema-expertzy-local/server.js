@@ -1,8 +1,9 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
-const PORT = 8080;
+let PORT = 8080;
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -16,6 +17,41 @@ const mimeTypes = {
   '.xml': 'text/xml',
   '.ico': 'image/x-icon'
 };
+
+/**
+ * Verifica se uma porta está disponível
+ */
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.listen(port, () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    
+    server.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Encontra a primeira porta disponível a partir da porta inicial
+ */
+async function findAvailablePort(startPort = 8080) {
+  let port = startPort;
+  
+  while (port < startPort + 100) { // Tenta até 100 portas à frente
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+    port++;
+  }
+  
+  throw new Error('Nenhuma porta disponível encontrada');
+}
 
 const server = http.createServer((req, res) => {
   console.log(`${req.method} ${req.url}`);
@@ -55,8 +91,14 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`
+// Inicializar servidor com detecção automática de porta
+async function startServer() {
+  try {
+    console.log('🔍 Procurando porta disponível...');
+    PORT = await findAvailablePort(8080);
+    
+    server.listen(PORT, () => {
+      console.log(`
 ========================================
    Sistema Expertzy - Servidor Local
 ========================================
@@ -64,11 +106,22 @@ server.listen(PORT, () => {
 ✅ Servidor rodando em: http://localhost:${PORT}
 
 📁 Páginas disponíveis:
-   - Sistema principal: http://localhost:${PORT}/sistema-importacao.html
+   - Sistema principal: http://localhost:${PORT}/sistema-importacao.html  
    - Landing page: http://localhost:${PORT}/index.html
 
 ⚡ Para parar o servidor: Ctrl+C
 
+${PORT !== 8080 ? `⚠️  Porta 8080 ocupada, usando porta ${PORT}` : ''}
+
 ========================================
-  `);
-});
+      `);
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao iniciar servidor:', error.message);
+    process.exit(1);
+  }
+}
+
+// Iniciar servidor
+startServer();

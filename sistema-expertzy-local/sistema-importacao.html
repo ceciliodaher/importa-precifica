@@ -37,14 +37,9 @@
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="exportData()">
                     <i class="fas fa-download"></i> Exportar
                 </button>
-                <div class="btn-group mr-2" role="group">
-                    <button class="btn btn-outline-light btn-sm" onclick="if(window.app && window.app.currentDI){gerarCroquisExcel(window.app.currentDI);}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisExcel" disabled title="Carregue uma DI primeiro">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                    <button class="btn btn-outline-light btn-sm" onclick="if(window.app && window.app.currentDI){gerarCroquisPDF(window.app.currentDI);}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisPDF" disabled title="Carregue uma DI primeiro">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
-                </div>
+                <button class="btn btn-outline-light btn-sm mr-2" onclick="if(window.app && window.app.currentDI){gerarCroquiPDFNovo(window.app.currentDI);}else{alert('Carregue uma DI primeiro para gerar o croqui.');}" id="btnCroquisPDF" disabled title="Carregue uma DI primeiro">
+                    <i class="fas fa-file-pdf"></i> Croqui NF
+                </button>
                 <button class="btn btn-outline-light btn-sm mr-2" onclick="app.showCalculationMemory()">
                     <i class="fas fa-calculator"></i> Memória
                 </button>
@@ -577,6 +572,7 @@
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF for PDF export -->
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Custom Scripts -->
     <script src="js/storage.js"></script>
@@ -585,6 +581,7 @@
     <script src="js/calculationMemory.js"></script>
     <script src="js/pricing.js"></script>
     <script src="js/exportNF.js"></script>
+    <script src="js/exportCroquiNF.js"></script>
     <script src="js/app.js"></script>
     <script src="js/globals.js"></script>
 </body>
