@@ -151,6 +151,9 @@ class ExpertzyApp {
      */
     async processFile(file) {
         try {
+            // Limpar dados anteriores antes de processar novo arquivo
+            this.storage.clearDIData();
+            
             // Validar arquivo
             if (!this.validateFile(file)) {
                 return;
@@ -1705,43 +1708,31 @@ class ExpertzyApp {
     }
 
     /**
-     * Habilita botões Croqui NF no navbar quando DI está carregada
+     * Habilita botão Croqui NF no navbar quando DI está carregada
      */
     enableCroquisButton() {
-        const btnExcel = document.getElementById('btnCroquisExcel');
         const btnPDF = document.getElementById('btnCroquisPDF');
-        
-        if (btnExcel) {
-            btnExcel.disabled = false;
-            btnExcel.title = 'Clique para exportar o croqui em Excel';
-        }
         
         if (btnPDF) {
             btnPDF.disabled = false;
             btnPDF.title = 'Clique para exportar o croqui em PDF';
         }
         
-        console.log('Botões Croqui NF habilitados no navbar');
+        console.log('Botão Croqui NF habilitado no navbar');
     }
 
     /**
-     * Desabilita botões Croqui NF no navbar
+     * Desabilita botão Croqui NF no navbar
      */
     disableCroquisButton() {
-        const btnExcel = document.getElementById('btnCroquisExcel');
         const btnPDF = document.getElementById('btnCroquisPDF');
-        
-        if (btnExcel) {
-            btnExcel.disabled = true;
-            btnExcel.title = 'Carregue uma DI primeiro';
-        }
         
         if (btnPDF) {
             btnPDF.disabled = true;
             btnPDF.title = 'Carregue uma DI primeiro';
         }
         
-        console.log('Botões Croqui NF desabilitados no navbar');
+        console.log('Botão Croqui NF desabilitado no navbar');
     }
 
     // ========== MÉTODOS DE EXPORTAÇÃO ==========

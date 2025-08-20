@@ -116,6 +116,20 @@ class StorageManager {
     }
 
     /**
+     * Limpa dados da DI atual do localStorage
+     */
+    clearDIData() {
+        try {
+            localStorage.removeItem(this.getKey('di_data'));
+            console.log('Dados da DI limpos do localStorage');
+            return true;
+        } catch (error) {
+            console.error('Erro ao limpar dados da DI:', error);
+            return false;
+        }
+    }
+
+    /**
      * Salva configurações de custos extras
      */
     saveCustosExtras(custos) {

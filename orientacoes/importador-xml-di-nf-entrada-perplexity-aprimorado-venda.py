@@ -111,6 +111,28 @@ INCENTIVOS_FISCAIS = {
     }
 }
 
+# Mapeamento de códigos de moeda da Receita Federal
+CODIGOS_MOEDA_RFB = {
+    "220": {"sigla": "USD", "nome": "Dólar dos Estados Unidos"},
+    "860": {"sigla": "INR", "nome": "Rúpia Indiana"},
+    "978": {"sigla": "EUR", "nome": "Euro"},
+    "470": {"sigla": "GBP", "nome": "Libra Esterlina"},
+    "156": {"sigla": "CNY", "nome": "Yuan Chinês"},
+    "392": {"sigla": "JPY", "nome": "Iene Japonês"},
+    "124": {"sigla": "CAD", "nome": "Dólar Canadense"},
+    "036": {"sigla": "AUD", "nome": "Dólar Australiano"},
+    "756": {"sigla": "CHF", "nome": "Franco Suíço"},
+    "554": {"sigla": "NZD", "nome": "Dólar Neozelandês"},
+    "710": {"sigla": "ZAR", "nome": "Rand Sul-Africano"},
+    "484": {"sigla": "MXN", "nome": "Peso Mexicano"},
+    "032": {"sigla": "ARS", "nome": "Peso Argentino"},
+    "152": {"sigla": "CLP", "nome": "Peso Chileno"},
+    "170": {"sigla": "COP", "nome": "Peso Colombiano"},
+    "604": {"sigla": "PEN", "nome": "Sol Peruano"},
+    "858": {"sigla": "UYU", "nome": "Peso Uruguaio"},
+    "000": {"sigla": "N/A", "nome": "Não especificada"}  # Código 000 usado quando não há moeda
+}
+
 # EXPANSÃO DAS ESTRUTURAS EXISTENTES
 CONFIGURACOES_ESPECIAIS = {
     "reducao_base_entrada": {

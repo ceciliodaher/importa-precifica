@@ -11,6 +11,38 @@ class DiParser {
     }
 
     /**
+     * Converte valores do XML respeitando formato específico de cada tipo
+     * @param {string} rawValue - Valor bruto do XML
+     * @param {string} type - Tipo de conversão (monetary, weight, percentage, integer)
+     * @returns {number} Valor convertido
+     */
+    convertValue(rawValue, type = 'integer') {
+        if (!rawValue || rawValue === '0'.repeat(rawValue.length)) {
+            return 0;
+        }
+        
+        const value = parseInt(rawValue);
+        
+        switch(type) {
+            case 'monetary':
+                // Valores monetários em centavos: 10120 → 101.20
+                return value / 100;
+                
+            case 'weight':
+                // Pesos com 5 decimais: 20000 → 0.20000 kg
+                return value / 100000;
+                
+            case 'percentage':
+                // Alíquotas em centésimos: 650 → 6.50%
+                return value / 100;
+                
+            case 'integer':
+            default:
+                return value;
+        }
+    }
+
+    /**
      * Método principal para parsing do XML
      * @param {string} xmlContent - Conteúdo do arquivo XML
      * @returns {Object} Dados estruturados da DI
@@ -46,6 +78,9 @@ class DiParser {
             
             // Extrair informações complementares
             this.extractInformacoesComplementares(xmlDoc);
+            
+            // Processar múltiplas moedas e taxas de câmbio
+            this.processarMultiplasMoedas(xmlDoc);
             
             // Calcular totais
             this.calculateTotals();
@@ -196,7 +231,7 @@ class DiParser {
         
         this.diData.carga = {
             peso_bruto: this.parseNumber(this.getTextContent(diNode, 'cargaPesoBruto'), 1000000),
-            peso_liquido: this.parseNumber(this.getTextContent(diNode, 'cargaPesoLiquido'), 1000000),
+            peso_liquido: this.convertValue(this.getTextContent(diNode, 'cargaPesoLiquido'), 'weight'),
             pais_procedencia_codigo: this.getTextContent(diNode, 'cargaPaisProcedenciaCodigo'),
             pais_procedencia_nome: this.getTextContent(diNode, 'cargaPaisProcedenciaNome'),
             urf_entrada_codigo: this.getTextContent(diNode, 'cargaUrfEntradaCodigo'),
@@ -238,8 +273,8 @@ class DiParser {
             codigo_naladi_ncca: this.getTextContent(adicaoNode, 'dadosMercadoriaCodigoNaladiNCCA'),
             
             // Medidas e quantidades
-            peso_liquido: this.parseNumber(this.getTextContent(adicaoNode, 'dadosMercadoriaPesoLiquido'), 1000000),
-            quantidade_estatistica: this.parseNumber(this.getTextContent(adicaoNode, 'dadosMercadoriaMedidaEstatisticaQuantidade'), 1000000),
+            peso_liquido: this.convertValue(this.getTextContent(adicaoNode, 'dadosMercadoriaPesoLiquido'), 'weight'),
+            quantidade_estatistica: this.convertValue(this.getTextContent(adicaoNode, 'dadosMercadoriaMedidaEstatisticaQuantidade'), 'weight'),
             unidade_estatistica: this.getTextContent(adicaoNode, 'dadosMercadoriaMedidaEstatisticaUnidade'),
             aplicacao_mercadoria: this.getTextContent(adicaoNode, 'dadosMercadoriaAplicacao'),
             condicao_mercadoria: this.getTextContent(adicaoNode, 'dadosMercadoriaCondicao'),
@@ -255,8 +290,8 @@ class DiParser {
             condicao_venda_local: this.getTextContent(adicaoNode, 'condicaoVendaLocal'),
             moeda_negociacao_codigo: this.getTextContent(adicaoNode, 'condicaoVendaMoedaCodigo'),
             moeda_negociacao_nome: this.getTextContent(adicaoNode, 'condicaoVendaMoedaNome'),
-            valor_moeda_negociacao: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorMoeda'), 100000),
-            valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'condicaoVendaValorReais'), 100),
+            valor_moeda_negociacao: this.convertValue(this.getTextContent(adicaoNode, 'condicaoVendaValorMoeda'), 'monetary'),
+            valor_reais: this.convertValue(this.getTextContent(adicaoNode, 'condicaoVendaValorReais'), 'monetary'),
             
             // Método de valoração
             metodo_valoracao_codigo: this.getTextContent(adicaoNode, 'condicaoVendaMetodoValoracaoCodigo'),
@@ -272,11 +307,11 @@ class DiParser {
             tributos: this.extractTributos(adicaoNode),
             
             // Frete e seguro (com análise baseada no incoterm)
-            frete_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorMoedaNegociada'), 100),
-            frete_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'freteValorReais'), 100),
+            frete_valor_moeda_negociada: this.convertValue(this.getTextContent(adicaoNode, 'freteValorMoedaNegociada'), 'monetary'),
+            frete_valor_reais: this.convertValue(this.getTextContent(adicaoNode, 'freteValorReais'), 'monetary'),
             frete_responsabilidade: this.isFreteIncluidoIncoterm(incoterm) ? 'Exportador' : 'Importador',
-            seguro_valor_moeda_negociada: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorMoedaNegociada'), 100),
-            seguro_valor_reais: this.parseNumber(this.getTextContent(adicaoNode, 'seguroValorReais'), 100),
+            seguro_valor_moeda_negociada: this.convertValue(this.getTextContent(adicaoNode, 'seguroValorMoedaNegociada'), 'monetary'),
+            seguro_valor_reais: this.convertValue(this.getTextContent(adicaoNode, 'seguroValorReais'), 'monetary'),
             seguro_responsabilidade: this.isSeguroIncluidoIncoterm(incoterm) ? 'Exportador' : 'Importador',
             
             // Relacionamento comercial
@@ -332,28 +367,28 @@ class DiParser {
             // Imposto de Importação (II)
             ii_regime_codigo: this.getTextContent(adicaoNode, 'iiRegimeTributacaoCodigo'),
             ii_regime_nome: this.getTextContent(adicaoNode, 'iiRegimeTributacaoNome'),
-            ii_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaAdValorem'), 100),
-            ii_base_calculo: this.parseNumber(this.getTextContent(adicaoNode, 'iiBaseCalculo'), 100),
-            ii_valor_calculado: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorCalculado'), 100),
-            ii_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorDevido'), 100),
-            ii_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'iiAliquotaValorRecolher'), 100),
+            ii_aliquota_ad_valorem: this.convertValue(this.getTextContent(adicaoNode, 'iiAliquotaAdValorem'), 'percentage'),
+            ii_base_calculo: this.convertValue(this.getTextContent(adicaoNode, 'iiBaseCalculo'), 'monetary'),
+            ii_valor_calculado: this.convertValue(this.getTextContent(adicaoNode, 'iiAliquotaValorCalculado'), 'monetary'),
+            ii_valor_devido: this.convertValue(this.getTextContent(adicaoNode, 'iiAliquotaValorDevido'), 'monetary'),
+            ii_valor_recolher: this.convertValue(this.getTextContent(adicaoNode, 'iiAliquotaValorRecolher'), 'monetary'),
             
             // IPI
             ipi_regime_codigo: this.getTextContent(adicaoNode, 'ipiRegimeTributacaoCodigo'),
             ipi_regime_nome: this.getTextContent(adicaoNode, 'ipiRegimeTributacaoNome'),
-            ipi_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaAdValorem'), 100),
-            ipi_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorDevido'), 100),
-            ipi_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'ipiAliquotaValorRecolher'), 100),
+            ipi_aliquota_ad_valorem: this.convertValue(this.getTextContent(adicaoNode, 'ipiAliquotaAdValorem'), 'percentage'),
+            ipi_valor_devido: this.convertValue(this.getTextContent(adicaoNode, 'ipiAliquotaValorDevido'), 'monetary'),
+            ipi_valor_recolher: this.convertValue(this.getTextContent(adicaoNode, 'ipiAliquotaValorRecolher'), 'monetary'),
             
             // PIS
-            pis_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaAdValorem'), 100),
-            pis_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorDevido'), 100),
-            pis_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorRecolher'), 100),
+            pis_aliquota_ad_valorem: this.convertValue(this.getTextContent(adicaoNode, 'pisPasepAliquotaAdValorem'), 'percentage'),
+            pis_valor_devido: this.convertValue(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorDevido'), 'monetary'),
+            pis_valor_recolher: this.convertValue(this.getTextContent(adicaoNode, 'pisPasepAliquotaValorRecolher'), 'monetary'),
             
             // COFINS
-            cofins_aliquota_ad_valorem: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaAdValorem'), 100),
-            cofins_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorDevido'), 100),
-            cofins_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'cofinsAliquotaValorRecolher'), 100)
+            cofins_aliquota_ad_valorem: this.convertValue(this.getTextContent(adicaoNode, 'cofinsAliquotaAdValorem'), 'percentage'),
+            cofins_valor_devido: this.convertValue(this.getTextContent(adicaoNode, 'cofinsAliquotaValorDevido'), 'monetary'),
+            cofins_valor_recolher: this.convertValue(this.getTextContent(adicaoNode, 'cofinsAliquotaValorRecolher'), 'monetary')
         };
     }
 
@@ -369,9 +404,9 @@ class DiParser {
                 adicao_numero: numeroAdicao.toString().padStart(3, '0'),
                 numero_sequencial_item: this.getTextContent(produtoNode, 'numeroSequencialItem'),
                 descricao_mercadoria: this.getTextContent(produtoNode, 'descricaoMercadoria').trim(),
-                quantidade: this.parseNumber(this.getTextContent(produtoNode, 'quantidade'), 100000),
+                quantidade: this.convertValue(this.getTextContent(produtoNode, 'quantidade'), 'weight'),
                 unidade_medida: this.getTextContent(produtoNode, 'unidadeMedida').trim(),
-                valor_unitario: this.parseNumber(this.getTextContent(produtoNode, 'valorUnitario'), 10000000)
+                valor_unitario: this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'monetary')
             };
 
             // Calcular valor total do item
@@ -396,6 +431,242 @@ class DiParser {
     }
 
     /**
+     * Extrai taxas de câmbio do campo informação complementar
+     * Procura padrão "TAXA CAMBIAL.....: valor1 valor2 ..." 
+     */
+    extrairTaxasCambio(infoComplementar) {
+        const taxas = [];
+        
+        if (!infoComplementar) return taxas;
+        
+        // Procurar padrão "TAXA CAMBIAL.....: valor1 valor2 ..."
+        const padraoTaxa = /TAXA\s+CAMBIAL[^:]*:\s*([\d,.\s]+)/i;
+        const match = infoComplementar.match(padraoTaxa);
+        
+        if (match) {
+            const valoresStr = match[1].trim();
+            // Extrair números decimais válidos
+            const valores = valoresStr.match(/\d+[,.]?\d*/g) || [];
+            
+            valores.forEach(valor => {
+                const valorLimpo = valor.replace(',', '.');
+                const taxa = parseFloat(valorLimpo);
+                if (taxa > 0) {
+                    taxas.push(taxa);
+                }
+            });
+        }
+        
+        return taxas;
+    }
+
+    /**
+     * Identifica moedas usadas na DI e associa com taxas de câmbio
+     */
+    identificarMoedasETaxas(xmlDoc, taxas) {
+        const moedas = new Map();
+        const diNode = xmlDoc.querySelector('declaracaoImportacao');
+        
+        // Coletar moedas em ordem de aparição
+        const moedasEncontradas = [];
+        
+        // 1. Moeda da condição de venda (VCMV)
+        const primeiraAdicao = diNode.querySelector('adicao');
+        if (primeiraAdicao) {
+            const codVcmv = this.getTextContent(primeiraAdicao, 'condicaoVendaMoedaCodigo');
+            if (codVcmv && codVcmv !== '000') {
+                moedasEncontradas.push(codVcmv);
+            }
+        }
+        
+        // 2. Moeda do frete
+        const codFrete = this.getTextContent(diNode, 'freteMoedaNegociadaCodigo');
+        if (codFrete && codFrete !== '000' && !moedasEncontradas.includes(codFrete)) {
+            moedasEncontradas.push(codFrete);
+        }
+        
+        // 3. Moeda do seguro
+        const codSeguro = this.getTextContent(diNode, 'seguroMoedaNegociadaCodigo');
+        if (codSeguro && codSeguro !== '000' && !moedasEncontradas.includes(codSeguro)) {
+            moedasEncontradas.push(codSeguro);
+        }
+        
+        // 4. Se não encontrou moedas explícitas mas tem taxas, assumir USD como primeira
+        if (moedasEncontradas.length === 0 && taxas.length > 0) {
+            moedasEncontradas.push('220'); // USD
+        }
+        
+        // Associar taxas às moedas
+        moedasEncontradas.forEach((codigo, index) => {
+            const info = window.CODIGOS_MOEDA_RFB?.[codigo] || {
+                sigla: `MOEDA_${codigo}`,
+                nome: `Moeda código ${codigo}`
+            };
+            
+            moedas.set(codigo, {
+                codigo,
+                nome: info.nome,
+                sigla: info.sigla,
+                taxa: taxas[index] || 0,
+                ordem: index
+            });
+        });
+        
+        return moedas;
+    }
+
+    /**
+     * Detecta qual moeda foi usada para VMLE/VMLD comparando taxas
+     */
+    detectarMoedaVmleVmld(vmleDolares, vmleReais, moedas) {
+        if (!vmleDolares || !vmleReais || vmleDolares === 0) {
+            // Se há moedas identificadas, usar a primeira; senão USD
+            return moedas.size > 0 ? moedas.values().next().value.codigo : '220';
+        }
+        
+        const taxaCalculada = vmleReais / vmleDolares;
+        const tolerancia = 0.02; // 2% de tolerância
+        
+        let melhorMoeda = '220';
+        let menorDiferenca = Infinity;
+        
+        // Procurar moeda com taxa mais próxima
+        for (const moeda of moedas.values()) {
+            if (moeda.taxa > 0) {
+                const diferenca = Math.abs(moeda.taxa - taxaCalculada) / moeda.taxa;
+                if (diferenca < menorDiferenca && diferenca < tolerancia) {
+                    menorDiferenca = diferenca;
+                    melhorMoeda = moeda.codigo;
+                }
+            }
+        }
+        
+        return melhorMoeda;
+    }
+
+    /**
+     * Converte valor de uma moeda específica para reais
+     */
+    converterParaReais(valor, codigoMoeda, moedas) {
+        if (!valor || valor === 0 || codigoMoeda === '000') {
+            return 0;
+        }
+        
+        const moeda = moedas.get(codigoMoeda);
+        if (!moeda || !moeda.taxa) {
+            console.warn(`Taxa de câmbio não encontrada para moeda ${codigoMoeda}`);
+            return 0;
+        }
+        
+        return valor * moeda.taxa;
+    }
+
+    /**
+     * Processa múltiplas moedas e taxas de câmbio da DI
+     */
+    processarMultiplasMoedas(xmlDoc) {
+        const infoComplementar = this.diData.informacoes_complementares?.texto_completo || '';
+        
+        // 1. Extrair taxas de câmbio
+        const taxas = this.extrairTaxasCambio(infoComplementar);
+        
+        // 2. Identificar moedas e associar com taxas
+        const moedas = this.identificarMoedasETaxas(xmlDoc, taxas);
+        
+        // 3. Detectar moeda do VMLE/VMLD
+        const diNode = xmlDoc.querySelector('declaracaoImportacao');
+        const vmleDolares = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalDolares'), 100);
+        const vmleReais = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalReais'), 100);
+        
+        const codigoMoedaVmle = this.detectarMoedaVmleVmld(vmleDolares, vmleReais, moedas);
+        const moedaVmle = moedas.get(codigoMoedaVmle);
+        
+        // 4. Estruturar dados
+        this.diData.moedas = {
+            lista: Array.from(moedas.values()),
+            total: moedas.size,
+            vmle_vmld: {
+                codigo: codigoMoedaVmle,
+                nome: moedaVmle?.nome || 'Moeda não identificada',
+                sigla: moedaVmle?.sigla || 'N/A',
+                taxa: moedaVmle?.taxa || 0
+            },
+            validacao: this.validarConversoes(xmlDoc, moedas)
+        };
+        
+        // Log se múltiplas moedas
+        if (moedas.size > 1) {
+            console.log('Múltiplas moedas detectadas:', this.diData.moedas);
+        }
+    }
+
+    /**
+     * Valida conversões de moeda comparando com valores do XML
+     */
+    validarConversoes(xmlDoc, moedas) {
+        const validacao = {
+            testes: [],
+            aprovado: true
+        };
+        
+        const diNode = xmlDoc.querySelector('declaracaoImportacao');
+        
+        // Validar VMLE
+        const vmleDolares = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalDolares'), 100);
+        const vmleReais = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalReais'), 100);
+        
+        if (vmleDolares > 0 && vmleReais > 0) {
+            const codigoMoedaVmle = this.diData.moedas?.vmle_vmld?.codigo || '220';
+            const valorCalculado = this.converterParaReais(vmleDolares, codigoMoedaVmle, moedas);
+            const diferenca = Math.abs(valorCalculado - vmleReais);
+            const tolerancia = vmleReais * 0.01; // 1%
+            
+            const testeVmle = {
+                campo: 'VMLE',
+                valor_moeda_original: vmleDolares,
+                moeda: codigoMoedaVmle,
+                valor_xml_reais: vmleReais,
+                valor_calculado: valorCalculado,
+                diferenca: diferenca,
+                aprovado: diferenca <= tolerancia
+            };
+            
+            validacao.testes.push(testeVmle);
+            if (!testeVmle.aprovado) {
+                validacao.aprovado = false;
+            }
+        }
+        
+        // Validar frete se em moeda diferente
+        const codFrete = this.getTextContent(diNode, 'freteMoedaNegociadaCodigo');
+        const freteValorMoeda = this.convertValue(this.getTextContent(diNode, 'freteTotalMoeda'), 'monetary');
+        const freteReais = this.convertValue(this.getTextContent(diNode, 'freteTotalReais'), 'monetary');
+        
+        if (codFrete && codFrete !== '000' && freteValorMoeda > 0 && freteReais > 0) {
+            const valorCalculadoFrete = this.converterParaReais(freteValorMoeda, codFrete, moedas);
+            const diferencaFrete = Math.abs(valorCalculadoFrete - freteReais);
+            const toleranciaFrete = freteReais * 0.01;
+            
+            const testeFrete = {
+                campo: 'Frete',
+                valor_moeda_original: freteValorMoeda,
+                moeda: codFrete,
+                valor_xml_reais: freteReais,
+                valor_calculado: valorCalculadoFrete,
+                diferenca: diferencaFrete,
+                aprovado: diferencaFrete <= toleranciaFrete
+            };
+            
+            validacao.testes.push(testeFrete);
+            if (!testeFrete.aprovado) {
+                validacao.aprovado = false;
+            }
+        }
+        
+        return validacao;
+    }
+
+    /**
      * Faz parsing das informações complementares para extrair dados estruturados
      */
     parseInformacoesComplementares(texto) {
@@ -415,16 +686,8 @@ class DiParser {
             dados.afrmm_valor = this.parseValueFromString(afrmmMatch[1]);
         }
 
-        // Extrair taxas de câmbio
-        const cambioFobMatch = texto.match(/FOB.*?DOLAR.*?([\d,]+)/i);
-        if (cambioFobMatch) {
-            dados.taxa_cambio_fob = this.parseValueFromString(cambioFobMatch[1]);
-        }
-
-        const cambioFreteMatch = texto.match(/FRETE.*?DOLAR.*?([\d,]+)/i);
-        if (cambioFreteMatch) {
-            dados.taxa_cambio_frete = this.parseValueFromString(cambioFreteMatch[1]);
-        }
+        // As taxas de câmbio são processadas em processarMultiplasMoedas()
+        // e ficam disponíveis em this.diData.moedas_multiplas
 
         // Extrair responsáveis legais
         const responsaveisMatches = texto.matchAll(/(\w+\s+[\w\s]+)\s+CPF:\s*([\d.-]+)/g);

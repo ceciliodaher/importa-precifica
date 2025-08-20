@@ -4,6 +4,34 @@
  */
 
 /**
+ * Mapeamento de códigos de moeda da Receita Federal
+ * Baseado nos códigos ISO 4217 usados nos XMLs das DIs
+ */
+const CODIGOS_MOEDA_RFB = {
+    "220": { sigla: "USD", nome: "Dólar dos Estados Unidos" },
+    "860": { sigla: "INR", nome: "Rúpia Indiana" },
+    "978": { sigla: "EUR", nome: "Euro" },
+    "470": { sigla: "GBP", nome: "Libra Esterlina" },
+    "156": { sigla: "CNY", nome: "Yuan Chinês" },
+    "392": { sigla: "JPY", nome: "Iene Japonês" },
+    "124": { sigla: "CAD", nome: "Dólar Canadense" },
+    "036": { sigla: "AUD", nome: "Dólar Australiano" },
+    "756": { sigla: "CHF", nome: "Franco Suíço" },
+    "554": { sigla: "NZD", nome: "Dólar Neozelandês" },
+    "710": { sigla: "ZAR", nome: "Rand Sul-Africano" },
+    "484": { sigla: "MXN", nome: "Peso Mexicano" },
+    "032": { sigla: "ARS", nome: "Peso Argentino" },
+    "152": { sigla: "CLP", nome: "Peso Chileno" },
+    "170": { sigla: "COP", nome: "Peso Colombiano" },
+    "604": { sigla: "PEN", nome: "Sol Peruano" },
+    "858": { sigla: "UYU", nome: "Peso Uruguaio" },
+    "000": { sigla: "N/A", nome: "Não especificada" }
+};
+
+// Disponibilizar globalmente
+window.CODIGOS_MOEDA_RFB = CODIGOS_MOEDA_RFB;
+
+/**
  * Processa arquivo XML selecionado
  * Conecta com o botão "Processar Arquivo" da interface
  */
@@ -18,6 +46,47 @@ function processFile() {
     } else {
         console.error('Sistema não inicializado');
     }
+}
+
+/**
+ * Carrega arquivo de exemplo com múltiplas moedas
+ * Conecta com botão específico para teste de múltiplas moedas
+ */
+function loadMultiCurrencySample() {
+    if (!window.app) {
+        console.error('Sistema não inicializado');
+        return;
+    }
+
+    window.app.showLoading('Carregando exemplo com múltiplas moedas...');
+
+    fetch('samples/2518173187.xml')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(xmlContent => {
+            window.app.currentDI = window.app.xmlParser.parseXML(xmlContent);
+            
+            window.app.storage.saveDI(window.app.currentDI);
+            window.app.updateDIInfo(window.app.currentDI);
+            window.app.populateDataTab(window.app.currentDI);
+            
+            window.app.enableTab('dados');
+            window.app.enableTab('custos');
+            window.app.showCustosInterface();
+            
+            window.app.hideLoading();
+            window.app.showSuccess('Exemplo com múltiplas moedas carregado com sucesso!');
+            window.app.switchTab('dados');
+        })
+        .catch(error => {
+            window.app.hideLoading();
+            console.error('Erro ao carregar exemplo:', error);
+            window.app.showError('Erro ao carregar arquivo: ' + error.message);
+        });
 }
 
 /**

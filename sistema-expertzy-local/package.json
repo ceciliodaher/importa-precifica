@@ -21,5 +21,8 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.40.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
   }
 }

@@ -1,0 +1,1082 @@
+/**
+ * Módulo de Exportação de Croqui de Nota Fiscal
+ * Sistema Expertzy - Importação e Precificação
+ * 
+ * @author Sistema Expertzy
+ * @version 2.0.0
+ * @description Gera croqui de NF em Excel e PDF seguindo padrão brasileiro
+ */
+
+class CroquiNFExporter {
+    constructor(diData) {
+        this.di = diData;
+        this.empresa = 'EXPERTZY';
+        this.subtitulo = 'SISTEMA DE IMPORTAÇÃO E PRECIFICAÇÃO';
+        this.versao = '2.0.0';
+        
+        // Configurações de impostos por estado
+        this.aliquotasICMS = {
+            'GO': 19.00,  // Goiás
+            'SP': 18.00,  // São Paulo
+            'RJ': 20.00,  // Rio de Janeiro
+            'MG': 18.00,  // Minas Gerais
+            'SC': 17.00,  // Santa Catarina
+            'ES': 17.00,  // Espírito Santo
+            'RS': 18.00,  // Rio Grande do Sul
+            'PR': 18.00,  // Paraná
+            'BA': 18.00,  // Bahia
+            'PE': 18.00,  // Pernambuco
+            'CE': 18.00,  // Ceará
+            'DEFAULT': 18.00
+        };
+        
+        console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', diData.numero_di);
+        
+        this.initializeStyles();
+        this.prepareAllData();
+    }
+    
+    initializeStyles() {
+        this.excelStyles = {
+            header: {
+                font: { bold: true, size: 14, color: { rgb: "003366" } },
+                fill: { fgColor: { rgb: "E8F1F8" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            },
+            subtitle: {
+                font: { bold: false, size: 11, color: { rgb: "003366" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            },
+            tableHeader: {
+                font: { bold: true, size: 9, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "003366" } },
+                border: { 
+                    top: { style: "thin", color: { rgb: "000000" } }, 
+                    bottom: { style: "thin", color: { rgb: "000000" } }, 
+                    left: { style: "thin", color: { rgb: "000000" } }, 
+                    right: { style: "thin", color: { rgb: "000000" } } 
+                },
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            },
+            cell: {
+                border: { 
+                    top: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    bottom: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    left: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    right: { style: "thin", color: { rgb: "CCCCCC" } } 
+                }
+            },
+            currency: {
+                numFmt: '"R$" #,##0.00',
+                alignment: { horizontal: "right" },
+                border: { 
+                    top: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    bottom: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    left: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    right: { style: "thin", color: { rgb: "CCCCCC" } } 
+                }
+            },
+            percentage: {
+                numFmt: '0.00"%"',
+                alignment: { horizontal: "center" },
+                border: { 
+                    top: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    bottom: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    left: { style: "thin", color: { rgb: "CCCCCC" } }, 
+                    right: { style: "thin", color: { rgb: "CCCCCC" } } 
+                }
+            },
+            totalsHeader: {
+                font: { bold: true, size: 10, color: { rgb: "003366" } },
+                fill: { fgColor: { rgb: "F0F0F0" } },
+                border: { 
+                    top: { style: "medium", color: { rgb: "000000" } }, 
+                    bottom: { style: "thin", color: { rgb: "000000" } }, 
+                    left: { style: "thin", color: { rgb: "000000" } }, 
+                    right: { style: "thin", color: { rgb: "000000" } } 
+                }
+            },
+            totalsValue: {
+                font: { bold: true, size: 10 },
+                numFmt: '"R$" #,##0.00',
+                alignment: { horizontal: "right" },
+                border: { 
+                    top: { style: "thin", color: { rgb: "000000" } }, 
+                    bottom: { style: "medium", color: { rgb: "000000" } }, 
+                    left: { style: "thin", color: { rgb: "000000" } }, 
+                    right: { style: "thin", color: { rgb: "000000" } } 
+                }
+            }
+        };
+    }
+    
+    // ========== PREPARAÇÃO DE DADOS ==========
+    
+    prepareAllData() {
+        console.log('📊 Preparando dados do croqui...');
+        this.header = this.prepareHeader();
+        this.produtos = this.prepareProdutos();
+        this.totais = this.prepareTotais();
+        console.log('✅ Dados preparados:', { 
+            produtos: this.produtos.length, 
+            totais: this.totais 
+        });
+        
+    }
+    
+    prepareHeader() {
+        const importador = this.di.importador || {};
+        const fornecedor = this.extractFornecedor();
+        
+        // Taxa de câmbio
+        let taxaCambio = 5.3928; // Default
+        if (this.di.moedas?.lista?.length > 0) {
+            const moedaPrincipal = this.di.moedas.lista[0];
+            if (moedaPrincipal.taxa_conversao) {
+                taxaCambio = moedaPrincipal.taxa_conversao;
+            }
+        }
+        
+        return {
+            empresa: this.empresa,
+            subtitulo: this.subtitulo,
+            di_numero: this.di.numero_di,
+            data_registro: this.formatDate(this.di.data_registro),
+            data_hora: new Date().toLocaleString('pt-BR'),
+            
+            importador: {
+                nome: importador.nome,
+                cnpj: this.formatCNPJ(importador.cnpj),
+                endereco: `${importador.endereco_logradouro || ''}, ${importador.endereco_numero || ''}`.trim(),
+                complemento: importador.endereco_complemento || '',
+                bairro: importador.endereco_bairro || '',
+                municipio: importador.endereco_municipio || importador.endereco_cidade || '',
+                uf: importador.endereco_uf || '',
+                cep: this.formatCEP(importador.endereco_cep),
+                ie: importador.inscricao_estadual || ''
+            },
+            
+            fornecedor: fornecedor,
+            
+            // Referências
+            referencia_twa: this.extractReferenciaTWA(),
+            referencia_importador: this.extractReferenciaImportador(),
+            
+            // Taxa de câmbio
+            moedas: this.di.moedas,
+            taxa_cambio: taxaCambio.toFixed(8)
+        };
+    }
+    
+    prepareProdutos() {
+        const produtos = [];
+        let itemCounter = 1;
+        
+        // Obter alíquota ICMS uma vez (é a mesma para toda a DI)
+        const aliqICMS = this.getAliquotaICMS();
+        
+        this.di.adicoes.forEach(adicao => {
+            // Obter alíquota IPI específica da adição
+            const aliqIPI = this.getAliquotaIPI(adicao);
+            
+            // Para cada produto na adição
+            const produtosList = adicao.produtos || [];
+            if (produtosList.length === 0) {
+                // Se não há lista de produtos, criar um item único da adição
+                produtosList.push({
+                    descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
+                    quantidade: adicao.quantidade_estatistica || 1,
+                    valor_unitario: adicao.valor_unitario || 0
+                });
+            }
+            
+            produtosList.forEach(produto => {
+                const valorUnitarioReais = this.convertToReais(
+                    produto.valor_unitario || adicao.valor_unitario || 0, 
+                    adicao
+                );
+                const valorTotalReais = this.convertToReais(
+                    adicao.valor_moeda_negociacao || 0, 
+                    adicao
+                );
+                
+                // Calcular bases e valores de impostos
+                const bcICMS = this.calculateBaseICMS(adicao, valorTotalReais);
+                const valorICMS = (bcICMS * aliqICMS) / 100;
+                
+                const bcIPI = this.calculateBaseIPI(adicao, valorTotalReais);
+                const valorIPI = (bcIPI * aliqIPI) / 100;
+                
+                const produtoProcessado = {
+                    // Identificação
+                    adicao: adicao.numero_adicao || '001',
+                    item: this.generateItemCode(itemCounter),
+                    descricao: this.formatDescription(
+                        produto.descricao_mercadoria || adicao.descricao_mercadoria || ''
+                    ),
+                    ncm: adicao.ncm || '',
+                    
+                    // Quantidades (peso já vem convertido do XMLParser)
+                    peso_kg: adicao.peso_liquido || 0,
+                    quant_cx: 1, // Default
+                    quant_por_cx: produto.quantidade || adicao.quantidade_estatistica || 1,
+                    total_un: produto.quantidade || adicao.quantidade_estatistica || 1,
+                    
+                    // Valores em R$
+                    valor_unitario: valorUnitarioReais,
+                    valor_total: valorTotalReais,
+                    
+                    // Base de Cálculo e Impostos
+                    bc_icms: bcICMS,
+                    valor_icms: valorICMS,
+                    bc_ipi: bcIPI,
+                    valor_ipi: valorIPI,
+                    
+                    // ALÍQUOTAS (CAMPOS CRÍTICOS)
+                    aliq_icms: aliqICMS,
+                    aliq_ipi: aliqIPI,
+                    
+                    // Substituição Tributária (geralmente não aplicável em importação)
+                    mva: '-',
+                    bc_st: 0,
+                    valor_st: 0,
+                    fp: '-',
+                    
+                    // PIS/COFINS
+                    valor_pis: adicao.tributos?.pis_valor_devido || 0,
+                    valor_cofins: adicao.tributos?.cofins_valor_devido || 0
+                };
+                
+                produtos.push(produtoProcessado);
+                itemCounter++;
+            });
+        });
+        
+        return produtos;
+    }
+    
+    prepareTotais() {
+        // Calcular totais a partir dos produtos processados
+        const totais = {
+            base_calculo_icms: 0,
+            valor_icms: 0,
+            base_calculo_icms_st: 0,
+            valor_icms_st: 0,
+            valor_total_produtos: 0,
+            valor_frete: this.di.totais?.valor_frete || 0,
+            valor_seguro: this.di.totais?.valor_seguro || 0,
+            valor_desconto: 0,
+            outras_despesas: this.di.totais?.despesas_aduaneiras || 0,
+            valor_ii: this.di.totais?.valor_total_ii || 0,
+            valor_ipi: 0,
+            valor_pis: 0,
+            valor_cofins: 0,
+            valor_total_nota: 0
+        };
+        
+        // Somar valores dos produtos
+        this.produtos.forEach(produto => {
+            totais.base_calculo_icms += produto.bc_icms;
+            totais.valor_icms += produto.valor_icms;
+            totais.valor_total_produtos += produto.valor_total;
+            totais.valor_ipi += produto.valor_ipi;
+            totais.valor_pis += produto.valor_pis;
+            totais.valor_cofins += produto.valor_cofins;
+        });
+        
+        // Calcular total da nota
+        totais.valor_total_nota = totais.valor_total_produtos + 
+                                  totais.valor_ipi + 
+                                  totais.outras_despesas -
+                                  totais.valor_desconto;
+        
+        return totais;
+    }
+    
+    // ========== MÉTODOS DE CÁLCULO ==========
+    
+    getAliquotaICMS() {
+        const uf = this.di.importador?.endereco_uf || 'DEFAULT';
+        const aliquota = this.aliquotasICMS[uf] || this.aliquotasICMS.DEFAULT;
+        console.log(`📊 Alíquota ICMS para ${uf}: ${aliquota}%`);
+        return aliquota;
+    }
+    
+    getAliquotaIPI(adicao) {
+        // IPI já vem convertido pelo XMLParser (6.50%)
+        const aliquota = adicao.tributos?.ipi_aliquota_ad_valorem || 0;
+        console.log(`📊 Alíquota IPI da adição ${adicao.numero_adicao}: ${aliquota}%`);
+        return aliquota;
+    }
+    
+    calculateBaseICMS(adicao, valorMercadoria) {
+        // Base ICMS = Valor da Mercadoria + II + IPI + PIS + COFINS + Despesas
+        let base = valorMercadoria;
+        
+        // Adicionar tributos (já convertidos pelo XMLParser)
+        if (adicao.tributos?.ii_valor_devido) {
+            base += adicao.tributos.ii_valor_devido;
+        }
+        
+        if (adicao.tributos?.ipi_valor_devido) {
+            base += adicao.tributos.ipi_valor_devido;
+        }
+        
+        if (adicao.tributos?.pis_valor_devido) {
+            base += adicao.tributos.pis_valor_devido;
+        }
+        
+        if (adicao.tributos?.cofins_valor_devido) {
+            base += adicao.tributos.cofins_valor_devido;
+        }
+        
+        return base;
+    }
+    
+    calculateBaseIPI(adicao, valorMercadoria) {
+        // Base IPI = Valor da Mercadoria + II
+        let base = valorMercadoria;
+        
+        // Adicionar II se houver (já convertido pelo XMLParser)
+        if (adicao.tributos?.ii_valor_devido) {
+            base += adicao.tributos.ii_valor_devido;
+        }
+        
+        return base;
+    }
+    
+    convertToReais(valor, adicao) {
+        // Obter código da moeda e taxa de conversão
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220'; // 220 = USD
+        
+        // Buscar taxa de conversão
+        let taxa = 5.3928; // Default
+        if (this.di.moedas?.lista) {
+            const moeda = this.di.moedas.lista.find(m => m.codigo === codigoMoeda);
+            if (moeda?.taxa_conversao) {
+                taxa = moeda.taxa_conversao;
+            }
+        }
+        
+        return valor * taxa;
+    }
+    
+    // ========== MÉTODOS AUXILIARES ==========
+    
+    generateItemCode(counter) {
+        return `IC${String(counter).padStart(4, '0')}`;
+    }
+    
+    formatDescription(descricao) {
+        if (!descricao) return '';
+        // Limpar e formatar descrição
+        return descricao
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toUpperCase()
+            .substring(0, 100);
+    }
+    
+    formatDate(dateString) {
+        if (!dateString) return '';
+        
+        // Se já está formatada DD/MM/AAAA
+        if (dateString.includes('/')) {
+            return dateString;
+        }
+        
+        // Se está em formato AAAAMMDD
+        if (dateString.length === 8) {
+            const ano = dateString.substring(0, 4);
+            const mes = dateString.substring(4, 6);
+            const dia = dateString.substring(6, 8);
+            return `${dia}/${mes}/${ano}`;
+        }
+        
+        return dateString;
+    }
+    
+    formatCNPJ(cnpj) {
+        if (!cnpj) return '';
+        const numbers = cnpj.replace(/\D/g, '');
+        if (numbers.length !== 14) return cnpj;
+        return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    
+    formatCEP(cep) {
+        if (!cep) return '';
+        const numbers = cep.replace(/\D/g, '');
+        if (numbers.length !== 8) return cep;
+        return numbers.replace(/(\d{5})(\d{3})/, '$1-$2');
+    }
+    
+    formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+    
+    extractFornecedor() {
+        // Tentar extrair dados do fornecedor das adições
+        if (this.di.adicoes && this.di.adicoes.length > 0) {
+            const primeiraAdicao = this.di.adicoes[0];
+            return {
+                nome: primeiraAdicao.fornecedor_nome || '',
+                endereco: `${primeiraAdicao.fornecedor_logradouro || ''} ${primeiraAdicao.fornecedor_cidade || ''}`.trim(),
+                pais: primeiraAdicao.fornecedor_estado || primeiraAdicao.pais_aquisicao || '',
+                cnpj: ''
+            };
+        }
+        return { nome: '', endereco: '', pais: '', cnpj: '' };
+    }
+    
+    extractReferenciaTWA() {
+        // Buscar referência TWA nas informações complementares
+        if (this.di.informacao_complementar) {
+            const match = this.di.informacao_complementar.match(/Nossa Referência[.:]+\s*([^\s\n]+)/i);
+            if (match) return match[1];
+        }
+        return '';
+    }
+    
+    extractReferenciaImportador() {
+        // Buscar referência do importador nas informações complementares
+        if (this.di.informacao_complementar) {
+            const match = this.di.informacao_complementar.match(/REF\.IMPORTADOR[.:]+\s*([^\s\n]+)/i);
+            if (match) return match[1];
+        }
+        return '';
+    }
+    
+    // ========== GERAÇÃO EXCEL ==========
+    
+    async generateExcel() {
+        try {
+            console.log('📝 Iniciando geração do Excel...');
+            
+            if (typeof XLSX === 'undefined') {
+                throw new Error('Biblioteca SheetJS não encontrada');
+            }
+            
+            const wb = XLSX.utils.book_new();
+            const ws = this.createExcelWorksheet();
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Croqui NF");
+            
+            // Configurações do workbook
+            wb.Props = {
+                Title: `Croqui NF - DI ${this.di.numero_di}`,
+                Author: 'Sistema Expertzy',
+                CreatedDate: new Date()
+            };
+            
+            const buffer = XLSX.write(wb, {
+                bookType: 'xlsx',
+                type: 'array',
+                cellStyles: true,
+                bookSST: false
+            });
+            
+            console.log('✅ Excel gerado com sucesso');
+            return buffer;
+            
+        } catch (error) {
+            console.error('❌ Erro ao gerar Excel:', error);
+            throw error;
+        }
+    }
+    
+    createExcelWorksheet() {
+        const ws = {};
+        let row = 1;
+        
+        // CABEÇALHO EXPERTZY
+        this.addCell(ws, 'A1', this.empresa, this.excelStyles.header);
+        this.mergeCells(ws, 'A1:T1');
+        
+        this.addCell(ws, 'A2', this.subtitulo, this.excelStyles.subtitle);
+        this.mergeCells(ws, 'A2:T2');
+        
+        row = 4;
+        
+        // TÍTULO DO DOCUMENTO
+        this.addCell(ws, `A${row}`, 'CROQUI NOTA FISCAL DE ENTRADA', this.excelStyles.header);
+        this.mergeCells(ws, `A${row}:T${row}`);
+        row += 2;
+        
+        // INFORMAÇÕES DA DI
+        this.addCell(ws, `A${row}`, `DI: ${this.header.di_numero}`, this.excelStyles.cell);
+        this.mergeCells(ws, `A${row}:D${row}`);
+        
+        this.addCell(ws, `E${row}`, `DATA DO REGISTRO: ${this.header.data_registro}`, this.excelStyles.cell);
+        this.mergeCells(ws, `E${row}:J${row}`);
+        
+        this.addCell(ws, `K${row}`, `Cotação US$ ${this.header.taxa_cambio}`, this.excelStyles.cell);
+        this.mergeCells(ws, `K${row}:T${row}`);
+        row += 2;
+        
+        // CABEÇALHOS DA TABELA DE PRODUTOS
+        const headers = [
+            'Adição', 'ITEM', 'PRODUTO', 'NCM', 'PESO',
+            'QUANT CX', 'QUANT\nP/CX', 'TOTAL UN',
+            'V. UNIT\nReal R$', 'V. TOTAL\nReal R$',
+            'BC ICMS', 'V.ICMS', 'BC IPI', 'V.IPI',
+            'ALIQ ICMS', 'ALIQ IPI',
+            'MVA', 'BC ST', 'ST', 'FP'
+        ];
+        
+        headers.forEach((header, index) => {
+            const col = String.fromCharCode(65 + index); // A, B, C...
+            this.addCell(ws, `${col}${row}`, header, this.excelStyles.tableHeader);
+        });
+        row++;
+        
+        // DADOS DOS PRODUTOS
+        this.produtos.forEach(produto => {
+            this.addCell(ws, `A${row}`, produto.adicao, this.excelStyles.cell);
+            this.addCell(ws, `B${row}`, produto.item, this.excelStyles.cell);
+            this.addCell(ws, `C${row}`, produto.descricao, this.excelStyles.cell);
+            this.addCell(ws, `D${row}`, produto.ncm, this.excelStyles.cell);
+            this.addCell(ws, `E${row}`, produto.peso_kg.toFixed(2), this.excelStyles.cell);
+            this.addCell(ws, `F${row}`, produto.quant_cx, this.excelStyles.cell);
+            this.addCell(ws, `G${row}`, produto.quant_por_cx, this.excelStyles.cell);
+            this.addCell(ws, `H${row}`, produto.total_un, this.excelStyles.cell);
+            this.addCell(ws, `I${row}`, produto.valor_unitario, this.excelStyles.currency);
+            this.addCell(ws, `J${row}`, produto.valor_total, this.excelStyles.currency);
+            this.addCell(ws, `K${row}`, produto.bc_icms, this.excelStyles.currency);
+            this.addCell(ws, `L${row}`, produto.valor_icms, this.excelStyles.currency);
+            this.addCell(ws, `M${row}`, produto.bc_ipi, this.excelStyles.currency);
+            this.addCell(ws, `N${row}`, produto.valor_ipi, this.excelStyles.currency);
+            
+            // ALÍQUOTAS FORMATADAS COMO PERCENTUAL
+            this.addCell(ws, `O${row}`, produto.aliq_icms, this.excelStyles.percentage);
+            this.addCell(ws, `P${row}`, produto.aliq_ipi, this.excelStyles.percentage);
+            
+            this.addCell(ws, `Q${row}`, produto.mva, this.excelStyles.cell);
+            this.addCell(ws, `R${row}`, produto.bc_st, this.excelStyles.currency);
+            this.addCell(ws, `S${row}`, produto.valor_st, this.excelStyles.currency);
+            this.addCell(ws, `T${row}`, produto.fp, this.excelStyles.cell);
+            
+            row++;
+        });
+        
+        // LINHA DE TOTAL
+        row++;
+        this.addCell(ws, `A${row}`, 'TOTAL', this.excelStyles.totalsHeader);
+        this.mergeCells(ws, `A${row}:H${row}`);
+        
+        // Somar totais
+        let totalValor = 0;
+        let totalICMS = 0;
+        let totalIPI = 0;
+        this.produtos.forEach(p => {
+            totalValor += p.valor_total;
+            totalICMS += p.valor_icms;
+            totalIPI += p.valor_ipi;
+        });
+        
+        this.addCell(ws, `I${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `J${row}`, totalValor, this.excelStyles.totalsValue);
+        this.addCell(ws, `K${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `L${row}`, totalICMS, this.excelStyles.totalsValue);
+        this.addCell(ws, `M${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `N${row}`, totalIPI, this.excelStyles.totalsValue);
+        this.addCell(ws, `O${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `P${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `Q${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `R${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `S${row}`, '', this.excelStyles.totalsHeader);
+        this.addCell(ws, `T${row}`, '', this.excelStyles.totalsHeader);
+        
+        row += 3;
+        
+        // SEÇÃO DE CÁLCULO DO IMPOSTO
+        this.addCell(ws, `A${row}`, 'CÁLCULO DO IMPOSTO', this.excelStyles.header);
+        this.mergeCells(ws, `A${row}:T${row}`);
+        row += 2;
+        
+        // Primeira linha de totais
+        this.addCell(ws, `A${row}`, 'Base de Cálculo do ICMS', this.excelStyles.cell);
+        this.mergeCells(ws, `A${row}:B${row}`);
+        this.addCell(ws, `C${row}`, this.totais.base_calculo_icms, this.excelStyles.currency);
+        
+        this.addCell(ws, `D${row}`, 'VALOR DO ICMS', this.excelStyles.cell);
+        this.mergeCells(ws, `D${row}:E${row}`);
+        this.addCell(ws, `F${row}`, this.totais.valor_icms, this.excelStyles.currency);
+        
+        this.addCell(ws, `G${row}`, 'BC ST', this.excelStyles.cell);
+        this.addCell(ws, `H${row}`, this.totais.base_calculo_icms_st, this.excelStyles.currency);
+        
+        this.addCell(ws, `I${row}`, 'ICMS ST', this.excelStyles.cell);
+        this.addCell(ws, `J${row}`, this.totais.valor_icms_st, this.excelStyles.currency);
+        
+        this.addCell(ws, `K${row}`, 'VALOR TOTAL DOS PRODUTOS', this.excelStyles.cell);
+        this.mergeCells(ws, `K${row}:M${row}`);
+        this.addCell(ws, `N${row}`, this.totais.valor_total_produtos, this.excelStyles.currency);
+        row++;
+        
+        // Segunda linha de totais
+        this.addCell(ws, `A${row}`, 'Total do Frete', this.excelStyles.cell);
+        this.addCell(ws, `B${row}`, this.totais.valor_frete, this.excelStyles.currency);
+        
+        this.addCell(ws, `C${row}`, 'Valor do Seguro', this.excelStyles.cell);
+        this.addCell(ws, `D${row}`, this.totais.valor_seguro, this.excelStyles.currency);
+        
+        this.addCell(ws, `E${row}`, 'Total do Desconto', this.excelStyles.cell);
+        this.addCell(ws, `F${row}`, this.totais.valor_desconto, this.excelStyles.currency);
+        
+        this.addCell(ws, `G${row}`, 'Outras Despesas', this.excelStyles.cell);
+        this.mergeCells(ws, `G${row}:H${row}`);
+        this.addCell(ws, `I${row}`, this.totais.outras_despesas, this.excelStyles.currency);
+        
+        this.addCell(ws, `J${row}`, 'Valor do II', this.excelStyles.cell);
+        this.addCell(ws, `K${row}`, this.totais.valor_ii, this.excelStyles.currency);
+        
+        this.addCell(ws, `L${row}`, 'VALOR DO IPI', this.excelStyles.cell);
+        this.addCell(ws, `M${row}`, this.totais.valor_ipi, this.excelStyles.currency);
+        row++;
+        
+        // Terceira linha de totais
+        this.addCell(ws, `A${row}`, 'PIS', this.excelStyles.cell);
+        this.addCell(ws, `B${row}`, this.totais.valor_pis, this.excelStyles.currency);
+        
+        this.addCell(ws, `C${row}`, 'COFINS', this.excelStyles.cell);
+        this.addCell(ws, `D${row}`, this.totais.valor_cofins, this.excelStyles.currency);
+        
+        this.addCell(ws, `K${row}`, 'VALOR TOTAL DA NOTA', this.excelStyles.totalsHeader);
+        this.mergeCells(ws, `K${row}:M${row}`);
+        this.addCell(ws, `N${row}`, this.totais.valor_total_nota, this.excelStyles.totalsValue);
+        
+        // Definir range e larguras
+        ws['!ref'] = `A1:T${row + 2}`;
+        this.setColumnWidths(ws);
+        
+        // Adicionar merges ao worksheet
+        if (!ws['!merges']) {
+            ws['!merges'] = [];
+        }
+        
+        return ws;
+    }
+    
+    // ========== GERAÇÃO PDF ==========
+    
+    async generatePDF() {
+        try {
+            console.log('📝 Iniciando geração do PDF...');
+            
+            // Verificação correta do jsPDF
+            if (typeof window.jspdf === 'undefined' && typeof jspdf === 'undefined') {
+                throw new Error('Biblioteca jsPDF não encontrada');
+            }
+            
+            const { jsPDF } = window.jspdf || jspdf;
+            const doc = new jsPDF('portrait', 'mm', 'a4');
+            
+            // Configurar fontes
+            doc.setFont('helvetica');
+            
+            // LOGO E CABEÇALHO EXPERTZY
+            this.addLogoAndHeader(doc);
+            
+            // SEÇÃO DESTINATÁRIO/REMETENTE
+            this.addDestinatarioSection(doc);
+            
+            // DADOS DOS PRODUTOS
+            this.addProdutosSection(doc);
+            
+            // CÁLCULO DO IMPOSTO
+            this.addCalculoImpostoSection(doc);
+            
+            // INFORMAÇÕES COMPLEMENTARES
+            this.addInformacoesComplementares(doc);
+            
+            // Gerar buffer
+            const pdfBuffer = doc.output('arraybuffer');
+            
+            console.log('✅ PDF gerado com sucesso');
+            return pdfBuffer;
+            
+        } catch (error) {
+            console.error('❌ Erro ao gerar PDF:', error);
+            throw error;
+        }
+    }
+    
+    
+    createManualPDFTable(doc) {
+        // Implementação de fallback caso autoTable não esteja disponível
+        let y = 55;
+        const lineHeight = 7;
+        
+        // Cabeçalhos
+        doc.setFontSize(8);
+        doc.setFillColor(0, 51, 102);
+        doc.rect(20, y, 257, lineHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text('Adição | Item | Produto | NCM | Peso | Valores...', 22, y + 5);
+        
+        // Resetar cor do texto
+        doc.setTextColor(0, 0, 0);
+        y += lineHeight;
+        
+        // Produtos
+        doc.setFontSize(7);
+        this.produtos.forEach(produto => {
+            doc.text(`${produto.adicao} | ${produto.item} | ${produto.descricao.substring(0, 20)}...`, 22, y + 5);
+            y += lineHeight;
+        });
+    }
+    
+    addLogoAndHeader(doc) {
+        // LOGO EXPERTZY
+        doc.setFillColor(0, 51, 102);
+        doc.rect(15, 10, 40, 25, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('EXPERTZY', 35, 20, { align: 'center' });
+        doc.setFontSize(8);
+        doc.text('SISTEMA DE IMPORTAÇÃO', 35, 26, { align: 'center' });
+        doc.text('E PRECIFICAÇÃO', 35, 30, { align: 'center' });
+        
+        // TÍTULO PRINCIPAL
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CROQUI NOTA FISCAL DE ENTRADA', 105, 20, { align: 'center' });
+        
+        // INFORMAÇÕES DA DI
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`DI: ${this.header.di_numero}`, 15, 45);
+        doc.text(`DATA REGISTRO: ${this.header.data_registro}`, 70, 45);
+        doc.text(`CÂMBIO USD: ${this.header.taxa_cambio}`, 140, 45);
+        
+        // Linha separadora
+        doc.setLineWidth(0.5);
+        doc.line(15, 50, 195, 50);
+    }
+    
+    addDestinatarioSection(doc) {
+        let y = 55;
+        
+        // DESTINATÁRIO/REMETENTE
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DESTINATÁRIO/REMETENTE', 15, y);
+        
+        y += 5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        
+        // Dados do importador
+        doc.text(`NOME: ${this.header.importador.nome}`, 15, y);
+        y += 4;
+        doc.text(`CNPJ: ${this.header.importador.cnpj}`, 15, y);
+        y += 4;
+        doc.text(`ENDEREÇO: ${this.header.importador.endereco}`, 15, y);
+        y += 4;
+        doc.text(`MUNICÍPIO: ${this.header.importador.municipio} - ${this.header.importador.uf}`, 15, y);
+        y += 4;
+        doc.text(`CEP: ${this.header.importador.cep}`, 15, y);
+        
+        // Dados do fornecedor
+        doc.text(`FORNECEDOR: ${this.header.fornecedor.nome}`, 110, y - 16);
+        doc.text(`PAÍS: ${this.header.fornecedor.pais}`, 110, y - 12);
+        doc.text(`ENDEREÇO: ${this.header.fornecedor.endereco}`, 110, y - 8);
+        
+        return y + 8;
+    }
+    
+    addProdutosSection(doc) {
+        const startY = 90;
+        
+        // DADOS DOS PRODUTOS
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DADOS DOS PRODUTOS / SERVIÇOS', 15, startY);
+        
+        if (doc.autoTable) {
+            const tableData = this.produtos.map(p => [
+                p.adicao,
+                p.descricao.substring(0, 35),
+                p.ncm,
+                'MG', // Unidade
+                p.total_un.toFixed(2),
+                p.valor_unitario.toFixed(4),
+                p.valor_total.toFixed(2),
+                p.bc_icms.toFixed(2),
+                p.valor_icms.toFixed(2),
+                p.valor_ipi.toFixed(2),
+                p.aliq_icms.toFixed(2),
+                p.aliq_ipi.toFixed(2)
+            ]);
+            
+            doc.autoTable({
+                startY: startY + 5,
+                head: [[
+                    'CÓDIGO',
+                    'DESCRIÇÃO PRODUTO / SERVIÇO',
+                    'NCM/SH',
+                    'UN',
+                    'QUANT.',
+                    'VALOR UNIT.',
+                    'VALOR TOTAL',
+                    'B.CALC. ICMS',
+                    'VALOR ICMS',
+                    'VALOR IPI',
+                    'ALÍQUOTAS ICMS',
+                    'IPI'
+                ]],
+                body: tableData,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [220, 220, 220],
+                    textColor: 0,
+                    fontSize: 6,
+                    halign: 'center',
+                    cellPadding: 1
+                },
+                bodyStyles: {
+                    fontSize: 6,
+                    cellPadding: 1
+                },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 50 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 10, halign: 'center' },
+                    4: { cellWidth: 15, halign: 'right' },
+                    5: { cellWidth: 20, halign: 'right' },
+                    6: { cellWidth: 20, halign: 'right' },
+                    7: { cellWidth: 20, halign: 'right' },
+                    8: { cellWidth: 20, halign: 'right' },
+                    9: { cellWidth: 15, halign: 'right' },
+                    10: { cellWidth: 15, halign: 'center' },
+                    11: { cellWidth: 10, halign: 'center' }
+                },
+                margin: { left: 15, right: 15 }
+            });
+        }
+        
+        return doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : startY + 40;
+    }
+    
+    addCalculoImpostoSection(doc) {
+        const startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 140;
+        
+        // CÁLCULO DO IMPOSTO
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CÁLCULO DO IMPOSTO', 15, startY);
+        
+        // Criar tabela de cálculo do imposto
+        const impostoData = [
+            [
+                'BASE DE CÁLCULO DO ICMS',
+                this.formatCurrency(this.totais.base_calculo_icms),
+                'VALOR DO ICMS',
+                this.formatCurrency(this.totais.valor_icms),
+                'VALOR TOTAL DOS PRODUTOS',
+                this.formatCurrency(this.totais.valor_total_produtos)
+            ],
+            [
+                'VALOR DO FRETE',
+                this.formatCurrency(this.totais.valor_frete),
+                'VALOR DO SEGURO',
+                this.formatCurrency(this.totais.valor_seguro),
+                'VALOR DO DESCONTO',
+                this.formatCurrency(this.totais.valor_desconto)
+            ],
+            [
+                'OUTRAS DESPESAS',
+                this.formatCurrency(this.totais.outras_despesas),
+                'VALOR DO IPI',
+                this.formatCurrency(this.totais.valor_ipi),
+                'VALOR TOTAL DA NOTA',
+                this.formatCurrency(this.totais.valor_total_nota)
+            ]
+        ];
+        
+        if (doc.autoTable) {
+            doc.autoTable({
+                startY: startY + 5,
+                body: impostoData,
+                theme: 'grid',
+                bodyStyles: {
+                    fontSize: 7
+                },
+                columnStyles: {
+                    0: { cellWidth: 32, fontStyle: 'bold' },
+                    1: { cellWidth: 30, halign: 'right' },
+                    2: { cellWidth: 32, fontStyle: 'bold' },
+                    3: { cellWidth: 30, halign: 'right' },
+                    4: { cellWidth: 32, fontStyle: 'bold' },
+                    5: { cellWidth: 30, halign: 'right' }
+                },
+                margin: { left: 15, right: 15 }
+            });
+        }
+        
+        return doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : startY + 30;
+    }
+    
+    addInformacoesComplementares(doc) {
+        const startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 180;
+        
+        // INFORMAÇÕES COMPLEMENTARES
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INFORMAÇÕES COMPLEMENTARES', 15, startY);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        
+        let y = startY + 5;
+        
+        // Informações dos tributos
+        const infoLines = [
+            `II R$ ${this.totais.valor_ii.toFixed(2)} IPI R$ ${this.totais.valor_ipi.toFixed(2)} PIS R$ ${this.totais.valor_pis.toFixed(2)} COFINS R$ ${this.totais.valor_cofins.toFixed(2)}`,
+            `Nossa Referência: ${this.header.referencia_twa || 'N/A'}`,
+            `REF.IMPORTADOR: ${this.header.referencia_importador || 'N/A'}`,
+            `NOTA FISCAL DE IMPORTAÇÃO DE ACORDO COM A DI ${this.header.di_numero}`,
+            `DESCRIÇÃO DA MERCADORIA CONFORME DI ${this.header.di_numero}`,
+            'GERADO PELO SISTEMA EXPERTZY - www.expertzy.com.br'
+        ];
+        
+        infoLines.forEach(line => {
+            doc.text(line, 15, y);
+            y += 4;
+        });
+        
+        return y;
+    }
+    
+    // ========== MÉTODOS AUXILIARES DO EXCEL ==========
+    
+    addCell(ws, address, value, style = null) {
+        if (!ws[address]) {
+            ws[address] = {};
+        }
+        
+        // Tratar valores nulos/undefined
+        if (value === null || value === undefined) {
+            value = '';
+        }
+        
+        ws[address].v = value;
+        
+        // Definir tipo da célula
+        if (typeof value === 'number' && !isNaN(value)) {
+            ws[address].t = 'n';
+        } else if (typeof value === 'boolean') {
+            ws[address].t = 'b';
+        } else {
+            ws[address].t = 's';
+            ws[address].v = String(value);
+        }
+        
+        // Aplicar estilo se fornecido
+        if (style) {
+            ws[address].s = style;
+        }
+    }
+    
+    mergeCells(ws, range) {
+        if (!ws['!merges']) {
+            ws['!merges'] = [];
+        }
+        
+        // Parse range (ex: A1:D1)
+        const [start, end] = range.split(':');
+        const startCol = start.charCodeAt(0) - 65;
+        const startRow = parseInt(start.substring(1)) - 1;
+        const endCol = end.charCodeAt(0) - 65;
+        const endRow = parseInt(end.substring(1)) - 1;
+        
+        ws['!merges'].push({
+            s: { r: startRow, c: startCol },
+            e: { r: endRow, c: endCol }
+        });
+    }
+    
+    setColumnWidths(ws) {
+        const widths = [
+            6,   // A - Adição
+            8,   // B - Item
+            30,  // C - Produto
+            10,  // D - NCM
+            8,   // E - Peso
+            8,   // F - Quant CX
+            8,   // G - Quant P/CX
+            8,   // H - Total UN
+            12,  // I - V. Unit
+            12,  // J - V. Total
+            12,  // K - BC ICMS
+            12,  // L - V. ICMS
+            12,  // M - BC IPI
+            12,  // N - V. IPI
+            10,  // O - ALIQ ICMS
+            10,  // P - ALIQ IPI
+            6,   // Q - MVA
+            10,  // R - BC ST
+            10,  // S - ST
+            6    // T - FP
+        ];
+        
+        ws['!cols'] = widths.map(width => ({ wch: width }));
+    }
+}
+
+// ========== FUNÇÕES GLOBAIS PARA INTEGRAÇÃO ==========
+
+
+window.gerarCroquiPDFNovo = async function(diData) {
+    try {
+        console.log('🚀 Iniciando geração do Croqui NF PDF (v2.0)...');
+        
+        if (!diData) {
+            // Tentar obter do app global
+            if (window.app && window.app.currentDI) {
+                diData = window.app.currentDI;
+            } else {
+                throw new Error('Dados da DI não fornecidos. Carregue uma DI primeiro.');
+            }
+        }
+        
+        const exporter = new CroquiNFExporter(diData);
+        const buffer = await exporter.generatePDF();
+        
+        // Download do arquivo
+        const blob = new Blob([buffer], {
+            type: 'application/pdf'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Nome do arquivo com data
+        const hoje = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `Croqui_NF_${diData.numero_di}_${hoje}.pdf`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(url);
+        
+        console.log('✅ Croqui NF PDF gerado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar Croqui NF PDF:', error);
+        alert(`Erro ao gerar Croqui NF PDF: ${error.message}`);
+    }
+};
+
+// Exportar classe para uso em testes
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CroquiNFExporter;
+}

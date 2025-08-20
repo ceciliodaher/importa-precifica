@@ -447,37 +447,228 @@ class NFExporter {
         const ws = {};
         let currentRow = 1;
 
-        // Adicionar cabeçalho
-        currentRow = this.addHeader(ws, data.header, currentRow);
-        currentRow += 2; // Espaçamento
+        // SEÇÃO 1: Cabeçalho com logo TWALOG
+        this.addCell(ws, 'A1', 'TWALOG', { ...this.styles.expertzyHeader, font: { bold: true, size: 16, color: { rgb: "FF6600" } } });
+        this.addMergedCell(ws, 'A1', 'T1');
+        
+        this.addCell(ws, 'A2', 'LOGÍSTICA INTERNACIONAL INTEGRADA', { ...this.styles.tableHeader, font: { size: 10 } });
+        this.addMergedCell(ws, 'A2', 'T2');
+        currentRow = 4;
 
-        // Adicionar título principal
-        this.addCell(ws, 'A' + currentRow, 'CROQUI NOTA FISCAL DE ENTRADA', this.styles.title);
+        // SEÇÃO 2: Título Rascunho Nota Fiscal
+        this.addCell(ws, 'A' + currentRow, 'Rascunho Nota Fiscal', this.styles.title);
+        this.addMergedCell(ws, 'A' + currentRow, 'T' + currentRow);
         currentRow += 2;
 
-        // Adicionar cabeçalhos da tabela
-        currentRow = this.addTableHeaders(ws, currentRow);
+        // SEÇÃO 3: Dados do Fornecedor (parte superior)
+        const fornecedor = data.header.fornecedor || {};
+        this.addCell(ws, 'A' + currentRow, 'Nome / Razão');
+        this.addCell(ws, 'B' + currentRow, fornecedor.nome || '', this.styles.bordered);
+        this.addMergedCell(ws, 'B' + currentRow, 'L' + currentRow);
+        this.addCell(ws, 'M' + currentRow, 'CNPJ');
+        this.addCell(ws, 'N' + currentRow, fornecedor.cnpj || '', this.styles.bordered);
+        this.addMergedCell(ws, 'N' + currentRow, 'T' + currentRow);
+        currentRow++;
 
-        // Adicionar produtos
-        currentRow = this.addProducts(ws, data.produtos, currentRow);
-        currentRow += 1;
+        this.addCell(ws, 'A' + currentRow, 'Endereço');
+        this.addCell(ws, 'B' + currentRow, fornecedor.endereco || '', this.styles.bordered);
+        this.addMergedCell(ws, 'B' + currentRow, 'H' + currentRow);
+        this.addCell(ws, 'I' + currentRow, 'Município');
+        this.addCell(ws, 'J' + currentRow, fornecedor.municipio || '', this.styles.bordered);
+        this.addMergedCell(ws, 'J' + currentRow, 'M' + currentRow);
+        this.addCell(ws, 'N' + currentRow, 'UF');
+        this.addCell(ws, 'O' + currentRow, fornecedor.uf || '', this.styles.bordered);
+        this.addMergedCell(ws, 'O' + currentRow, 'T' + currentRow);
+        currentRow += 2;
 
-        // Adicionar seção de cálculos
-        const finalRow = this.addTaxCalculations(ws, data.totais, currentRow);
+        // SEÇÃO 4: Cabeçalho da tabela de produtos
+        this.addTableHeadersNF(ws, currentRow);
+        currentRow++;
 
-        // CORREÇÃO: Definir o range válido da planilha (!ref)
-        // Isso é obrigatório para que o Excel reconheça a área de dados
-        // Calcula automaticamente baseado nas células existentes
-        const range = this.calculateWorksheetRange(ws);
-        ws['!ref'] = range;
-        
-        // Debug: Log do range calculado
-        console.log(`Range da planilha definido: ${range}`);
+        // SEÇÃO 5: Produtos
+        data.produtos.forEach(produto => {
+            this.addCell(ws, 'A' + currentRow, produto.adicao);
+            this.addCell(ws, 'B' + currentRow, produto.produto);
+            this.addMergedCell(ws, 'B' + currentRow, 'E' + currentRow);
+            this.addCell(ws, 'F' + currentRow, produto.ncm);
+            this.addCell(ws, 'G' + currentRow, 'A'); // Classe Fiscal
+            this.addCell(ws, 'H' + currentRow, ''); // CFO
+            this.addCell(ws, 'I' + currentRow, 'UNI');
+            this.addCell(ws, 'J' + currentRow, produto.quantidade, this.styles.currency);
+            this.addCell(ws, 'K' + currentRow, produto.valor_unitario_brl, this.styles.currency);
+            this.addCell(ws, 'L' + currentRow, produto.valor_total_brl, this.styles.currency);
+            this.addCell(ws, 'M' + currentRow, produto.base_icms_brl, this.styles.currency);
+            this.addCell(ws, 'N' + currentRow, produto.valor_icms_brl, this.styles.currency);
+            this.addCell(ws, 'O' + currentRow, produto.valor_ipi_brl, this.styles.currency);
+            this.addCell(ws, 'P' + currentRow, produto.valor_total_brl, this.styles.currency); // Base PIS/Cofins
+            this.addCell(ws, 'Q' + currentRow, produto.valor_pis_brl, this.styles.currency);
+            this.addCell(ws, 'R' + currentRow, produto.valor_cofins_brl, this.styles.currency);
+            this.addCell(ws, 'S' + currentRow, ''); // CIF
+            this.addCell(ws, 'T' + currentRow, ''); // Vl. II
+            currentRow++;
+        });
 
-        // Definir larguras das colunas
-        this.setColumnWidths(ws);
+        // SEÇÃO 6: Totais
+        currentRow = this.addTotalsNF(ws, data.totais, currentRow);
+
+        // SEÇÃO 7: Dados do destinatário
+        currentRow = this.addDestinatario(ws, data.header, currentRow);
+
+        // SEÇÃO 8: Dados adicionais
+        currentRow = this.addDadosAdicionais(ws, data.header, currentRow);
+
+        // Definir range e larguras
+        ws['!ref'] = `A1:T${currentRow}`;
+        this.setColumnWidthsNF(ws);
 
         return ws;
+    }
+
+    /**
+     * Adiciona cabeçalhos da tabela de produtos no formato NF
+     */
+    addTableHeadersNF(ws, row) {
+        const headers = [
+            'Código', 'Descrição', '', '', '', 'NCM', 'Class', 'CFO', 'UNI', 
+            'Quant', 'Vl Unit', 'Vl Total', 'BASE ICMS', 'Vl. ICMS', 'Vl. IPI', 
+            'BASE PIS/Cofins', 'Vl. PIS', 'Vl. Cofins', 'CIF', 'Vl. II'
+        ];
+        
+        headers.forEach((header, index) => {
+            const col = String.fromCharCode(65 + index); // A, B, C...
+            this.addCell(ws, col + row, header, this.styles.tableHeader);
+        });
+    }
+
+    /**
+     * Adiciona seção de totais no formato NF
+     */
+    addTotalsNF(ws, totais, row) {
+        // Linha de totais principais
+        this.addCell(ws, 'A' + row, 'Base ICMS');
+        this.addCell(ws, 'B' + row, totais.base_calculo_icms || 0, this.styles.currency);
+        this.addCell(ws, 'C' + row, 'Valor ICMS');
+        this.addCell(ws, 'D' + row, totais.valor_icms || 0, this.styles.currency);
+        this.addCell(ws, 'E' + row, 'BCalc ICMS Subst');
+        this.addCell(ws, 'F' + row, 0, this.styles.currency);
+        this.addCell(ws, 'G' + row, 'VL ICMS Subst');
+        this.addCell(ws, 'H' + row, 0, this.styles.currency);
+        this.addCell(ws, 'I' + row, 'Vl Tot Base PIS/Cofins');
+        this.addCell(ws, 'J' + row, totais.base_pis_cofins || 0, this.styles.currency);
+        this.addCell(ws, 'K' + row, 'Vl Tot PIS');
+        this.addCell(ws, 'L' + row, totais.pis || 0, this.styles.currency);
+        this.addCell(ws, 'M' + row, 'Vl Tot Cofins');
+        this.addCell(ws, 'N' + row, totais.cofins || 0, this.styles.currency);
+        row++;
+
+        // Segunda linha de totais
+        this.addCell(ws, 'A' + row, 'Vl Desp.');
+        this.addCell(ws, 'B' + row, totais.despesas_acessorias || 0, this.styles.currency);
+        this.addCell(ws, 'C' + row, 'Vl Tot IPI');
+        this.addCell(ws, 'D' + row, totais.valor_ipi || 0, this.styles.currency);
+        this.addCell(ws, 'E' + row, 'Vl Tot Produtos');
+        this.addCell(ws, 'F' + row, totais.valor_total_fob_brl || 0, this.styles.currency);
+        this.addCell(ws, 'G' + row, 'Vl Total Nota');
+        this.addCell(ws, 'H' + row, totais.valor_total_nota || 0, this.styles.currency);
+        this.addCell(ws, 'I' + row, 'Vl Total CIF');
+        this.addCell(ws, 'J' + row, totais.valor_total_cif || 0, this.styles.currency);
+        
+        return row + 2;
+    }
+
+    /**
+     * Adiciona dados do destinatário
+     */
+    addDestinatario(ws, header, row) {
+        const importador = header.importador || {};
+        
+        this.addCell(ws, 'A' + row, 'Nome / Razão');
+        this.addCell(ws, 'B' + row, importador.nome || '', this.styles.bordered);
+        this.addMergedCell(ws, 'B' + row, 'L' + row);
+        
+        this.addCell(ws, 'M' + row, 'Frete por conta');
+        this.addCell(ws, 'N' + row, '1 - Emitente    2 - Destinatario', this.styles.bordered);
+        this.addCell(ws, 'O' + row, '1', this.styles.bordered); // Assumindo emitente
+        
+        this.addCell(ws, 'P' + row, 'CNPJ');
+        this.addCell(ws, 'Q' + row, importador.cnpj || '', this.styles.bordered);
+        this.addMergedCell(ws, 'Q' + row, 'T' + row);
+        row++;
+
+        this.addCell(ws, 'A' + row, 'Endereço');
+        this.addCell(ws, 'B' + row, importador.endereco || '', this.styles.bordered);
+        this.addMergedCell(ws, 'B' + row, 'F' + row);
+        
+        this.addCell(ws, 'G' + row, 'Municipio');
+        this.addCell(ws, 'H' + row, importador.municipio || '', this.styles.bordered);
+        this.addMergedCell(ws, 'H' + row, 'K' + row);
+        
+        this.addCell(ws, 'L' + row, 'UF');
+        this.addCell(ws, 'M' + row, importador.uf || '', this.styles.bordered);
+        
+        this.addCell(ws, 'N' + row, 'Insc. Estadual');
+        this.addCell(ws, 'O' + row, importador.ie || '', this.styles.bordered);
+        this.addMergedCell(ws, 'O' + row, 'T' + row);
+        
+        return row + 2;
+    }
+
+    /**
+     * Adiciona dados adicionais da DI
+     */
+    addDadosAdicionais(ws, header, row) {
+        this.addCell(ws, 'A' + row, 'DADOS ADICIONAIS', this.styles.tableHeader);
+        this.addMergedCell(ws, 'A' + row, 'T' + row);
+        row++;
+
+        // Referências da DI
+        this.addCell(ws, 'A' + row, `N/Ref.: ${header.referencia_twa || ''}`);
+        this.addCell(ws, 'E' + row, `TAXA SISCOMEX.: ${header.taxa_siscomex || '154,23'}`);
+        this.addCell(ws, 'I' + row, `VALOR TOTAL DO II.: ${header.valor_total_ii || '0,00'}`);
+        row++;
+
+        this.addCell(ws, 'A' + row, `S/Ref.: ${header.referencia_importador || ''}`);
+        this.addCell(ws, 'E' + row, `VALOR TOTAL DO PIS.: ${header.valor_total_pis || '101,20'}`);
+        row++;
+
+        this.addCell(ws, 'A' + row, `Nº D.i.: ${header.di_numero || ''}`);
+        this.addCell(ws, 'E' + row, `VALOR TOTAL DO COFINS.: ${header.valor_total_cofins || '465,05'}`);
+        row++;
+
+        this.addCell(ws, 'A' + row, `DT D.I.: ${header.data_registro || ''}`);
+        this.addCell(ws, 'E' + row, `VLR. DESPESAS ACESSÓRIAS.: ${header.despesas_acessorias || '154,23'}`);
+        
+        return row + 2;
+    }
+
+    /**
+     * Define larguras das colunas para formato NF
+     */
+    setColumnWidthsNF(ws) {
+        const widths = [
+            8,   // A - Código
+            25,  // B - Descrição
+            8,   // C
+            8,   // D  
+            8,   // E
+            10,  // F - NCM
+            6,   // G - Class
+            6,   // H - CFO
+            6,   // I - UNI
+            8,   // J - Quant
+            12,  // K - Vl Unit
+            12,  // L - Vl Total
+            12,  // M - BASE ICMS
+            10,  // N - Vl ICMS
+            10,  // O - Vl IPI
+            12,  // P - BASE PIS/Cofins
+            10,  // Q - Vl PIS
+            10,  // R - Vl Cofins
+            10,  // S - CIF
+            10   // T - Vl II
+        ];
+        
+        ws['!cols'] = widths.map(width => ({ wch: width }));
     }
 
     /**
@@ -1002,29 +1193,49 @@ class NFExporter {
     detectarEstadoImportador() {
         const importador = this.diData.importador;
         
+        console.log('🔍 DEBUG ICMS - Dados do importador:', importador);
+        
         if (!importador) {
             console.warn('Dados do importador não encontrados, usando ICMS padrão');
             return 'default';
         }
         
-        // Detectar por UF se disponível
-        if (importador.uf) {
-            return importador.uf.toUpperCase();
+        // CORREÇÃO: Buscar UF no campo correto (endereco_uf)
+        const uf = importador.endereco_uf || importador.uf;
+        if (uf) {
+            console.log(`✅ Estado detectado por UF: ${uf}`);
+            return uf.toUpperCase();
         }
         
         // Detectar por CEP se disponível
-        if (importador.cep) {
-            const estado = this.detectarEstadoPorCEP(importador.cep);
-            if (estado) return estado;
+        const cep = importador.endereco_cep || importador.cep;
+        if (cep) {
+            const estado = this.detectarEstadoPorCEP(cep);
+            if (estado) {
+                console.log(`✅ Estado detectado por CEP: ${estado}`);
+                return estado;
+            }
         }
         
         // Detectar por cidade/endereço se disponível
-        if (importador.cidade) {
-            const estado = this.detectarEstadoPorCidade(importador.cidade);
-            if (estado) return estado;
+        const cidade = importador.endereco_cidade || importador.cidade;
+        if (cidade) {
+            const estado = this.detectarEstadoPorCidade(cidade);
+            if (estado) {
+                console.log(`✅ Estado detectado por cidade: ${estado}`);
+                return estado;
+            }
         }
         
-        console.warn('Não foi possível detectar estado do importador, usando ICMS padrão');
+        console.warn('❌ Não foi possível detectar estado do importador, usando ICMS padrão');
+        console.log('🔍 Dados disponíveis:', {
+            endereco_uf: importador.endereco_uf,
+            uf: importador.uf,
+            endereco_cep: importador.endereco_cep,
+            cep: importador.cep,
+            endereco_cidade: importador.endereco_cidade,
+            cidade: importador.cidade
+        });
         return 'default';
     }
 
