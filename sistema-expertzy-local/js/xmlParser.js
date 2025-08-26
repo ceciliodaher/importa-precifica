@@ -29,8 +29,8 @@ class DiParser {
                 return value / 100;
                 
             case 'weight':
-                // Pesos com 4 decimais: 20000 → 2.0000 kg (corrigido para DI padrão)
-                return value / 10000;
+                // Pesos com 5 decimais: 20000 → 0.20000 kg (conforme DI oficial)
+                return value / 100000;
                 
             case 'unit_value':
                 // Valor unitário com 7 decimais: 44682000000 → 4468.20
@@ -328,11 +328,11 @@ class DiParser {
             // DCR (Drawback)
             dcr_identificacao: this.getTextContent(adicaoNode, 'dcrIdentificacao'),
             dcr_valor_devido: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorDevido'), 100),
-            dcr_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorRecolher'), 100),
-            
-            // Produtos
-            produtos: this.extractProdutos(adicaoNode, numeroAdicao)
+            dcr_valor_recolher: this.parseNumber(this.getTextContent(adicaoNode, 'dcrValorRecolher'), 100)
         };
+
+        // Extrair produtos após ter os dados da adição
+        adicao.produtos = this.extractProdutos(adicaoNode, numeroAdicao, adicao);
 
         return adicao;
     }
@@ -402,27 +402,43 @@ class DiParser {
     /**
      * Extrai produtos de uma adição
      */
-    extractProdutos(adicaoNode, numeroAdicao) {
+    extractProdutos(adicaoNode, numeroAdicao, adicaoData) {
         const produtoNodes = adicaoNode.querySelectorAll('mercadoria');
         const produtos = [];
+
+        // Calcular taxa de câmbio da adição atual
+        const valorMoedaNegociacao = adicaoData.valor_moeda_negociacao || 0;
+        const valorReais = adicaoData.valor_reais || 0;
+        const taxaCambio = valorMoedaNegociacao > 0 ? valorReais / valorMoedaNegociacao : 5.392800;
 
         produtoNodes.forEach(produtoNode => {
             // Extrair dados originais da DI
             const quantidadeOriginal = this.convertValue(this.getTextContent(produtoNode, 'quantidade'), 'weight');
             const unidadeOriginal = this.getTextContent(produtoNode, 'unidadeMedida').trim();
-            const valorUnitarioOriginal = this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'unit_value');
+            const valorUnitarioUSD = this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'unit_value');
             
             const produto = {
                 adicao_numero: numeroAdicao.toString().padStart(3, '0'),
                 numero_sequencial_item: this.getTextContent(produtoNode, 'numeroSequencialItem'),
                 descricao_mercadoria: this.getTextContent(produtoNode, 'descricaoMercadoria').trim(),
+                
+                // Quantidade e unidade
                 quantidade: quantidadeOriginal,
                 unidade_medida: unidadeOriginal,
-                valor_unitario: valorUnitarioOriginal
+                
+                // Valores em USD (moeda original da DI)
+                valor_unitario_usd: valorUnitarioUSD,
+                valor_total_usd: quantidadeOriginal * valorUnitarioUSD,
+                
+                // Valores em BRL (convertidos pela taxa de câmbio da DI)
+                valor_unitario_brl: valorUnitarioUSD * taxaCambio,
+                valor_total_brl: quantidadeOriginal * valorUnitarioUSD * taxaCambio,
+                taxa_cambio: taxaCambio,
+                
+                // Campos para compatibilidade (USD por padrão)
+                valor_unitario: valorUnitarioUSD,
+                valor_total_item: quantidadeOriginal * valorUnitarioUSD
             };
-
-            // Calcular valor total do item
-            produto.valor_total_item = quantidadeOriginal * valorUnitarioOriginal;
 
             produtos.push(produto);
         });

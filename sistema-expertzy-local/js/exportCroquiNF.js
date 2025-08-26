@@ -186,19 +186,16 @@ class CroquiNFExporter {
                 produtosList.push({
                     descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
                     quantidade: adicao.quantidade_estatistica || 1,
-                    valor_unitario: adicao.valor_unitario || 0
+                    valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || 0
                 });
             }
             
             produtosList.forEach(produto => {
-                const valorUnitarioReais = this.convertToReais(
-                    produto.valor_unitario || adicao.valor_unitario || 0, 
-                    adicao
-                );
-                const valorTotalReais = this.convertToReais(
-                    adicao.valor_moeda_negociacao || 0, 
-                    adicao
-                );
+                // Priorizar valores BRL já calculados pelo XMLParser
+                const valorUnitarioReais = produto.valor_unitario_brl || 
+                    this.convertToReais(produto.valor_unitario || adicao.valor_unitario || 0, adicao);
+                // Usar valor total BRL já calculado ou calcular baseado na quantidade
+                const valorTotalReais = produto.valor_total_brl || (valorUnitarioReais * (produto.quantidade || 1));
                 
                 // Calcular bases e valores de impostos
                 const bcICMS = this.calculateBaseICMS(adicao, valorTotalReais);

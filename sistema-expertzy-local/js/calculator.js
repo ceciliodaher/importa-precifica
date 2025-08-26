@@ -91,26 +91,44 @@ class TributaryCalculator {
     }
 
     /**
-     * Calcula base de cálculo do ICMS incluindo custos extras
+     * ===== CORREÇÃO CRÍTICA: Calcula base de cálculo do ICMS conforme legislação =====
+     * Inclui despesas aduaneiras e aplica fórmula "por dentro"
      */
-    calculateBaseICMS(adicao, custosExtras) {
-        let base = adicao.valor_reais || 0;
+    calculateBaseICMS(adicao, custosExtras, estadoDestino = 'GO', tipoOperacao = 'interestadual') {
+        let baseAntesICMS = adicao.valor_reais || 0;
         
         // Adicionar II
-        base += adicao.tributos.ii_valor_devido || 0;
+        baseAntesICMS += adicao.tributos.ii_valor_devido || 0;
         
         // Adicionar IPI
-        base += adicao.tributos.ipi_valor_devido || 0;
+        baseAntesICMS += adicao.tributos.ipi_valor_devido || 0;
         
         // Adicionar PIS/COFINS
-        base += (adicao.tributos.pis_valor_devido || 0);
-        base += (adicao.tributos.cofins_valor_devido || 0);
+        baseAntesICMS += (adicao.tributos.pis_valor_devido || 0);
+        baseAntesICMS += (adicao.tributos.cofins_valor_devido || 0);
+        
+        // ===== CORREÇÃO CRÍTICA: Adicionar despesas aduaneiras =====
+        if (adicao.despesas_aduaneiras?.total_despesas_aduaneiras) {
+            baseAntesICMS += adicao.despesas_aduaneiras.total_despesas_aduaneiras;
+            console.log(`💰 Despesas aduaneiras incluídas na base: R$ ${adicao.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
+        }
         
         // Adicionar custos extras que compõem base ICMS
-        if (custosExtras.portuarios) base += custosExtras.portuarios;
-        if (custosExtras.logisticos) base += custosExtras.logisticos;
+        if (custosExtras.portuarios) baseAntesICMS += custosExtras.portuarios;
+        if (custosExtras.logisticos) baseAntesICMS += custosExtras.logisticos;
         
-        return base;
+        // ===== APLICAR FÓRMULA "POR DENTRO" CONFORME LEGISLAÇÃO =====
+        const aliquotaICMS = this.getAliquotaICMS(estadoDestino, tipoOperacao);
+        const fatorDivisao = 1 - (aliquotaICMS / 100);
+        const baseICMSFinal = baseAntesICMS / fatorDivisao;
+        
+        console.log(`📊 Cálculo Base ICMS (Calculator):
+        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}
+        - Alíquota ICMS: ${aliquotaICMS}%
+        - Fator divisão: ${fatorDivisao.toFixed(4)}
+        - Base ICMS final: R$ ${baseICMSFinal.toFixed(2)}`);
+        
+        return baseICMSFinal;
     }
 
     /**
