@@ -413,27 +413,12 @@ class DiParser {
             const valorUnitarioOriginal = this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'unit_value');
             
             const produto = {
-                // Identificação
                 adicao_numero: numeroAdicao.toString().padStart(3, '0'),
                 numero_sequencial_item: this.getTextContent(produtoNode, 'numeroSequencialItem'),
                 descricao_mercadoria: this.getTextContent(produtoNode, 'descricaoMercadoria').trim(),
-                
-                // DADOS ORIGINAIS DA DI (Fonte oficial)
-                quantidade_original: quantidadeOriginal,
-                unidade_original: unidadeOriginal,
-                valor_unitario_original: valorUnitarioOriginal,
-                
-                // CONVERSÕES PADRONIZADAS para diferentes consumidores
-                ...this.generateUnitConversions(quantidadeOriginal, unidadeOriginal, valorUnitarioOriginal),
-                
-                // Campos para compatibilidade com código existente
                 quantidade: quantidadeOriginal,
                 unidade_medida: unidadeOriginal,
-                valor_unitario: valorUnitarioOriginal,
-                
-                // Metadados
-                fonte_dados: 'XMLParser',
-                timestamp_processamento: new Date().toISOString()
+                valor_unitario: valorUnitarioOriginal
             };
 
             // Calcular valor total do item
