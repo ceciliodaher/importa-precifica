@@ -823,7 +823,7 @@ class CroquiNFExporter {
                 p.adicao,
                 p.descricao.substring(0, 35),
                 p.ncm,
-                'MG', // Unidade
+                'KG', // Unidade original da DI
                 p.total_un.toFixed(2),
                 p.valor_unitario.toFixed(4),
                 p.valor_total.toFixed(2),
@@ -834,14 +834,14 @@ class CroquiNFExporter {
                 p.aliq_ipi.toFixed(2)
             ]);
             
-            // Corrigir valor unitário e quantidade para modo paisagem
+            // Usar dados diretos do XMLParser (já convertidos corretamente)
             const tableDataCorrected = this.produtos.map(p => [
                 p.adicao,
                 p.descricao.substring(0, 40),
                 p.ncm,
-                'MG', // Unidade corrigida
-                (p.total_un * 1000).toFixed(0), // Converter kg para mg (200,00 MG)
-                (p.valor_unitario / 1000).toFixed(4), // Corrigir valor unitário
+                'KG', // Unidade original da DI
+                p.total_un.toFixed(2), // Usar quantidade já convertida pelo XMLParser
+                p.valor_unitario.toFixed(4), // Usar valor unitário já convertido
                 p.valor_total.toFixed(2),
                 p.bc_icms.toFixed(2),
                 p.valor_icms.toFixed(2),
