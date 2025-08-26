@@ -29,8 +29,12 @@ class DiParser {
                 return value / 100;
                 
             case 'weight':
-                // Pesos com 5 decimais: 20000 → 0.20000 kg
-                return value / 100000;
+                // Pesos com 4 decimais: 20000 → 2.0000 kg (corrigido para DI padrão)
+                return value / 10000;
+                
+            case 'unit_value':
+                // Valor unitário com 7 decimais: 44682000000 → 4468.20
+                return value / 10000000;
                 
             case 'percentage':
                 // Alíquotas em centésimos: 650 → 6.50%
@@ -233,7 +237,7 @@ class DiParser {
         const diNode = xmlDoc.querySelector('declaracaoImportacao');
         
         this.diData.carga = {
-            peso_bruto: this.parseNumber(this.getTextContent(diNode, 'cargaPesoBruto'), 1000000),
+            peso_bruto: this.parseNumber(this.getTextContent(diNode, 'cargaPesoBruto'), 100000),
             peso_liquido: this.convertValue(this.getTextContent(diNode, 'cargaPesoLiquido'), 'weight'),
             pais_procedencia_codigo: this.getTextContent(diNode, 'cargaPaisProcedenciaCodigo'),
             pais_procedencia_nome: this.getTextContent(diNode, 'cargaPaisProcedenciaNome'),
@@ -403,17 +407,37 @@ class DiParser {
         const produtos = [];
 
         produtoNodes.forEach(produtoNode => {
+            // Extrair dados originais da DI
+            const quantidadeOriginal = this.convertValue(this.getTextContent(produtoNode, 'quantidade'), 'weight');
+            const unidadeOriginal = this.getTextContent(produtoNode, 'unidadeMedida').trim();
+            const valorUnitarioOriginal = this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'unit_value');
+            
             const produto = {
+                // Identificação
                 adicao_numero: numeroAdicao.toString().padStart(3, '0'),
                 numero_sequencial_item: this.getTextContent(produtoNode, 'numeroSequencialItem'),
                 descricao_mercadoria: this.getTextContent(produtoNode, 'descricaoMercadoria').trim(),
-                quantidade: this.convertValue(this.getTextContent(produtoNode, 'quantidade'), 'weight'),
-                unidade_medida: this.getTextContent(produtoNode, 'unidadeMedida').trim(),
-                valor_unitario: this.convertValue(this.getTextContent(produtoNode, 'valorUnitario'), 'monetary')
+                
+                // DADOS ORIGINAIS DA DI (Fonte oficial)
+                quantidade_original: quantidadeOriginal,
+                unidade_original: unidadeOriginal,
+                valor_unitario_original: valorUnitarioOriginal,
+                
+                // CONVERSÕES PADRONIZADAS para diferentes consumidores
+                ...this.generateUnitConversions(quantidadeOriginal, unidadeOriginal, valorUnitarioOriginal),
+                
+                // Campos para compatibilidade com código existente
+                quantidade: quantidadeOriginal,
+                unidade_medida: unidadeOriginal,
+                valor_unitario: valorUnitarioOriginal,
+                
+                // Metadados
+                fonte_dados: 'XMLParser',
+                timestamp_processamento: new Date().toISOString()
             };
 
             // Calcular valor total do item
-            produto.valor_total_item = produto.quantidade * produto.valor_unitario;
+            produto.valor_total_item = quantidadeOriginal * valorUnitarioOriginal;
 
             produtos.push(produto);
         });

@@ -34,24 +34,42 @@ The prototype requires these packages (no requirements.txt exists yet):
 ### Current Directory Structure
 - `documentos/` - Product requirements, technical specifications, implementation plans
 - `orientacoes/` - Python prototype, sample XML files, Excel templates, reference documents
+- `sistema-expertzy-local/` - Current web implementation with centralized data processing
 
-### Planned Web Architecture (PHP-based)
-According to `documentos/especificacao-tecnica-sistema.md`:
-- **Backend**: PHP 7.4+ with MVC pattern
-- **Frontend**: HTML5/CSS3 with Bootstrap 4.x
-- **Database**: MySQL (optional)
-- **JavaScript**: ES6 with jQuery 3.x
+### Current Web Architecture (JavaScript-based)
+Implemented as a client-side application with centralized data processing:
+- **Frontend**: HTML5/CSS3 with responsive design
+- **JavaScript**: ES6 modules with centralized XMLParser
+- **Data Processing**: Single XMLParser handles all DI conversions
+- **Storage**: LocalStorage for client-side data persistence
 
-Planned directory structure for web application:
+Current directory structure:
 ```
-/public_html/
-├── index.php
-├── /controllers/
-├── /models/
-├── /views/
-├── /config/
-├── /assets/
-└── /uploads/
+/sistema-expertzy-local/
+├── index.html
+├── sistema-importacao.html
+├── /js/
+│   ├── xmlParser.js (CORE - All DI data processing)
+│   ├── calculator.js
+│   ├── exportCroquiNF.js
+│   ├── exportNF.js
+│   └── storage.js
+├── /css/
+├── /data/
+└── /samples/
+```
+
+### Data Processing Architecture Principles
+
+**CRITICAL: Centralized Data Processing Rule**
+- **XMLParser.js is the ONLY module authorized to process and convert DI data**
+- All other modules (Calculator, ExportCroqui, ExportNF, Storage) are DATA CONSUMERS only
+- No conversions, calculations, or data transformations outside XMLParser
+- Ensures data consistency and prevents unit conversion errors
+
+**Data Flow:**
+```
+DI (XML) → XMLParser.js (ONLY PROCESSOR) → Standardized Data → Consumer Modules
 ```
 
 ## Tax Calculation Logic
@@ -90,8 +108,24 @@ The system handles Brazilian import taxes with specific rules:
 
 ## Development Notes
 
-- No version control initialized yet (consider `git init`)
-- No dependency management files exist (create `requirements.txt` for Python)
-- Tax rates and incentives are hardcoded in the prototype
-- Project is transitioning from Python prototype to PHP web application
+- Git repository initialized and active
+- JavaScript-based web application currently in development
+- Tax rates and incentives loaded from JSON configuration files
+- XMLParser.js serves as single source of truth for DI data processing
 - Extensive documentation exists in `documentos/` directory for implementation guidance
+
+## Data Processing Rules (MANDATORY)
+
+**XMLParser.js Centralization Principle:**
+- XMLParser.js is the SINGLE SOURCE OF TRUTH for all DI data processing
+- NO other module should perform conversions, parsing, or calculations on DI data
+- Consumer modules (Calculator, ExportCroqui, ExportNF, Storage) must ONLY consume processed data
+- This prevents inconsistencies, unit conversion errors, and data discrepancies between modules
+- Any DI-related data transformation MUST be implemented in XMLParser.js only
+
+**Prohibited Actions in Consumer Modules:**
+- Unit conversions (KG to MG, currency conversions)
+- Mathematical operations on raw DI data
+- Reprocessing of XML elements
+- Custom parsing or data extraction
+- Recalculation of values already processed by XMLParser
