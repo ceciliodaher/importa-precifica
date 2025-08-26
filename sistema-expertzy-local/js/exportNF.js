@@ -837,7 +837,7 @@ class NFExporter {
         this.addCell(ws, 'A' + currentRow, totais.pis, this.styles.currency);
         this.addCell(ws, 'B' + currentRow, totais.cofins, this.styles.currency);
         this.addCell(ws, 'I' + currentRow, totais.valor_ipi, this.styles.currency);
-        this.addCell(ws, 'J' + currentRow, totais.valor_total_nota, this.styles.currency);
+        this.addCell(ws, 'J' + currentRow, this.calculateTotalNota(), this.styles.currency);
 
         return currentRow + 1;
     }
@@ -1068,19 +1068,48 @@ class NFExporter {
     }
 
     /**
-     * Calcula Base de Cálculo do ICMS para o produto em reais
+     * ===== CORREÇÃO CRÍTICA: Calcula Base de Cálculo do ICMS conforme legislação =====
+     * Inclui despesas aduaneiras e aplica fórmula "por dentro"
      * @param {Object} adicao Dados da adição
      * @param {Object} produto Dados do produto
      * @returns {number} BC ICMS em BRL
      */
     calculateBCICMS(adicao, produto) {
-        // BC ICMS = Valor FOB + II + IPI + Despesas Aduaneiras
+        // Base antes ICMS = Valor FOB + II + IPI + PIS + COFINS + Despesas Aduaneiras
         const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
         const valorFOB = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
         const ii = this.calculateProductII(adicao, produto);
         const ipi = this.calculateProductIPI(adicao, produto);
+        const pis = this.calculateProductPIS(adicao, produto);
+        const cofins = this.calculateProductCOFINS(adicao, produto);
         
-        return valorFOB + ii + ipi;
+        let baseAntesICMS = valorFOB + ii + ipi + pis + cofins;
+        
+        // ===== CORREÇÃO CRÍTICA: Adicionar despesas aduaneiras rateadas =====
+        if (this.diData.despesas_aduaneiras?.total_despesas_aduaneiras) {
+            const rateioDespesas = this.ratearDespesasPorProduto(adicao, produto);
+            baseAntesICMS += rateioDespesas;
+            console.log(`💰 Despesas aduaneiras rateadas incluídas: R$ ${rateioDespesas.toFixed(2)}`);
+        }
+        
+        // ===== APLICAR FÓRMULA "POR DENTRO" CONFORME LEGISLAÇÃO =====
+        const aliquotaICMS = this.getICMSRateDecimal(adicao);
+        const fatorDivisao = 1 - aliquotaICMS;
+        const baseICMSFinal = baseAntesICMS / fatorDivisao;
+        
+        console.log(`📊 Cálculo Base ICMS (ExportNF):
+        - Valor FOB: R$ ${valorFOB.toFixed(2)}
+        - II: R$ ${ii.toFixed(2)}
+        - IPI: R$ ${ipi.toFixed(2)}
+        - PIS: R$ ${pis.toFixed(2)}
+        - COFINS: R$ ${cofins.toFixed(2)}
+        - Despesas: R$ ${(this.diData.despesas_aduaneiras?.total_despesas_aduaneiras ? this.ratearDespesasPorProduto(adicao, produto) : 0).toFixed(2)}
+        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}
+        - Alíquota ICMS: ${(aliquotaICMS * 100).toFixed(2)}%
+        - Fator divisão: ${fatorDivisao.toFixed(4)}
+        - Base ICMS final: R$ ${baseICMSFinal.toFixed(2)}`);
+        
+        return baseICMSFinal;
     }
 
     /**
@@ -1125,31 +1154,144 @@ class NFExporter {
     }
 
     /**
-     * Calcula II proporcional do produto
+     * Calcula II do produto aplicando alíquota sobre base de cálculo
      * @param {Object} adicao Dados da adição
      * @param {Object} produto Dados do produto
-     * @returns {number} Valor II proporcional
+     * @returns {number} Valor II calculado
      */
     calculateProductII(adicao, produto) {
-        const totalQuantidadeAdicao = adicao.produtos?.reduce((sum, p) => sum + (p.quantidade || 0), 0) || 1;
-        const proporcao = (produto.quantidade || 0) / totalQuantidadeAdicao;
+        // Base II = Valor Aduaneiro (FOB)
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
+        const baseII = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
         
-        // CORREÇÃO: Usar estrutura correta do XML parser
-        return (adicao.tributos?.ii_valor_devido || 0) * proporcao;
+        // Alíquota II da adição
+        const aliquotaII = (adicao.tributos?.ii_aliquota_ad_valorem || 0) / 100;
+        
+        const valorII = baseII * aliquotaII;
+        
+        console.log(`💰 Cálculo II produto:
+        - Base II (FOB): R$ ${baseII.toFixed(2)}
+        - Alíquota II: ${(aliquotaII * 100).toFixed(2)}%
+        - Valor II: R$ ${valorII.toFixed(2)}`);
+        
+        return valorII;
     }
 
     /**
-     * Calcula IPI proporcional do produto
+     * Calcula IPI do produto aplicando alíquota sobre base de cálculo
      * @param {Object} adicao Dados da adição
      * @param {Object} produto Dados do produto
-     * @returns {number} Valor IPI proporcional
+     * @returns {number} Valor IPI calculado
      */
     calculateProductIPI(adicao, produto) {
-        const totalQuantidadeAdicao = adicao.produtos?.reduce((sum, p) => sum + (p.quantidade || 0), 0) || 1;
-        const proporcao = (produto.quantidade || 0) / totalQuantidadeAdicao;
+        // Base IPI = Valor Aduaneiro (FOB) + II
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
+        const valorFOB = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
+        const valorII = this.calculateProductII(adicao, produto);
+        const baseIPI = valorFOB + valorII;
         
-        // CORREÇÃO: Usar estrutura correta do XML parser
-        return (adicao.tributos?.ipi_valor_devido || 0) * proporcao;
+        // Alíquota IPI da adição
+        const aliquotaIPI = (adicao.tributos?.ipi_aliquota_ad_valorem || 0) / 100;
+        
+        const valorIPI = baseIPI * aliquotaIPI;
+        
+        console.log(`💰 Cálculo IPI produto:
+        - Valor FOB: R$ ${valorFOB.toFixed(2)}
+        - Valor II: R$ ${valorII.toFixed(2)}
+        - Base IPI: R$ ${baseIPI.toFixed(2)}
+        - Alíquota IPI: ${(aliquotaIPI * 100).toFixed(2)}%
+        - Valor IPI: R$ ${valorIPI.toFixed(2)}`);
+        
+        return valorIPI;
+    }
+
+    /**
+     * Calcula PIS do produto aplicando alíquota sobre base de cálculo
+     * Conforme legislação: Base PIS = Valor Aduaneiro (desde 2014)
+     * @param {Object} adicao Dados da adição
+     * @param {Object} produto Dados do produto
+     * @returns {number} Valor PIS calculado
+     */
+    calculateProductPIS(adicao, produto) {
+        // Base PIS = Valor Aduaneiro (VMLD) - Exclusivamente desde out/2014
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
+        const valorAduaneiro = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
+        
+        // Alíquota PIS padrão para importação: 1,65%
+        const aliquotaPIS = (adicao.tributos?.pis_aliquota_ad_valorem || 1.65) / 100;
+        
+        const valorPIS = valorAduaneiro * aliquotaPIS;
+        
+        console.log(`💰 Cálculo PIS produto:
+        - Valor Aduaneiro: R$ ${valorAduaneiro.toFixed(2)}
+        - Alíquota PIS: ${(aliquotaPIS * 100).toFixed(2)}%
+        - Valor PIS: R$ ${valorPIS.toFixed(2)}`);
+        
+        return valorPIS;
+    }
+
+    /**
+     * Calcula COFINS do produto aplicando alíquota sobre base de cálculo
+     * Conforme legislação: Base COFINS = Valor Aduaneiro (desde 2014)
+     * @param {Object} adicao Dados da adição
+     * @param {Object} produto Dados do produto
+     * @returns {number} Valor COFINS calculado
+     */
+    calculateProductCOFINS(adicao, produto) {
+        // Base COFINS = Valor Aduaneiro (VMLD) - Exclusivamente desde out/2014
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
+        const valorAduaneiro = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
+        
+        // Alíquota COFINS padrão para importação: 7,60%
+        const aliquotaCOFINS = (adicao.tributos?.cofins_aliquota_ad_valorem || 7.60) / 100;
+        
+        const valorCOFINS = valorAduaneiro * aliquotaCOFINS;
+        
+        console.log(`💰 Cálculo COFINS produto:
+        - Valor Aduaneiro: R$ ${valorAduaneiro.toFixed(2)}
+        - Alíquota COFINS: ${(aliquotaCOFINS * 100).toFixed(2)}%
+        - Valor COFINS: R$ ${valorCOFINS.toFixed(2)}`);
+        
+        return valorCOFINS;
+    }
+
+    /**
+     * Rateia despesas aduaneiras por produto baseado no valor FOB
+     * @param {Object} adicao Dados da adição
+     * @param {Object} produto Dados do produto
+     * @returns {number} Valor das despesas rateadas para o produto
+     */
+    ratearDespesasPorProduto(adicao, produto) {
+        const despesasTotal = this.diData.despesas_aduaneiras?.total_despesas_aduaneiras || 0;
+        
+        if (despesasTotal === 0) {
+            return 0;
+        }
+        
+        // Calcular valor FOB total da DI para rateio
+        const valorFOBTotalDI = this.diData.totais?.valor_total_fob_brl || 0;
+        
+        if (valorFOBTotalDI === 0) {
+            console.warn('⚠️ Valor FOB total da DI é zero, não é possível ratear despesas');
+            return 0;
+        }
+        
+        // Valor FOB do produto específico
+        const codigoMoeda = adicao.moeda_negociacao_codigo || '220';
+        const valorFOBProduto = this.converterParaReais(produto.valor_total_item || adicao.valor_moeda_negociacao || 0, codigoMoeda);
+        
+        // Calcular proporção
+        const proporcao = valorFOBProduto / valorFOBTotalDI;
+        const despesasRateadas = despesasTotal * proporcao;
+        
+        console.log(`📊 Rateio despesas aduaneiras:
+        - Despesas total: R$ ${despesasTotal.toFixed(2)}
+        - Valor FOB produto: R$ ${valorFOBProduto.toFixed(2)}
+        - Valor FOB total DI: R$ ${valorFOBTotalDI.toFixed(2)}
+        - Proporção: ${(proporcao * 100).toFixed(2)}%
+        - Despesas rateadas: R$ ${despesasRateadas.toFixed(2)}`);
+        
+        return despesasRateadas;
     }
 
     /**
@@ -1345,24 +1487,55 @@ class NFExporter {
     }
 
     /**
-     * Calcula valor total da nota convertido para reais
+     * ===== CORREÇÃO CRÍTICA: Calcula valor total da nota conforme cálculo correto =====
+     * Soma todos os componentes: produtos + tributos + ICMS + despesas
      * @returns {number} Valor total da nota em BRL
      */
     calculateTotalNota() {
         const totais = this.diData.totais || {};
         
-        // Converter valores para reais usando sistema de múltiplas moedas
+        // Converter valores base para reais usando sistema de múltiplas moedas
         const valorProdutos = this.convertTotalToReais(totais.valor_total_fob || 0, totais.moeda_fob || '220');
         const frete = this.convertTotalToReais(totais.valor_total_frete || 0, totais.moeda_frete || '220');
         const seguro = this.convertTotalToReais(totais.valor_total_seguro || 0, totais.moeda_seguro || '220');
         
-        const tributos = (totais.tributos_totais?.ii_total || 0) +
-                        (totais.tributos_totais?.ipi_total || 0) +
-                        (totais.tributos_totais?.pis_total || 0) +
-                        (totais.tributos_totais?.cofins_total || 0);
+        // Tributos federais
+        const tributosFederais = (totais.tributos_totais?.ii_total || 0) +
+                                (totais.tributos_totais?.ipi_total || 0) +
+                                (totais.tributos_totais?.pis_total || 0) +
+                                (totais.tributos_totais?.cofins_total || 0);
+        
+        // ICMS calculado
         const icms = this.calculateTotalICMS();
         
-        return valorProdutos + tributos + icms + frete + seguro;
+        // Despesas aduaneiras
+        const despesasAduaneiras = this.diData.despesas_aduaneiras?.total_despesas_aduaneiras || 0;
+        
+        const totalNota = valorProdutos + tributosFederais + icms + frete + seguro + despesasAduaneiras;
+        
+        console.log(`📊 Cálculo Total Nota (ExportNF):
+        - Valor produtos: R$ ${valorProdutos.toFixed(2)}
+        - Tributos federais: R$ ${tributosFederais.toFixed(2)}
+        - ICMS: R$ ${icms.toFixed(2)}
+        - Frete: R$ ${frete.toFixed(2)}
+        - Seguro: R$ ${seguro.toFixed(2)}
+        - Despesas aduaneiras: R$ ${despesasAduaneiras.toFixed(2)}
+        - VALOR TOTAL DA NOTA: R$ ${totalNota.toFixed(2)}`);
+        
+        // Validação: comparar com base ICMS total
+        const baseICMSTotal = this.calculateTotalBCICMS();
+        const diferenca = Math.abs(totalNota - baseICMSTotal);
+        
+        if (diferenca > 0.01) {
+            console.warn(`⚠️ DIVERGÊNCIA detectada:
+            - Total Nota: R$ ${totalNota.toFixed(2)}
+            - Base ICMS: R$ ${baseICMSTotal.toFixed(2)}
+            - Diferença: R$ ${diferenca.toFixed(2)}`);
+        } else {
+            console.log(`✅ Validação OK: Total Nota = Base ICMS (diferença: R$ ${diferenca.toFixed(2)})`);
+        }
+        
+        return totalNota;
     }
 
     /**

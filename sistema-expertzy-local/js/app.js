@@ -1188,8 +1188,14 @@ class ExpertzyApp {
                     <td>${produto.descricao_mercadoria || 'N/I'}</td>
                     <td>${this.formatNumber(produto.quantidade || 0)}</td>
                     <td>${produto.unidade_medida || 'N/I'}</td>
-                    <td>${this.formatCurrency(produto.valor_total_item || 0)}</td>
-                    <td>${this.formatCurrency(produto.valor_unitario || 0)}</td>
+                    <td>
+                        <div>USD: $ ${this.formatNumber(produto.valor_total_usd || 0, 2)}</div>
+                        <div>BRL: ${this.formatCurrency(produto.valor_total_brl || 0)}</div>
+                    </td>
+                    <td>
+                        <div>USD: $ ${this.formatNumber(produto.valor_unitario_usd || 0, 2)}</div>
+                        <div>BRL: ${this.formatCurrency(produto.valor_unitario_brl || 0)}</div>
+                    </td>
                     <td>${produto.fabricante_nome || 'N/I'}</td>
                 </tr>
             `).join('')
@@ -1222,7 +1228,7 @@ class ExpertzyApp {
                         </div>
                         <div class="card-body">
                             <table class="table table-sm table-borderless">
-                                <tr><td><strong>Valor FOB (${adicao.moeda_negociacao_codigo}):</strong></td><td>${this.formatCurrency(adicao.valor_moeda_negociacao)}</td></tr>
+                                <tr><td><strong>Valor FOB (USD):</strong></td><td>$ ${this.formatNumber(adicao.valor_moeda_negociacao, 2)}</td></tr>
                                 <tr><td><strong>Valor FOB (R$):</strong></td><td>${this.formatCurrency(adicao.valor_reais)}</td></tr>
                                 <tr><td><strong>Frete (R$):</strong></td><td>${this.formatCurrency(adicao.frete_valor_reais)}</td></tr>
                                 <tr><td><strong>Seguro (R$):</strong></td><td>${this.formatCurrency(adicao.seguro_valor_reais)}</td></tr>

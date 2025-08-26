@@ -114,6 +114,34 @@ The system handles Brazilian import taxes with specific rules:
 - XMLParser.js serves as single source of truth for DI data processing
 - Extensive documentation exists in `documentos/` directory for implementation guidance
 
+### Recent Updates (2025-08-26)
+
+**Major Implementation: Standardized Currency Structure**
+- **XMLParser.js**: Implemented standardized USD/BRL value structure with automatic exchange rate calculation
+- **Product Data Structure**: All products now include both USD (original DI values) and BRL (converted values)
+- **Exchange Rate**: Dynamically calculated from DI data (valor_reais / valor_moeda_negociacao)
+- **Weight Conversions**: Fixed divisor (100000) for proper kg display (20000 → 0.2 kg)
+
+**Interface Updates:**
+- **app.js**: Updated product display to show both USD and BRL values separately
+- **Currency Labels**: FOB values now clearly labeled as "USD" vs "R$" 
+- **Product Values**: Display format now shows "USD: $4,468.20" and "BRL: R$ 24,096.10"
+
+**Export Modules:**
+- **exportCroquiNF.js**: Updated to prioritize BRL values for Brazilian fiscal documents
+- **Compatibility**: Maintains fallback to USD-to-BRL conversion when BRL values unavailable
+
+**Data Structure Example:**
+```javascript
+produto = {
+    valor_unitario_usd: 4468.2,      // Original USD from DI
+    valor_unitario_brl: 24096.1,     // Converted to BRL
+    valor_total_usd: 893.64,         // Total USD
+    valor_total_brl: 4819.22,        // Total BRL  
+    taxa_cambio: 5.392797994718231   // Exchange rate used
+}
+```
+
 ## Data Processing Rules (MANDATORY)
 
 **XMLParser.js Centralization Principle:**
