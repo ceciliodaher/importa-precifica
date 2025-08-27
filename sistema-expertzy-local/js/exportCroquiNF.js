@@ -150,7 +150,7 @@ class CroquiNFExporter {
                 endereco: `${importador.endereco_logradouro || ''}, ${importador.endereco_numero || ''}`.trim(),
                 complemento: importador.endereco_complemento || '',
                 bairro: importador.endereco_bairro || '',
-                municipio: importador.endereco_municipio || importador.endereco_cidade || '',
+                municipio: importador.endereco_municipio,
                 uf: importador.endereco_uf || '',
                 cep: this.formatCEP(importador.endereco_cep),
                 ie: importador.inscricao_estadual || ''
@@ -433,13 +433,13 @@ class CroquiNFExporter {
     }
     
     extractFornecedor() {
-        // Tentar extrair dados do fornecedor das adições
+        // Extrair dados do fornecedor das adições
         if (this.di.adicoes && this.di.adicoes.length > 0) {
             const primeiraAdicao = this.di.adicoes[0];
             return {
-                nome: primeiraAdicao.fornecedor_nome || '',
-                endereco: `${primeiraAdicao.fornecedor_logradouro || ''} ${primeiraAdicao.fornecedor_cidade || ''}`.trim(),
-                pais: primeiraAdicao.fornecedor_estado || primeiraAdicao.pais_aquisicao || '',
+                nome: primeiraAdicao.fornecedor_nome,
+                endereco: `${primeiraAdicao.fornecedor_logradouro}, ${primeiraAdicao.fornecedor_cidade}`.trim(),
+                pais: primeiraAdicao.pais_aquisicao_nome,
                 cnpj: ''
             };
         }
@@ -462,6 +462,31 @@ class CroquiNFExporter {
             if (match) return match[1];
         }
         return '';
+    }
+    
+    getDespesaAduaneira(tipo) {
+        // Extrair despesas aduaneiras das informações complementares
+        if (!this.di.informacao_complementar) return '0,00';
+        
+        const info = this.di.informacao_complementar;
+        let pattern;
+        
+        switch(tipo) {
+            case 'siscomex':
+                pattern = /Taxa Siscomex[.:]+\s*([\d,]+)/i;
+                break;
+            case 'afrmm':
+                pattern = /VALOR AFRMM[.:]+\s*R\$\s*([\d,]+)/i;
+                break;
+            case 'capatazia':
+                pattern = /CAPATAZIA[.:]+\s*R\$\s*([\d,]+)/i;
+                break;
+            default:
+                return '0,00';
+        }
+        
+        const match = info.match(pattern);
+        return match ? match[1] : '0,00';
     }
     
     // ========== GERAÇÃO EXCEL ==========
@@ -868,14 +893,14 @@ class CroquiNFExporter {
                 p.descricao.substring(0, 40),
                 p.ncm,
                 'KG', // Unidade original da DI
-                p.total_un.toFixed(2), // Usar quantidade já convertida pelo XMLParser
-                p.valor_unitario.toFixed(4), // Usar valor unitário já convertido
-                p.valor_total.toFixed(2),
-                p.bc_icms.toFixed(2),
-                p.valor_icms.toFixed(2),
-                p.valor_ipi.toFixed(2),
-                p.aliq_icms.toFixed(2),
-                p.aliq_ipi.toFixed(2)
+                p.total_un.toFixed(2), // Quantidade 
+                this.formatCurrency(p.valor_unitario), // Valor unitário formatado
+                this.formatCurrency(p.valor_total), // Valor total formatado
+                this.formatCurrency(p.bc_icms), // BC ICMS formatado
+                this.formatCurrency(p.valor_icms), // Valor ICMS formatado
+                this.formatCurrency(p.valor_ipi), // Valor IPI formatado
+                p.aliq_icms.toFixed(2), // Alíquota ICMS
+                p.aliq_ipi.toFixed(2) // Alíquota IPI
             ]);
 
             doc.autoTable({
@@ -1000,9 +1025,10 @@ class CroquiNFExporter {
         
         let y = startY + 5;
         
-        // Informações dos tributos
+        // Informações dos tributos e despesas aduaneiras
         const infoLines = [
             `II R$ ${this.totais.valor_ii.toFixed(2)} IPI R$ ${this.totais.valor_ipi.toFixed(2)} PIS R$ ${this.totais.valor_pis.toFixed(2)} COFINS R$ ${this.totais.valor_cofins.toFixed(2)}`,
+            `SISCOMEX R$ ${this.getDespesaAduaneira('siscomex')} CAPATAZIA R$ ${this.getDespesaAduaneira('capatazia')} AFRMM R$ ${this.getDespesaAduaneira('afrmm')}`,
             `Nossa Referência: ${this.header.referencia_twa || 'N/A'}`,
             `REF.IMPORTADOR: ${this.header.referencia_importador || 'N/A'}`,
             `NOTA FISCAL DE IMPORTAÇÃO DE ACORDO COM A DI ${this.header.di_numero}`,
