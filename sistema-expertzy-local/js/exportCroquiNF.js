@@ -692,8 +692,8 @@ class CroquiNFExporter {
             // Configurar fontes
             doc.setFont('helvetica');
             
-            // LOGO E CABEÇALHO EXPERTZY
-            this.addLogoAndHeader(doc);
+            // LOGO E CABEÇALHO EXPERTZY (now async)
+            await this.addLogoAndHeader(doc);
             
             // SEÇÃO DESTINATÁRIO/REMETENTE
             this.addDestinatarioSection(doc);
@@ -744,19 +744,37 @@ class CroquiNFExporter {
         });
     }
     
-    addLogoAndHeader(doc) {
+    async addLogoAndHeader(doc) {
         // ===== LAYOUT PAISAGEM (297mm x 210mm) =====
         
-        // LOGO EXPERTZY (lado esquerdo)
-        doc.setFillColor(0, 51, 102);
-        doc.rect(15, 10, 50, 30, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text('EXPERTZY', 40, 20, { align: 'center' });
-        doc.setFontSize(9);
-        doc.text('SISTEMA DE IMPORTAÇÃO', 40, 27, { align: 'center' });
-        doc.text('E PRECIFICAÇÃO', 40, 33, { align: 'center' });
+        // Try to add the actual Expertzy logo if available
+        try {
+            // Check if logo exists and can be loaded
+            // Using the correct path to assets/images
+            const logoPath = 'assets/images/logo-expertzy.png';
+            const response = await fetch(logoPath);
+            if (response.ok) {
+                const blob = await response.blob();
+                const reader = new FileReader();
+                await new Promise((resolve, reject) => {
+                    reader.onload = resolve;
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                const logoData = reader.result;
+                // Add logo image (adjust dimensions as needed)
+                doc.addImage(logoData, 'PNG', 15, 10, 50, 30);
+                console.log('✅ Logo Expertzy adicionado ao PDF');
+            } else {
+                console.warn('Logo not found at path, using text fallback');
+                // Fallback to text logo if image not available
+                this.addTextLogo(doc);
+            }
+        } catch (error) {
+            console.warn('Could not load logo image, using text fallback:', error);
+            // Fallback to text logo
+            this.addTextLogo(doc);
+        }
         
         // TÍTULO PRINCIPAL (centro)
         doc.setTextColor(0, 0, 0);
@@ -774,6 +792,19 @@ class CroquiNFExporter {
         // Linha separadora (mais larga para paisagem)
         doc.setLineWidth(0.5);
         doc.line(15, 50, 282, 50);
+    }
+    
+    addTextLogo(doc) {
+        // Text-based logo fallback
+        doc.setFillColor(0, 51, 102);
+        doc.rect(15, 10, 50, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('EXPERTZY', 40, 20, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text('SISTEMA DE IMPORTAÇÃO', 40, 27, { align: 'center' });
+        doc.text('E PRECIFICAÇÃO', 40, 33, { align: 'center' });
     }
     
     addDestinatarioSection(doc) {
@@ -877,18 +908,18 @@ class CroquiNFExporter {
                     cellPadding: 2
                 },
                 columnStyles: {
-                    0: { cellWidth: 18 },      // Código
-                    1: { cellWidth: 70 },      // Descrição (mais espaço)
-                    2: { cellWidth: 22 },      // NCM
-                    3: { cellWidth: 12, halign: 'center' },   // UN
-                    4: { cellWidth: 18, halign: 'right' },    // Quantidade
-                    5: { cellWidth: 22, halign: 'right' },    // Valor Unit
-                    6: { cellWidth: 22, halign: 'right' },    // Valor Total
-                    7: { cellWidth: 22, halign: 'right' },    // BC ICMS
-                    8: { cellWidth: 20, halign: 'right' },    // Valor ICMS
-                    9: { cellWidth: 18, halign: 'right' },    // Valor IPI
-                    10: { cellWidth: 18, halign: 'center' },  // Aliq ICMS
-                    11: { cellWidth: 15, halign: 'center' }   // Aliq IPI
+                    0: { cellWidth: 15 },      // Código (-3)
+                    1: { cellWidth: 65 },      // Descrição (-5)
+                    2: { cellWidth: 20 },      // NCM (-2)
+                    3: { cellWidth: 10, halign: 'center' },   // UN (-2)
+                    4: { cellWidth: 16, halign: 'right' },    // Quantidade (-2)
+                    5: { cellWidth: 20, halign: 'right' },    // Valor Unit (-2)
+                    6: { cellWidth: 20, halign: 'right' },    // Valor Total (-2)
+                    7: { cellWidth: 20, halign: 'right' },    // BC ICMS (-2)
+                    8: { cellWidth: 18, halign: 'right' },    // Valor ICMS (-2)
+                    9: { cellWidth: 16, halign: 'right' },    // Valor IPI (-2)
+                    10: { cellWidth: 16, halign: 'center' },  // Aliq ICMS (-2)
+                    11: { cellWidth: 13, halign: 'center' }   // Aliq IPI (-2)
                 },
                 margin: { left: 15, right: 15 }
             });
@@ -942,12 +973,12 @@ class CroquiNFExporter {
                     fontSize: 7
                 },
                 columnStyles: {
-                    0: { cellWidth: 44, fontStyle: 'bold' },   // Mais espaço para paisagem
-                    1: { cellWidth: 36, halign: 'right' },
-                    2: { cellWidth: 44, fontStyle: 'bold' },
-                    3: { cellWidth: 36, halign: 'right' },
-                    4: { cellWidth: 44, fontStyle: 'bold' },
-                    5: { cellWidth: 36, halign: 'right' }
+                    0: { cellWidth: 40, fontStyle: 'bold' },   // Reduced width
+                    1: { cellWidth: 34, halign: 'right' },
+                    2: { cellWidth: 40, fontStyle: 'bold' },
+                    3: { cellWidth: 34, halign: 'right' },
+                    4: { cellWidth: 40, fontStyle: 'bold' },
+                    5: { cellWidth: 34, halign: 'right' }
                 },
                 margin: { left: 15, right: 15 }
             });
