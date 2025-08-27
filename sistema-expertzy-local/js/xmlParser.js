@@ -1102,4 +1102,79 @@ class DiParser {
     getIncotermIdentificado() {
         return this.incotermIdentificado;
     }
+
+    /**
+     * Consolida despesas automáticas da DI com despesas extras manuais
+     * @param {Object} despesasExtras - Despesas extras informadas pelo usuário
+     * @returns {Object} Despesas consolidadas com classificação tributária
+     */
+    consolidarDespesasCompletas(despesasExtras = {}) {
+        console.log('🔄 Consolidando despesas automáticas + extras...');
+        
+        const despesasAutomaticas = this.diData.despesas_aduaneiras || {};
+        
+        const despesasConsolidadas = {
+            // Despesas automáticas da DI (sempre tributáveis para ICMS)
+            automaticas: {
+                siscomex: despesasAutomaticas.calculadas?.siscomex || 0,
+                afrmm: despesasAutomaticas.calculadas?.afrmm || 0,
+                capatazia: despesasAutomaticas.calculadas?.capatazia || 0,
+                armazenagem_di: despesasAutomaticas.calculadas?.armazenagem || 0,
+                outros_di: despesasAutomaticas.calculadas?.outras || 0,
+                total: despesasAutomaticas.total_despesas_aduaneiras || 0
+            },
+            
+            // Despesas extras informadas pelo usuário
+            extras: {
+                armazenagem_extra: despesasExtras.armazenagem_extra || 0,
+                transporte_interno: despesasExtras.transporte_interno || 0,
+                despachante: despesasExtras.despachante || 0,
+                outros_portuarios: despesasExtras.outros_portuarios || 0,
+                bancarios: despesasExtras.bancarios || 0,
+                administrativos: despesasExtras.administrativos || 0,
+                outros_extras: despesasExtras.outros_extras || 0
+            },
+            
+            // Classificação tributária (definida pelo usuário)
+            classificacao: {
+                tributaveis_icms: despesasExtras.tributaveis_icms || {},
+                apenas_custeio: despesasExtras.apenas_custeio || {}
+            }
+        };
+        
+        // Calcular totais por classificação
+        let totalTributavel = despesasConsolidadas.automaticas.total; // DI sempre tributável
+        let totalCusteio = 0;
+        
+        // Processar despesas extras conforme classificação
+        Object.keys(despesasConsolidadas.extras).forEach(key => {
+            const valor = despesasConsolidadas.extras[key];
+            if (valor > 0) {
+                if (despesasConsolidadas.classificacao.tributaveis_icms[key]) {
+                    totalTributavel += valor;
+                } else {
+                    totalCusteio += valor;
+                }
+            }
+        });
+        
+        despesasConsolidadas.totais = {
+            automaticas: despesasConsolidadas.automaticas.total,
+            extras: Object.values(despesasConsolidadas.extras).reduce((sum, val) => sum + val, 0),
+            tributavel_icms: totalTributavel,
+            apenas_custeio: totalCusteio,
+            geral: totalTributavel + totalCusteio
+        };
+        
+        console.log('✅ Despesas consolidadas:', despesasConsolidadas);
+        return despesasConsolidadas;
+    }
+
+    /**
+     * Obtém despesas automáticas já extraídas da DI
+     * @returns {Object} Despesas automáticas da DI
+     */
+    getDespesasAutomaticas() {
+        return this.diData.despesas_aduaneiras || {};
+    }
 }
