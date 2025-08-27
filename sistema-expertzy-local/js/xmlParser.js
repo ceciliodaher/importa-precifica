@@ -219,6 +219,7 @@ class DiParser {
             endereco_complemento: this.getTextContent(diNode, 'importadorEnderecoComplemento'),
             endereco_bairro: this.getTextContent(diNode, 'importadorEnderecoBairro'),
             endereco_cidade: this.getTextContent(diNode, 'importadorEnderecoCidade'),
+            endereco_municipio: this.getTextContent(diNode, 'importadorEnderecoMunicipio'),
             endereco_uf: this.getTextContent(diNode, 'importadorEnderecoUf'),
             endereco_cep: this.formatCEP(this.getTextContent(diNode, 'importadorEnderecoCep')),
             representante_nome: this.getTextContent(diNode, 'importadorNomeRepresentanteLegal'),
