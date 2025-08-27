@@ -433,13 +433,14 @@ class CroquiNFExporter {
     }
     
     extractFornecedor() {
-        // Extrair dados do fornecedor das adições
+        // Extrair dados do fornecedor das adições (baseado na análise XML)
         if (this.di.adicoes && this.di.adicoes.length > 0) {
             const primeiraAdicao = this.di.adicoes[0];
+            const fornecedor = primeiraAdicao.fornecedor;
             return {
-                nome: primeiraAdicao.fornecedor_nome,
-                endereco: `${primeiraAdicao.fornecedor_logradouro}, ${primeiraAdicao.fornecedor_cidade}`.trim(),
-                pais: primeiraAdicao.pais_aquisicao_nome,
+                nome: fornecedor?.nome || '',
+                endereco: `${fornecedor?.logradouro || ''}, ${fornecedor?.cidade || ''}`.trim(),
+                pais: primeiraAdicao.pais_aquisicao_nome || '',
                 cnpj: ''
             };
         }
@@ -835,16 +836,16 @@ class CroquiNFExporter {
     addDestinatarioSection(doc) {
         let y = 55;
         
-        // DESTINATÁRIO/REMETENTE
+        // SEÇÃO DESTINATÁRIO (IMPORTADOR BRASILEIRO)
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
-        doc.text('DESTINATÁRIO/REMETENTE', 15, y);
+        doc.text('DESTINATÁRIO (IMPORTADOR)', 15, y);
         
         y += 5;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         
-        // Dados do importador
+        // Dados do importador (destinatário)
         doc.text(`NOME: ${this.header.importador.nome}`, 15, y);
         y += 4;
         doc.text(`CNPJ: ${this.header.importador.cnpj}`, 15, y);
@@ -855,10 +856,18 @@ class CroquiNFExporter {
         y += 4;
         doc.text(`CEP: ${this.header.importador.cep}`, 15, y);
         
-        // Dados do fornecedor
-        doc.text(`FORNECEDOR: ${this.header.fornecedor.nome}`, 110, y - 16);
-        doc.text(`PAÍS: ${this.header.fornecedor.pais}`, 110, y - 12);
-        doc.text(`ENDEREÇO: ${this.header.fornecedor.endereco}`, 110, y - 8);
+        // SEÇÃO REMETENTE (FORNECEDOR/EXPORTADOR)
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('REMETENTE (EXPORTADOR)', 160, y - 16);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        
+        // Dados do fornecedor (remetente)
+        doc.text(`FORNECEDOR: ${this.header.fornecedor.nome}`, 160, y - 12);
+        doc.text(`PAÍS: ${this.header.fornecedor.pais}`, 160, y - 8);
+        doc.text(`ENDEREÇO: ${this.header.fornecedor.endereco}`, 160, y - 4);
         
         return y + 8;
     }
