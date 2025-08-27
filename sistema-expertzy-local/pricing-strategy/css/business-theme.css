@@ -1,0 +1,549 @@
+/**
+ * business-theme.css - Green Theme for Pricing Strategy System
+ * 
+ * Professional green color scheme focused on business strategy and growth
+ * Designed to convey prosperity, growth, and strategic business decisions
+ */
+
+:root {
+    /* Business Green Palette */
+    --business-primary: #28a745;
+    --business-secondary: #1e7e34;
+    --business-accent: #5cb85c;
+    --business-light: #e6f7e6;
+    --business-dark: #155724;
+    --business-muted: #6c9b6c;
+    
+    /* Success/Performance Colors */
+    --business-success: #20c997;
+    --business-warning: #ffc107;
+    --business-danger: #dc3545;
+    --business-info: #17a2b8;
+    --business-premium: #6f42c1;
+    
+    /* Neutral Colors */
+    --business-white: #ffffff;
+    --business-gray-50: #f8f9fa;
+    --business-gray-100: #e9ecef;
+    --business-gray-200: #dee2e6;
+    --business-gray-300: #ced4da;
+    --business-gray-500: #6c757d;
+    --business-gray-700: #495057;
+    --business-gray-900: #212529;
+}
+
+/* Base Business Styling */
+.business-container {
+    background-color: var(--business-gray-50);
+    min-height: 100vh;
+}
+
+.business-header {
+    background: linear-gradient(135deg, var(--business-primary), var(--business-secondary));
+    color: var(--business-white);
+    padding: 2rem 0;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15);
+}
+
+.business-header h1 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.business-header p {
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* Cards and Containers */
+.business-card {
+    background: var(--business-white);
+    border-left: 4px solid var(--business-primary);
+    box-shadow: 0 2px 15px rgba(40, 167, 69, 0.08);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.business-card:hover {
+    box-shadow: 0 4px 25px rgba(40, 167, 69, 0.12);
+    transform: translateY(-2px);
+}
+
+.business-card .card-header {
+    background-color: var(--business-light);
+    border-bottom: 1px solid var(--business-accent);
+    color: var(--business-dark);
+    font-weight: 600;
+}
+
+/* Strategy Steps */
+.strategy-step {
+    background: var(--business-light);
+    border: 2px solid var(--business-accent);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.strategy-step.active {
+    border-color: var(--business-primary);
+    background: var(--business-white);
+    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.15);
+}
+
+.strategy-step.completed {
+    border-color: var(--business-success);
+    background: #f0fff4;
+}
+
+.step-number {
+    position: absolute;
+    top: -15px;
+    left: 25px;
+    background: var(--business-primary);
+    color: var(--business-white);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    border: 3px solid var(--business-white);
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+}
+
+.strategy-step.completed .step-number {
+    background: var(--business-success);
+}
+
+/* Buttons */
+.btn-business {
+    background: linear-gradient(135deg, var(--business-primary), var(--business-secondary));
+    border: none;
+    color: var(--business-white);
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+}
+
+.btn-business:hover {
+    background: linear-gradient(135deg, var(--business-secondary), var(--business-dark));
+    color: var(--business-white);
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-business:focus {
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    color: var(--business-white);
+}
+
+.btn-outline-business {
+    border: 2px solid var(--business-primary);
+    color: var(--business-primary);
+    background: transparent;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-business:hover {
+    background: var(--business-primary);
+    color: var(--business-white);
+    transform: translateY(-2px);
+}
+
+/* Scenario Cards */
+.scenario-card {
+    background: var(--business-white);
+    border: 1px solid var(--business-gray-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 0.75rem 0;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.scenario-card:hover {
+    border-color: var(--business-accent);
+    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.12);
+    transform: translateY(-3px);
+}
+
+.scenario-card.best {
+    border-color: var(--business-primary);
+    border-width: 2px;
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.15);
+}
+
+.scenario-card.best::before {
+    content: "RECOMENDADO";
+    position: absolute;
+    top: -8px;
+    right: 15px;
+    background: var(--business-primary);
+    color: var(--business-white);
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Pricing Cards */
+.pricing-card {
+    background: var(--business-gray-50);
+    border: 1px solid var(--business-gray-200);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 0.75rem 0;
+    transition: all 0.3s ease;
+}
+
+.pricing-card:hover {
+    border-color: var(--business-accent);
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.1);
+    transform: translateY(-2px);
+}
+
+.competitive-price {
+    border-left: 4px solid var(--business-warning);
+    background: #fffbf0;
+}
+
+.standard-price {
+    border-left: 4px solid var(--business-primary);
+    background: var(--business-light);
+}
+
+.premium-price {
+    border-left: 4px solid var(--business-premium);
+    background: #f8f4ff;
+}
+
+/* Metric Cards */
+.metric-card {
+    background: var(--business-white);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid var(--business-gray-100);
+}
+
+.metric-card:hover {
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.1);
+    border-color: var(--business-accent);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--business-primary);
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    color: var(--business-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Comparison Charts */
+.comparison-chart {
+    background: var(--business-white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.08);
+    border: 1px solid var(--business-gray-100);
+}
+
+.comparison-chart h5,
+.comparison-chart h6 {
+    color: var(--business-dark);
+    margin-bottom: 1.5rem;
+}
+
+/* Form Elements */
+.form-control:focus {
+    border-color: var(--business-accent);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+.form-check-input:checked {
+    background-color: var(--business-primary);
+    border-color: var(--business-primary);
+}
+
+.form-check-input:focus {
+    border-color: var(--business-accent);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+.form-select:focus {
+    border-color: var(--business-accent);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+/* Alerts */
+.alert-business {
+    background-color: var(--business-light);
+    border-color: var(--business-accent);
+    color: var(--business-dark);
+}
+
+.alert-no-data {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+    border-radius: 10px;
+}
+
+/* Progress Indicators */
+.process-indicator {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+}
+
+.process-indicator .badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.process-indicator span:not(.badge) {
+    font-weight: 500;
+    color: var(--business-gray-700);
+}
+
+.process-indicator.active span:not(.badge) {
+    color: var(--business-primary);
+    font-weight: 600;
+}
+
+.process-indicator .bi-arrow-right {
+    color: var(--business-gray-300);
+    font-size: 1.2rem;
+}
+
+/* Data Tables */
+.table-business {
+    background: var(--business-white);
+}
+
+.table-business thead th {
+    background-color: var(--business-light);
+    color: var(--business-dark);
+    border-bottom: 2px solid var(--business-accent);
+    font-weight: 600;
+}
+
+.table-business tbody tr:hover {
+    background-color: var(--business-light);
+}
+
+/* Status Badges */
+.badge-business {
+    background-color: var(--business-primary);
+    color: var(--business-white);
+}
+
+.badge-business-success {
+    background-color: var(--business-success);
+    color: var(--business-white);
+}
+
+.badge-business-warning {
+    background-color: var(--business-warning);
+    color: var(--business-gray-900);
+}
+
+.badge-premium {
+    background-color: var(--business-premium);
+    color: var(--business-white);
+}
+
+/* Loading States */
+.loading-overlay {
+    background: rgba(40, 167, 69, 0.1);
+    backdrop-filter: blur(5px);
+}
+
+.loading-content {
+    background: var(--business-white);
+    border: 2px solid var(--business-accent);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(40, 167, 69, 0.2);
+}
+
+.spinner-border-business {
+    color: var(--business-primary);
+}
+
+/* Performance Indicators */
+.performance-positive {
+    color: var(--business-success);
+    font-weight: 600;
+}
+
+.performance-negative {
+    color: var(--business-danger);
+    font-weight: 600;
+}
+
+.performance-neutral {
+    color: var(--business-muted);
+    font-weight: 500;
+}
+
+/* ROI and Financial Indicators */
+.roi-indicator {
+    background: linear-gradient(135deg, var(--business-success), #17a2b8);
+    color: var(--business-white);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.profit-margin {
+    background: var(--business-light);
+    color: var(--business-dark);
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border: 1px solid var(--business-accent);
+}
+
+/* Strategic Recommendations */
+.strategy-recommendation {
+    background: linear-gradient(135deg, var(--business-light), var(--business-white));
+    border-left: 4px solid var(--business-primary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.08);
+}
+
+.strategy-recommendation h6 {
+    color: var(--business-dark);
+    margin-bottom: 1rem;
+}
+
+.strategy-recommendation.primary {
+    border-left-color: var(--business-primary);
+    background: linear-gradient(135deg, var(--business-light), var(--business-white));
+}
+
+.strategy-recommendation.secondary {
+    border-left-color: var(--business-accent);
+    background: linear-gradient(135deg, var(--business-gray-50), var(--business-white));
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .business-header {
+        padding: 1.5rem 0;
+    }
+    
+    .strategy-step {
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-business {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .scenario-card {
+        padding: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .comparison-chart {
+        padding: 1rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .business-header {
+        background: var(--business-dark) !important;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .business-card {
+        box-shadow: none;
+        border: 1px solid var(--business-gray-300);
+    }
+    
+    .btn-business {
+        display: none;
+    }
+    
+    .scenario-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid var(--business-gray-300);
+    }
+}
+
+/* Animation Enhancements */
+@keyframes businessGrowth {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.metric-card:hover .metric-value {
+    animation: businessGrowth 0.6s ease-in-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--business-gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--business-accent);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--business-primary);
+}

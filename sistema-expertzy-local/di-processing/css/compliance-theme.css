@@ -1,0 +1,375 @@
+/**
+ * compliance-theme.css - Blue Theme for DI Compliance Processor
+ * 
+ * Professional blue color scheme focused on compliance and regulatory accuracy
+ * Designed to convey trust, reliability, and official compliance processing
+ */
+
+:root {
+    /* Compliance Blue Palette */
+    --compliance-primary: #0066cc;
+    --compliance-secondary: #004499;
+    --compliance-accent: #3399ff;
+    --compliance-light: #e6f2ff;
+    --compliance-dark: #003366;
+    --compliance-muted: #6699cc;
+    
+    /* Status Colors */
+    --compliance-success: #28a745;
+    --compliance-warning: #ffc107;
+    --compliance-danger: #dc3545;
+    --compliance-info: #17a2b8;
+    
+    /* Neutral Colors */
+    --compliance-white: #ffffff;
+    --compliance-gray-50: #f8f9fa;
+    --compliance-gray-100: #e9ecef;
+    --compliance-gray-200: #dee2e6;
+    --compliance-gray-300: #ced4da;
+    --compliance-gray-500: #6c757d;
+    --compliance-gray-700: #495057;
+    --compliance-gray-900: #212529;
+}
+
+/* Base Compliance Styling */
+.compliance-container {
+    background-color: var(--compliance-gray-50);
+    min-height: 100vh;
+}
+
+.compliance-header {
+    background: linear-gradient(135deg, var(--compliance-primary), var(--compliance-secondary));
+    color: var(--compliance-white);
+    padding: 2rem 0;
+    box-shadow: 0 4px 15px rgba(0, 102, 204, 0.15);
+}
+
+.compliance-header h1 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.compliance-header p {
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* Cards and Containers */
+.compliance-card {
+    background: var(--compliance-white);
+    border-left: 4px solid var(--compliance-primary);
+    box-shadow: 0 2px 15px rgba(0, 102, 204, 0.08);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.compliance-card:hover {
+    box-shadow: 0 4px 25px rgba(0, 102, 204, 0.12);
+    transform: translateY(-2px);
+}
+
+.compliance-card .card-header {
+    background-color: var(--compliance-light);
+    border-bottom: 1px solid var(--compliance-accent);
+    color: var(--compliance-dark);
+    font-weight: 600;
+}
+
+/* Process Steps */
+.process-step {
+    background: var(--compliance-light);
+    border: 2px solid var(--compliance-accent);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.process-step.active {
+    border-color: var(--compliance-primary);
+    background: var(--compliance-white);
+    box-shadow: 0 6px 25px rgba(0, 102, 204, 0.15);
+}
+
+.process-step.completed {
+    border-color: var(--compliance-success);
+    background: #f8fff9;
+}
+
+.step-number {
+    position: absolute;
+    top: -15px;
+    left: 25px;
+    background: var(--compliance-primary);
+    color: var(--compliance-white);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    border: 3px solid var(--compliance-white);
+    box-shadow: 0 2px 10px rgba(0, 102, 204, 0.2);
+}
+
+.process-step.completed .step-number {
+    background: var(--compliance-success);
+}
+
+/* Buttons */
+.btn-compliance {
+    background: linear-gradient(135deg, var(--compliance-primary), var(--compliance-secondary));
+    border: none;
+    color: var(--compliance-white);
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 102, 204, 0.2);
+}
+
+.btn-compliance:hover {
+    background: linear-gradient(135deg, var(--compliance-secondary), var(--compliance-dark));
+    color: var(--compliance-white);
+    box-shadow: 0 4px 20px rgba(0, 102, 204, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-compliance:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+    color: var(--compliance-white);
+}
+
+.btn-outline-compliance {
+    border: 2px solid var(--compliance-primary);
+    color: var(--compliance-primary);
+    background: transparent;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-compliance:hover {
+    background: var(--compliance-primary);
+    color: var(--compliance-white);
+    transform: translateY(-2px);
+}
+
+/* Form Elements */
+.form-control:focus {
+    border-color: var(--compliance-accent);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15);
+}
+
+.form-check-input:checked {
+    background-color: var(--compliance-primary);
+    border-color: var(--compliance-primary);
+}
+
+.form-check-input:focus {
+    border-color: var(--compliance-accent);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15);
+}
+
+.form-select:focus {
+    border-color: var(--compliance-accent);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15);
+}
+
+/* Expense Cards */
+.expense-card {
+    background: var(--compliance-gray-50);
+    border: 1px solid var(--compliance-gray-200);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 0.75rem 0;
+    transition: all 0.3s ease;
+}
+
+.expense-card:hover {
+    border-color: var(--compliance-accent);
+    box-shadow: 0 2px 15px rgba(0, 102, 204, 0.1);
+}
+
+.auto-expense {
+    border-left: 4px solid var(--compliance-success);
+    background: #f8fff9;
+}
+
+.manual-expense {
+    border-left: 4px solid var(--compliance-warning);
+    background: #fffbf0;
+}
+
+/* Alerts */
+.alert-compliance {
+    background-color: var(--compliance-light);
+    border-color: var(--compliance-accent);
+    color: var(--compliance-dark);
+}
+
+.alert-compliance .alert-heading {
+    color: var(--compliance-dark);
+}
+
+/* Tax Summary */
+.tax-summary {
+    background: linear-gradient(135deg, var(--compliance-light), var(--compliance-white));
+    border: 2px solid var(--compliance-accent);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 102, 204, 0.1);
+}
+
+.tax-summary h5 {
+    color: var(--compliance-dark);
+    margin-bottom: 1.5rem;
+}
+
+.tax-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--compliance-primary);
+}
+
+.tax-label {
+    color: var(--compliance-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Progress Indicators */
+.process-indicator {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+}
+
+.process-indicator .badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.process-indicator span:not(.badge) {
+    font-weight: 500;
+    color: var(--compliance-gray-700);
+}
+
+.process-indicator.active span:not(.badge) {
+    color: var(--compliance-primary);
+    font-weight: 600;
+}
+
+.process-indicator .bi-arrow-right {
+    color: var(--compliance-gray-300);
+    font-size: 1.2rem;
+}
+
+/* Data Tables */
+.table-compliance {
+    background: var(--compliance-white);
+}
+
+.table-compliance thead th {
+    background-color: var(--compliance-light);
+    color: var(--compliance-dark);
+    border-bottom: 2px solid var(--compliance-accent);
+    font-weight: 600;
+}
+
+.table-compliance tbody tr:hover {
+    background-color: var(--compliance-light);
+}
+
+/* Status Badges */
+.badge-compliance {
+    background-color: var(--compliance-primary);
+    color: var(--compliance-white);
+}
+
+.badge-compliance-success {
+    background-color: var(--compliance-success);
+    color: var(--compliance-white);
+}
+
+.badge-compliance-warning {
+    background-color: var(--compliance-warning);
+    color: var(--compliance-gray-900);
+}
+
+/* Loading States */
+.loading-overlay {
+    background: rgba(0, 102, 204, 0.1);
+    backdrop-filter: blur(5px);
+}
+
+.loading-content {
+    background: var(--compliance-white);
+    border: 2px solid var(--compliance-accent);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 102, 204, 0.2);
+}
+
+.spinner-border-compliance {
+    color: var(--compliance-primary);
+}
+
+/* File Upload */
+.form-control[type="file"] {
+    border: 2px dashed var(--compliance-accent);
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control[type="file"]:hover {
+    border-color: var(--compliance-primary);
+    background-color: var(--compliance-light);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .compliance-header {
+        padding: 1.5rem 0;
+    }
+    
+    .process-step {
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-compliance {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .compliance-header {
+        background: var(--compliance-dark) !important;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .compliance-card {
+        box-shadow: none;
+        border: 1px solid var(--compliance-gray-300);
+    }
+    
+    .btn-compliance {
+        display: none;
+    }
+}

@@ -145,32 +145,118 @@ The system handles Brazilian import taxes with specific rules:
 
 ### Recent Updates (2025-08-27)
 
-**✅ Import Expenses System - FULLY IMPLEMENTED**
-- **Status**: 100% completed - Sistema de despesas extras totalmente funcional
-- **Implementation**: Complete integration of automatic DI expenses + manual extra expenses
-- **Documentation**: Comprehensive plan at `documentos/plano-implementacao-despesas-extras.md`
-- **Files Modified**: All core system files updated and tested
+**🚨 CRITICAL ARCHITECTURAL RESTRUCTURE - IN PROGRESS**
+- **Problem Identified**: System mixing DI processing (compliance) with pricing (business strategy)
+- **Root Cause**: Interface confusion, technical issues with SISCOMEX inclusion, excessive recalculations
+- **Solution**: Complete separation into two distinct phases
 
-**🎯 Key Features Implemented:**
-- **DI Expense Extraction**: Automatic display of SISCOMEX, AFRMM, capatazia from XML
-- **Extra Expenses Form**: User input for additional costs (port, banking, logistics, admin)
-- **Tax Classification**: Checkboxes to mark expenses as "ICMS taxable" vs "costing-only"
-- **Real-time Preview**: Live impact calculation showing ICMS changes
-- **Consolidated Calculation**: All expenses properly integrated in tax calculations
-- **Visual Feedback**: Modern UI with CSS animations and status indicators
+**🔧 NEW ARCHITECTURE: Two-Phase System**
 
-**🔧 Technical Implementation:**
-- **XMLParser**: `consolidarDespesasCompletas()` method working perfectly
-- **Calculator**: `previewImpactoDespesas()` providing real-time calculations  
-- **App.js**: Complete integration with corrected HTML IDs and event listeners
-- **Storage**: Persistence and restoration of expense configurations
-- **HTML/CSS**: Full interface with automatic expense display and preview cards
+### **PHASE 1: DI Compliance Processor**
+**Purpose**: Handle mandatory import compliance activities
+**Location**: `/di-processing/`
 
-**📊 Business Impact:**
-- **ICMS Accuracy**: Tax base now includes all relevant expenses per Brazilian legislation
-- **User Experience**: Intuitive workflow with immediate feedback
-- **Compliance**: Proper tax calculation including both automatic and manual expenses
-- **Efficiency**: Streamlined process from DI upload to final calculation
+**Core Modules:**
+- `DIProcessor.js` - Pure DI data extraction and validation
+- `ComplianceCalculator.js` - Fiscal calculations (II, IPI, PIS, COFINS, ICMS)
+- `di-processor.html` - Compliance-focused interface (blue theme)
+
+**Workflow:**
+1. **Upload & Validate**: XML DI processing
+2. **Extract Automatically**: SISCOMEX, AFRMM, capatazia from DI
+3. **Configure Extras**: Additional expenses with tax classification
+4. **Calculate Taxes**: All import taxes with correct ICMS base
+5. **Export Compliance**: Official cost analysis and tax reports
+
+**Key Features:**
+- ✅ Correct SISCOMEX inclusion in ICMS tax base
+- ✅ Single consolidation (no 6x recalculations)
+- ✅ Clean separation of concerns
+- ✅ Compliance-focused UX
+
+### **PHASE 2: Pricing Strategy System** 
+**Purpose**: Business optimization and pricing analysis (optional)
+**Location**: `/pricing-strategy/`
+
+**Core Modules:**
+- `PricingEngine.js` - Multi-scenario pricing analysis
+- `ScenarioAnalysis.js` - State comparisons and fiscal benefits
+- `pricing-system.html` - Business-focused interface (green theme)
+
+**Workflow:**
+1. **Import DI Data**: Load processed compliance data (read-only)
+2. **Configure Scenarios**: Multiple states, customer types, margins
+3. **Analyze Benefits**: GO, SC, ES, MG fiscal incentives
+4. **Optimize Pricing**: Competitive pricing strategies
+5. **Export Strategy**: Business reports and pricing recommendations
+
+**Key Features:**
+- ✅ Separated from compliance concerns
+- ✅ Multiple scenario analysis
+- ✅ State-specific optimization
+- ✅ Business-focused UX
+
+### **🏗️ Directory Structure (NEW)**
+
+**IMPORTANT: Landing Page vs. Functional System Separation**
+- **`index.html`**: Landing page ONLY - marketing/presentation interface
+- **Functional Systems**: Located in dedicated phase directories
+- **No mixing**: Landing page does not contain system functionality
+
+```
+/sistema-expertzy-local/
+├── index.html                  # LANDING PAGE ONLY (marketing/navigation)
+├── di-processing/              # PHASE 1: Compliance System
+│   ├── di-processor.html       # Functional DI processing system
+│   ├── js/
+│   │   ├── DIProcessor.js      # DI extraction only
+│   │   ├── ComplianceCalculator.js  # Tax calculations only
+│   │   └── di-interface.js     # Interface logic
+│   └── css/
+│       └── compliance-theme.css # Blue theme
+├── pricing-strategy/           # PHASE 2: Business System
+│   ├── pricing-system.html     # Functional pricing system
+│   ├── js/
+│   │   ├── PricingEngine.js    # Pricing scenarios
+│   │   ├── ScenarioAnalysis.js # Multi-state analysis
+│   │   └── business-interface.js # Interface logic
+│   └── css/
+│       └── business-theme.css  # Green theme
+├── shared/                     # Common resources
+│   ├── js/
+│   │   ├── storage.js
+│   │   ├── config.js
+│   │   └── calculationMemory.js
+│   ├── css/
+│   │   └── shared.css
+│   └── data/
+└── legacy/                     # Original system (backup)
+    └── sistema-importacao.html
+```
+
+**Navigation Flow:**
+1. `index.html` → Landing page with links to phases
+2. `di-processing/di-processor.html` → Full DI processing functionality
+3. `pricing-strategy/pricing-system.html` → Full pricing functionality
+
+### **🔧 Technical Fixes Implemented:**
+- **SISCOMEX Integration**: Correctly included in ICMS tax base calculation
+- **Performance**: Eliminated 6x repetitive ICMS calculations
+- **Consolidation**: Single expense consolidation per configuration
+- **Memory**: Clean calculation logging and memory management
+- **Separation**: Distinct modules for compliance vs. business logic
+
+### **📊 Business Impact:**
+- **Clarity**: Clear separation between mandatory compliance and optional pricing
+- **Efficiency**: Users access only what they need (compliance OR pricing)
+- **Accuracy**: Correct tax calculations with proper SISCOMEX inclusion  
+- **Productivity**: Focused workflows eliminate interface confusion
+- **Compliance**: Dedicated compliance phase ensures regulatory accuracy
+
+**Previous Implementation (DEPRECATED):**
+- ~~Import Expenses System~~ → Now integrated in DI Compliance Processor
+- ~~Single interface approach~~ → Replaced with two-phase architecture
+- ~~Mixed compliance/business logic~~ → Completely separated
 
 ### Previous Updates (2025-08-26)
 
