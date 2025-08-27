@@ -392,8 +392,8 @@ class ExpertzyApp {
                 <td>${adicao.numero_adicao}</td>
                 <td>${adicao.ncm}</td>
                 <td>${adicao.descricao_ncm}</td>
-                <td>${this.formatNumber(adicao.quantidade_estatistica)} ${adicao.unidade_estatistica}</td>
-                <td>${this.formatCurrency(adicao.valor_moeda_negociacao)} ${adicao.moeda_negociacao_codigo}</td>
+                <td>${this.formatNumber(adicao.quantidade_estatistica)} ${adicao.unidade_estatistica ? adicao.unidade_estatistica.toUpperCase() : ''}</td>
+                <td>${this.formatCurrencyWithCode(adicao.valor_moeda_negociacao, adicao.moeda_negociacao_codigo)}</td>
                 <td>${this.formatCurrency(adicao.valor_reais)}</td>
                 <td>${adicao.condicao_venda_incoterm}</td>
                 <td>
@@ -1700,6 +1700,48 @@ class ExpertzyApp {
             style: 'currency',
             currency: 'BRL'
         }).format(value || 0);
+    }
+
+    formatUSD(value) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(value || 0);
+    }
+
+    formatCurrencyWithCode(value, currencyCode) {
+        // Convert currency code to symbol
+        const currencyMap = {
+            '220': 'USD',
+            '978': 'EUR',
+            '826': 'GBP',
+            '156': 'CNY',
+            '392': 'JPY',
+            '124': 'CAD',
+            '036': 'AUD'
+        };
+        
+        const currency = currencyMap[currencyCode] || currencyCode;
+        
+        if (currency === 'USD') {
+            return this.formatUSD(value);
+        }
+        
+        // For other currencies, show with code
+        return `${currency} ${this.formatNumber(value, 2)}`;
+    }
+
+    getCurrencyLabel(currencyCode) {
+        const currencyMap = {
+            '220': 'USD',
+            '978': 'EUR', 
+            '826': 'GBP',
+            '156': 'CNY',
+            '392': 'JPY',
+            '124': 'CAD',
+            '036': 'AUD'
+        };
+        return currencyMap[currencyCode] || currencyCode;
     }
 
     formatNumber(value, decimals = 2) {
