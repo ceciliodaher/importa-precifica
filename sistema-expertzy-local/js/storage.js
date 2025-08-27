@@ -420,4 +420,179 @@ class StorageManager {
             return null;
         }
     }
+
+    // ========== GESTÃO DE DESPESAS CONSOLIDADAS ==========
+
+    /**
+     * Salva configuração completa de despesas por DI
+     */
+    saveDespesasConsolidadas(diNumero, despesasConfig) {
+        if (!diNumero || !despesasConfig) {
+            console.warn('Dados insuficientes para salvar despesas consolidadas');
+            return false;
+        }
+
+        try {
+            const key = `${this.prefix}despesas_${diNumero}`;
+            const data = {
+                di_numero: diNumero,
+                timestamp: Date.now(),
+                despesas_extras: despesasConfig,
+                versao: '1.0'
+            };
+
+            localStorage.setItem(key, JSON.stringify(data));
+            
+            // Manter histórico
+            this.addToHistorico('despesas_configuradas', {
+                di_numero: diNumero,
+                timestamp: data.timestamp,
+                total_extras: Object.values(despesasConfig).reduce((sum, val) => 
+                    typeof val === 'number' ? sum + val : sum, 0)
+            });
+
+            console.log(`✅ Despesas consolidadas salvas para DI ${diNumero}`);
+            return true;
+
+        } catch (error) {
+            console.error('Erro ao salvar despesas consolidadas:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Recupera configuração de despesas por DI
+     */
+    getDespesasConsolidadas(diNumero) {
+        if (!diNumero) return null;
+
+        try {
+            const key = `${this.prefix}despesas_${diNumero}`;
+            const stored = localStorage.getItem(key);
+            
+            if (!stored) return null;
+
+            const data = JSON.parse(stored);
+            
+            // Verificar se não expirou
+            const now = Date.now();
+            if (data.timestamp && (now - data.timestamp > this.sessionDuration)) {
+                localStorage.removeItem(key);
+                return null;
+            }
+
+            console.log(`📖 Despesas consolidadas recuperadas para DI ${diNumero}`);
+            return data.despesas_extras;
+
+        } catch (error) {
+            console.error('Erro ao recuperar despesas consolidadas:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Lista todas as configurações de despesas salvas
+     */
+    getAllDespesasConsolidadas() {
+        const despesas = {};
+        const keys = Object.keys(localStorage);
+        
+        keys.forEach(key => {
+            if (key.startsWith(`${this.prefix}despesas_`)) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.di_numero) {
+                        despesas[data.di_numero] = data.despesas_extras;
+                    }
+                } catch (error) {
+                    console.warn(`Erro ao processar despesa salva: ${key}`);
+                }
+            }
+        });
+        
+        return despesas;
+    }
+
+    /**
+     * Remove configuração de despesas de uma DI específica
+     */
+    removeDespesasConsolidadas(diNumero) {
+        if (!diNumero) return false;
+
+        try {
+            const key = `${this.prefix}despesas_${diNumero}`;
+            localStorage.removeItem(key);
+            
+            console.log(`🗑️ Despesas consolidadas removidas para DI ${diNumero}`);
+            return true;
+
+        } catch (error) {
+            console.error('Erro ao remover despesas consolidadas:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Limpa todas as configurações de despesas
+     */
+    clearAllDespesas() {
+        const keys = Object.keys(localStorage);
+        let removidas = 0;
+        
+        keys.forEach(key => {
+            if (key.startsWith(`${this.prefix}despesas_`)) {
+                localStorage.removeItem(key);
+                removidas++;
+            }
+        });
+        
+        console.log(`🧹 ${removidas} configurações de despesas removidas`);
+        return removidas;
+    }
+
+    /**
+     * Adiciona entrada ao histórico
+     */
+    addToHistorico(tipo, dados) {
+        try {
+            const key = `${this.prefix}historico`;
+            const historico = JSON.parse(localStorage.getItem(key) || '[]');
+            
+            historico.unshift({
+                tipo,
+                timestamp: Date.now(),
+                dados
+            });
+            
+            // Manter apenas últimas 50 entradas
+            if (historico.length > 50) {
+                historico.splice(50);
+            }
+            
+            localStorage.setItem(key, JSON.stringify(historico));
+            
+        } catch (error) {
+            console.warn('Erro ao salvar no histórico:', error);
+        }
+    }
+
+    /**
+     * Recupera histórico de operações
+     */
+    getHistorico(tipo = null) {
+        try {
+            const key = `${this.prefix}historico`;
+            const historico = JSON.parse(localStorage.getItem(key) || '[]');
+            
+            if (tipo) {
+                return historico.filter(item => item.tipo === tipo);
+            }
+            
+            return historico;
+            
+        } catch (error) {
+            console.error('Erro ao recuperar histórico:', error);
+            return [];
+        }
+    }
 }

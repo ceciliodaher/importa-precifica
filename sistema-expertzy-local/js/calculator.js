@@ -94,7 +94,7 @@ class TributaryCalculator {
      * ===== CORREÇÃO CRÍTICA: Calcula base de cálculo do ICMS conforme legislação =====
      * Inclui despesas aduaneiras e aplica fórmula "por dentro"
      */
-    calculateBaseICMS(adicao, custosExtras, estadoDestino = 'GO', tipoOperacao = 'interestadual') {
+    calculateBaseICMS(adicao, custosExtras = {}, estadoDestino = 'GO', tipoOperacao = 'interestadual', despesasConsolidadas = null) {
         let baseAntesICMS = adicao.valor_reais || 0;
         
         // Adicionar II
@@ -107,15 +107,23 @@ class TributaryCalculator {
         baseAntesICMS += (adicao.tributos.pis_valor_devido || 0);
         baseAntesICMS += (adicao.tributos.cofins_valor_devido || 0);
         
-        // ===== CORREÇÃO CRÍTICA: Adicionar despesas aduaneiras =====
-        if (adicao.despesas_aduaneiras?.total_despesas_aduaneiras) {
-            baseAntesICMS += adicao.despesas_aduaneiras.total_despesas_aduaneiras;
-            console.log(`💰 Despesas aduaneiras incluídas na base: R$ ${adicao.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
+        // ===== NOVO: Usar despesas consolidadas se fornecidas =====
+        if (despesasConsolidadas?.totais?.tributavel_icms) {
+            baseAntesICMS += despesasConsolidadas.totais.tributavel_icms;
+            console.log(`💰 Despesas consolidadas incluídas na base ICMS: R$ ${despesasConsolidadas.totais.tributavel_icms.toFixed(2)}`);
+            console.log(`📊 Detalhamento: Automáticas R$ ${despesasConsolidadas.totais.automaticas.toFixed(2)} + Extras tributáveis R$ ${(despesasConsolidadas.totais.tributavel_icms - despesasConsolidadas.totais.automaticas).toFixed(2)}`);
+        } else {
+            // ===== FALLBACK: Método antigo para compatibilidade =====
+            // Adicionar despesas aduaneiras tradicionais
+            if (adicao.despesas_aduaneiras?.total_despesas_aduaneiras) {
+                baseAntesICMS += adicao.despesas_aduaneiras.total_despesas_aduaneiras;
+                console.log(`💰 Despesas aduaneiras incluídas na base: R$ ${adicao.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
+            }
+            
+            // Adicionar custos extras que compõem base ICMS (método antigo)
+            if (custosExtras.portuarios) baseAntesICMS += custosExtras.portuarios;
+            if (custosExtras.logisticos) baseAntesICMS += custosExtras.logisticos;
         }
-        
-        // Adicionar custos extras que compõem base ICMS
-        if (custosExtras.portuarios) baseAntesICMS += custosExtras.portuarios;
-        if (custosExtras.logisticos) baseAntesICMS += custosExtras.logisticos;
         
         // ===== APLICAR FÓRMULA "POR DENTRO" CONFORME LEGISLAÇÃO =====
         const aliquotaICMS = this.getAliquotaICMS(estadoDestino, tipoOperacao);
@@ -426,5 +434,98 @@ class TributaryCalculator {
         cenarios.consumidor_final = this.calculateTotalCosts(adicao, estadoDestino, custosExtras, 'consumidor_final');
 
         return cenarios;
+    }
+
+    // ========== SISTEMA DE PREVIEW DE IMPACTO ==========
+
+    /**
+     * Calcula impacto das despesas extras nos cálculos tributários
+     * @param {Object} adicao - Dados da adição
+     * @param {Object} despesasExtras - Despesas extras configuradas 
+     * @param {string} estadoDestino - Estado de destino
+     * @param {string} tipoOperacao - Tipo de operação tributária
+     * @returns {Object} Comparativo de impacto
+     */
+    previewImpactoDespesas(adicao, despesasExtras, estadoDestino = 'GO', tipoOperacao = 'interestadual') {
+        if (!adicao) {
+            return { erro: 'Adição não fornecida para cálculo de impacto' };
+        }
+
+        // Calcular XMLParser consolidação (assumindo que existe)
+        let despesasConsolidadas = null;
+        if (window.app?.xmlParser) {
+            despesasConsolidadas = window.app.xmlParser.consolidarDespesasCompletas(despesasExtras);
+        }
+
+        // Base atual (sem despesas extras)
+        const baseAtual = this.calculateBaseICMS(adicao, {}, estadoDestino, tipoOperacao);
+        
+        // Base nova (com despesas extras)
+        const baseNova = this.calculateBaseICMS(adicao, {}, estadoDestino, tipoOperacao, despesasConsolidadas);
+        
+        // Calcular ICMS
+        const aliquotaICMS = this.getAliquotaICMS(estadoDestino, tipoOperacao);
+        const icmsAtual = baseAtual * (aliquotaICMS / 100);
+        const icmsNovo = baseNova * (aliquotaICMS / 100);
+        const icmsAdicional = icmsNovo - icmsAtual;
+
+        // Cálculo de custos totais para análise de impacto
+        const custosAtuais = this.calculateTotalCosts(adicao, estadoDestino, {}, tipoOperacao);
+        const custosNovos = this.calculateTotalCosts(adicao, estadoDestino, {}, tipoOperacao, despesasConsolidadas);
+
+        const impacto = {
+            base_calculo: {
+                atual: baseAtual,
+                nova: baseNova,
+                diferenca: baseNova - baseAtual
+            },
+            icms: {
+                atual: icmsAtual,
+                novo: icmsNovo,
+                adicional: icmsAdicional,
+                aliquota: aliquotaICMS
+            },
+            custo_total: {
+                atual: custosAtuais.total_custos,
+                novo: custosNovos.total_custos,
+                diferenca: custosNovos.total_custos - custosAtuais.total_custos
+            },
+            despesas: {
+                automaticas: despesasConsolidadas?.totais?.automaticas || 0,
+                extras: despesasConsolidadas?.totais?.extras || 0,
+                tributavel_icms: despesasConsolidadas?.totais?.tributavel_icms || 0,
+                apenas_custeio: despesasConsolidadas?.totais?.apenas_custeio || 0
+            }
+        };
+
+        console.log('📊 Preview de impacto calculado:', impacto);
+        return impacto;
+    }
+
+    /**
+     * Versão otimizada do calculateTotalCosts que aceita despesas consolidadas
+     */
+    calculateTotalCosts(adicao, estadoDestino, custosExtras = {}, tipoOperacao = 'interestadual', despesasConsolidadas = null) {
+        // Usar método existente mas com suporte a despesas consolidadas
+        const baseICMS = this.calculateBaseICMS(adicao, custosExtras, estadoDestino, tipoOperacao, despesasConsolidadas);
+        const icms = this.calculateICMS(adicao, custosExtras, estadoDestino, tipoOperacao);
+        
+        const totalCustos = {
+            valor_mercadoria: adicao.valor_reais || 0,
+            tributos_federais: (adicao.tributos?.ii_valor_devido || 0) + 
+                             (adicao.tributos?.ipi_valor_devido || 0) +
+                             (adicao.tributos?.pis_valor_devido || 0) +
+                             (adicao.tributos?.cofins_valor_devido || 0),
+            icms_valor: icms.valor_total,
+            despesas_extras: despesasConsolidadas?.totais?.geral || 0,
+            total_custos: 0
+        };
+
+        totalCustos.total_custos = totalCustos.valor_mercadoria + 
+                                  totalCustos.tributos_federais + 
+                                  totalCustos.icms_valor + 
+                                  totalCustos.despesas_extras;
+
+        return totalCustos;
     }
 }

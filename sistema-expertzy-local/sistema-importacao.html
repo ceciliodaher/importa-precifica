@@ -245,6 +245,24 @@
 
                         <!-- Interface de configuração de custos (será populada dinamicamente) -->
                         <div id="custosInterface" style="display: none;">
+                            
+                            <!-- Seção: Despesas Automáticas da DI -->
+                            <div class="card mb-4" id="despesasAutomaticasCard">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-file-import"></i> Despesas Encontradas na DI</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3">
+                                        <small>Estas despesas foram extraídas automaticamente do arquivo XML e já estão incluídas nos cálculos tributários:</small>
+                                    </p>
+                                    <div id="despesas-automaticas-content" class="despesas-automaticas-display">
+                                        <!-- Será preenchido dinamicamente pelo JavaScript -->
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> Carregando despesas da DI...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Pergunta sobre Custos Extras -->
                             <div class="card mb-4">
@@ -281,7 +299,13 @@
                                                 <label>Capatazia (R$):</label>
                                                 <input type="number" class="form-control" id="custosPortuarios" value="0" step="0.01" data-custo-tipo="portuarios">
                                             </div>
-                                            <small class="text-muted">Inclui na base do ICMS</small>
+                                            <div class="form-check">
+                                                <input class="form-check-input checkbox-tributavel" type="checkbox" id="portCheckbox" 
+                                                       data-field="armazenagem_extra" checked>
+                                                <label class="form-check-label text-success" for="portCheckbox">
+                                                    <i class="fas fa-calculator"></i> Incluir na base ICMS
+                                                </label>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <h6 class="text-secondary">Despesas Bancárias</h6>
@@ -289,7 +313,13 @@
                                                 <label>Taxas de Câmbio/Remessa (R$):</label>
                                                 <input type="number" class="form-control" id="custosBancarios" value="0" step="0.01" data-custo-tipo="bancarios">
                                             </div>
-                                            <small class="text-muted">Não inclui na base do ICMS</small>
+                                            <div class="form-check">
+                                                <input class="form-check-input checkbox-tributavel" type="checkbox" id="bancCheckbox" 
+                                                       data-field="bancarios">
+                                                <label class="form-check-label text-warning" for="bancCheckbox">
+                                                    <i class="fas fa-calculator"></i> Incluir na base ICMS
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -300,7 +330,13 @@
                                                 <label>Frete Interno/Seguro (R$):</label>
                                                 <input type="number" class="form-control" id="custosLogisticos" value="0" step="0.01" data-custo-tipo="logisticos">
                                             </div>
-                                            <small class="text-muted">Inclui na base do ICMS</small>
+                                            <div class="form-check">
+                                                <input class="form-check-input checkbox-tributavel" type="checkbox" id="logCheckbox" 
+                                                       data-field="transporte_interno" checked>
+                                                <label class="form-check-label text-success" for="logCheckbox">
+                                                    <i class="fas fa-calculator"></i> Incluir na base ICMS
+                                                </label>
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <h6 class="text-warning">Despesas Administrativas</h6>
@@ -308,7 +344,13 @@
                                                 <label>Despachante/Honorários (R$):</label>
                                                 <input type="number" class="form-control" id="custosAdministrativos" value="0" step="0.01" data-custo-tipo="administrativos">
                                             </div>
-                                            <small class="text-muted">Não inclui na base do ICMS</small>
+                                            <div class="form-check">
+                                                <input class="form-check-input checkbox-tributavel" type="checkbox" id="admCheckbox" 
+                                                       data-field="despachante">
+                                                <label class="form-check-label text-warning" for="admCheckbox">
+                                                    <i class="fas fa-calculator"></i> Incluir na base ICMS
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -393,11 +435,51 @@
                                 </div>
                             </div>
 
-                            <!-- Botão de Cálculo -->
+                            <!-- Preview de Impacto Tributário -->
+                            <div class="card mb-4" id="previewImpactoCard" style="display: none;">
+                                <div class="card-header bg-warning text-dark text-center">
+                                    <h6><i class="fas fa-chart-line"></i> Impacto nos Cálculos Tributários (Preview)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 text-center">
+                                            <h5 class="text-info" id="baseAtualPreview">R$ 0,00</h5>
+                                            <small class="text-muted">Base ICMS atual</small>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <h5 class="text-success" id="baseNovaPreview">R$ 0,00</h5>
+                                            <small class="text-muted">Base ICMS com extras</small>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <h5 class="text-danger" id="icmsAdicionalPreview">R$ 0,00</h5>
+                                            <small class="text-muted">ICMS adicional</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> 
+                                            Preview automático - valores atualizados conforme você digita
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação -->
                             <div class="text-center">
-                                <button class="btn btn-success btn-lg" id="calculateAll">
-                                    <i class="fas fa-calculator"></i> Calcular Cenários Tributários
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-warning btn-lg" id="aplicar-custos" style="display: none;">
+                                        <i class="fas fa-save"></i> Aplicar Despesas e Recalcular
+                                    </button>
+                                    <button class="btn btn-success btn-lg" id="calculateAll">
+                                        <i class="fas fa-calculator"></i> Calcular Cenários Tributários
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Primeiro aplique as despesas extras, depois execute o cálculo completo
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
