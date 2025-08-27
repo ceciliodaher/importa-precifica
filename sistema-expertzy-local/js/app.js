@@ -228,6 +228,9 @@ class ExpertzyApp {
             this.enableTab('custos');
             this.showCustosInterface();
 
+            // NOVO: Configurar revisão de despesas
+            this.setupDespesasReview();
+
             this.hideLoading();
             this.showSuccess(`Arquivo ${file.name} processado com sucesso!`);
             
@@ -1903,6 +1906,333 @@ class ExpertzyApp {
         } catch (error) {
             console.error('❌ Erro ao limpar dados persistidos:', error);
         }
+    }
+
+    // ========== SISTEMA DE DESPESAS EXTRAS ==========
+
+    /**
+     * Configura revisão de despesas após processamento da DI
+     */
+    setupDespesasReview() {
+        console.log('🔧 Configurando revisão de despesas...');
+        
+        // Exibir despesas automáticas encontradas na DI
+        this.displayDespesasAutomaticas();
+        
+        // Configurar listeners para preview em tempo real
+        this.setupDespesasListeners();
+        
+        // Restaurar configurações salvas se existirem
+        this.restoreDespesasConfig();
+    }
+
+    /**
+     * Exibe despesas automáticas encontradas na DI
+     */
+    displayDespesasAutomaticas() {
+        if (!this.currentDI) return;
+        
+        const despesasAutomaticas = this.xmlParser.getDespesasAutomaticas();
+        const container = document.getElementById('despesas-automaticas-content');
+        
+        if (container && despesasAutomaticas) {
+            let html = '<div class="despesas-auto-list">';
+            
+            if (despesasAutomaticas.calculadas?.siscomex > 0) {
+                html += `<div class="despesa-item">
+                    <span class="despesa-label">SISCOMEX:</span>
+                    <span class="despesa-valor">${this.formatCurrency(despesasAutomaticas.calculadas.siscomex)}</span>
+                </div>`;
+            }
+            
+            if (despesasAutomaticas.calculadas?.afrmm > 0) {
+                html += `<div class="despesa-item">
+                    <span class="despesa-label">AFRMM:</span>
+                    <span class="despesa-valor">${this.formatCurrency(despesasAutomaticas.calculadas.afrmm)}</span>
+                </div>`;
+            }
+            
+            if (despesasAutomaticas.calculadas?.capatazia > 0) {
+                html += `<div class="despesa-item">
+                    <span class="despesa-label">Capatazia:</span>
+                    <span class="despesa-valor">${this.formatCurrency(despesasAutomaticas.calculadas.capatazia)}</span>
+                </div>`;
+            }
+            
+            const total = despesasAutomaticas.total_despesas_aduaneiras || 0;
+            html += `<div class="despesa-total">
+                <span class="despesa-label"><strong>Total DI:</strong></span>
+                <span class="despesa-valor"><strong>${this.formatCurrency(total)}</strong></span>
+            </div>`;
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            console.log('✅ Despesas automáticas exibidas:', despesasAutomaticas);
+        }
+    }
+
+    /**
+     * Configura listeners para preview em tempo real
+     */
+    setupDespesasListeners() {
+        // Listeners para campos de entrada de custos extras - CORRIGIDO: IDs do HTML
+        const custosInputs = [
+            'custosPortuarios', 'custosBancarios', 'custosLogisticos', 
+            'custosAdministrativos'
+        ];
+        
+        custosInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', () => this.updateDespesasPreview());
+                input.addEventListener('change', () => this.updateDespesasPreview());
+            }
+        });
+
+        // Listeners para checkboxes de classificação tributária
+        const checkboxes = document.querySelectorAll('.checkbox-tributavel');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => this.updateDespesasPreview());
+        });
+
+        // Listener para botão de aplicar despesas
+        const btnAplicar = document.getElementById('aplicar-custos');
+        if (btnAplicar) {
+            btnAplicar.addEventListener('click', () => this.aplicarDespesasExtras());
+        }
+        
+        // Mostrar/esconder botão de aplicar baseado em despesas extras
+        this.updateAplicarButtonVisibility();
+    }
+
+    /**
+     * Coleta despesas extras do formulário
+     */
+    collectDespesasExtras() {
+        const despesasExtras = {
+            // Valores dos inputs - CORRIGIDO: usando IDs corretos do HTML
+            armazenagem_extra: this.parseFloat(document.getElementById('custosPortuarios')?.value) || 0,
+            transporte_interno: this.parseFloat(document.getElementById('custosLogisticos')?.value) || 0,
+            despachante: this.parseFloat(document.getElementById('custosAdministrativos')?.value) || 0,
+            bancarios: this.parseFloat(document.getElementById('custosBancarios')?.value) || 0,
+            outros_extras: 0, // Será implementado conforme necessário
+            
+            // Classificação tributária
+            tributaveis_icms: {},
+            apenas_custeio: {}
+        };
+        
+        // Coletar classificação dos checkboxes
+        const checkboxes = document.querySelectorAll('.checkbox-tributavel');
+        checkboxes.forEach(checkbox => {
+            const fieldName = checkbox.dataset.field;
+            if (fieldName && despesasExtras[fieldName] > 0) {
+                if (checkbox.checked) {
+                    despesasExtras.tributaveis_icms[fieldName] = true;
+                } else {
+                    despesasExtras.apenas_custeio[fieldName] = true;
+                }
+            }
+        });
+        
+        return despesasExtras;
+    }
+
+    /**
+     * Atualiza preview do impacto das despesas em tempo real
+     */
+    updateDespesasPreview() {
+        if (!this.currentDI || !this.calculator) return;
+        
+        const despesasExtras = this.collectDespesasExtras();
+        
+        // Usar primeira adição para preview
+        const primeiraAdicao = this.currentDI.adicoes[0];
+        if (!primeiraAdicao) return;
+        
+        try {
+            // Usar método unificado do calculator para preview
+            const impacto = this.calculator.previewImpactoDespesas(primeiraAdicao, despesasExtras);
+            
+            if (impacto && !impacto.erro) {
+                // Atualizar elementos do preview na interface
+                const baseAtualEl = document.getElementById('baseAtualPreview');
+                const baseNovaEl = document.getElementById('baseNovaPreview');
+                const icmsAdicionalEl = document.getElementById('icmsAdicionalPreview');
+                const previewCard = document.getElementById('previewImpactoCard');
+                
+                if (baseAtualEl && baseNovaEl && icmsAdicionalEl) {
+                    baseAtualEl.textContent = this.formatCurrency(impacto.base_calculo.atual);
+                    baseNovaEl.textContent = this.formatCurrency(impacto.base_calculo.nova);
+                    icmsAdicionalEl.textContent = this.formatCurrency(impacto.icms.adicional);
+                    
+                    // Mostrar preview se houver mudanças significativas
+                    if (Math.abs(impacto.icms.adicional) > 1) {
+                        previewCard?.classList.remove('d-none');
+                        previewCard?.style.removeProperty('display');
+                    }
+                }
+                
+                console.log('📊 Preview atualizado:', {
+                    baseAtual: this.formatCurrency(impacto.base_calculo.atual),
+                    baseNova: this.formatCurrency(impacto.base_calculo.nova),
+                    icmsAdicional: this.formatCurrency(impacto.icms.adicional)
+                });
+            }
+        } catch (error) {
+            console.warn('❌ Erro no preview de despesas:', error);
+        }
+        
+        // Atualizar visibilidade do botão aplicar
+        this.updateAplicarButtonVisibility();
+    }
+
+    /**
+     * Atualiza elementos visuais do preview
+     */
+    updatePreviewElements(impacto) {
+        // Atualizar totais na interface
+        const totalTributavel = document.getElementById('total-tributavel');
+        const totalCusteio = document.getElementById('total-custeio');
+        const totalGeral = document.getElementById('total-geral');
+        
+        if (totalTributavel && impacto.despesasConsolidadas) {
+            totalTributavel.textContent = this.formatCurrency(impacto.despesasConsolidadas.totais.tributavel_icms);
+        }
+        if (totalCusteio && impacto.despesasConsolidadas) {
+            totalCusteio.textContent = this.formatCurrency(impacto.despesasConsolidadas.totais.apenas_custeio);
+        }
+        if (totalGeral && impacto.despesasConsolidadas) {
+            totalGeral.textContent = this.formatCurrency(impacto.despesasConsolidadas.totais.geral);
+        }
+
+        // Indicador de impacto ICMS
+        const impactoContainer = document.getElementById('impacto-icms');
+        if (impactoContainer) {
+            const classe = impacto.icmsAdicional > 0 ? 'impacto-positivo' : 'impacto-zero';
+            impactoContainer.innerHTML = `
+                <div class="impacto-item ${classe}">
+                    <span>ICMS Adicional:</span>
+                    <span>${this.formatCurrency(Math.abs(impacto.icmsAdicional))}</span>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Aplica despesas extras aos cálculos
+     */
+    aplicarDespesasExtras() {
+        console.log('✅ Aplicando despesas extras...');
+        
+        const despesasExtras = this.collectDespesasExtras();
+        
+        // Salvar configuração
+        this.storage.saveDespesasConsolidadas(this.currentDI.numero_di, despesasExtras);
+        
+        // Recalcular com despesas
+        this.recalcularComDespesas(despesasExtras);
+        
+        this.showSuccess('Despesas extras aplicadas com sucesso!');
+    }
+
+    /**
+     * Recalcula todos os valores com despesas consolidadas
+     */
+    recalcularComDespesas(despesasExtras) {
+        // Consolidar despesas
+        const despesasConsolidadas = this.xmlParser.consolidarDespesasCompletas(despesasExtras);
+        
+        // Aplicar aos cálculos (será implementado quando Calculator for modificado)
+        this.currentDI.despesas_consolidadas = despesasConsolidadas;
+        
+        // Atualizar interface
+        this.updateDespesasPreview();
+        
+        // Salvar DI atualizada
+        this.storage.saveDI(this.currentDI);
+        
+        console.log('🔄 Recálculo concluído com despesas consolidadas');
+    }
+
+    /**
+     * Restaura configuração de despesas salva
+     */
+    restoreDespesasConfig() {
+        if (!this.currentDI?.numero_di) return;
+        
+        const configSalva = this.storage.getDespesasConsolidadas(this.currentDI.numero_di);
+        if (configSalva) {
+            // Restaurar valores nos inputs
+            this.restoreInputValues(configSalva);
+            // Atualizar preview
+            this.updateDespesasPreview();
+            
+            console.log('↩️ Configuração de despesas restaurada');
+        }
+    }
+
+    /**
+     * Controla visibilidade do botão aplicar despesas
+     */
+    updateAplicarButtonVisibility() {
+        const btnAplicar = document.getElementById('aplicar-custos');
+        if (!btnAplicar) return;
+        
+        const despesasExtras = this.collectDespesasExtras();
+        const hasExtras = Object.values(despesasExtras).some(value => 
+            typeof value === 'number' && value > 0);
+        
+        if (hasExtras) {
+            btnAplicar.style.display = 'inline-block';
+        } else {
+            btnAplicar.style.display = 'none';
+        }
+    }
+
+    /**
+     * Restaura valores nos inputs baseado na config salva
+     */
+    restoreInputValues(config) {
+        if (config.armazenagem_extra) {
+            const input = document.getElementById('custo-portuario');
+            if (input) input.value = config.armazenagem_extra;
+        }
+        
+        if (config.transporte_interno) {
+            const input = document.getElementById('custo-logistico');
+            if (input) input.value = config.transporte_interno;
+        }
+        
+        if (config.despachante) {
+            const input = document.getElementById('custo-administrativo');
+            if (input) input.value = config.despachante;
+        }
+        
+        if (config.bancarios) {
+            const input = document.getElementById('custo-bancario');
+            if (input) input.value = config.bancarios;
+        }
+        
+        if (config.outros_extras) {
+            const input = document.getElementById('outros-custos');
+            if (input) input.value = config.outros_extras;
+        }
+        
+        // Restaurar checkboxes de classificação
+        Object.keys(config.tributaveis_icms || {}).forEach(field => {
+            const checkbox = document.querySelector(`[data-field="${field}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+
+    /**
+     * Parse seguro de float
+     */
+    parseFloat(value) {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? 0 : parsed;
     }
 }
 
