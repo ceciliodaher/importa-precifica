@@ -147,7 +147,7 @@ class CroquiNFExporter {
             importador: {
                 nome: importador.nome,
                 cnpj: this.formatCNPJ(importador.cnpj),
-                endereco: `${importador.endereco_logradouro || ''}, ${importador.endereco_numero || ''}`.trim(),
+                endereco: importador.endereco_completo || `${importador.endereco_logradouro || ''}, ${importador.endereco_numero || ''}`.trim(),
                 complemento: importador.endereco_complemento || '',
                 bairro: importador.endereco_bairro || '',
                 municipio: importador.endereco_municipio,
