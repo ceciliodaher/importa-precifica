@@ -15,6 +15,12 @@ Working Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
+**Current Web System** (JavaScript-based):
+- Automatic DI processing with expense extraction
+- ICMS tax base calculation including DI expenses
+- Manual extra expenses form for costing purposes
+- **Limitation**: Extra expenses not integrated with ICMS tax base calculation
+
 ## Key Commands
 
 ### Running the Current Prototype
@@ -72,6 +78,28 @@ Current directory structure:
 DI (XML) → XMLParser.js (ONLY PROCESSOR) → Standardized Data → Consumer Modules
 ```
 
+## Import Expenses Management
+
+### Current System Behavior
+- **Automatic DI Processing**: System extracts SISCOMEX, AFRMM, capatazia from DI XML
+- **Manual Extra Expenses**: User can input additional costs (storage, internal transport, customs agent)
+- **Current Issue**: Extra expenses used only for costing, not included in ICMS tax base
+
+### Planned Enhancement (See: documentos/plano-implementacao-despesas-extras.md)
+**New Workflow**: Upload DI → Review Expenses → Configure Extras → Final Processing
+
+**Key Features**:
+1. **Automatic Expense Display**: Show SISCOMEX, AFRMM, capatazia found in DI
+2. **Extra Expenses Form**: Storage, internal transport, customs agent, port fees
+3. **Tax Classification**: Mark expenses as "ICMS tax base" vs "costing only"
+4. **Real-time Preview**: Show impact on ICMS calculation before applying
+5. **Consolidated Calculation**: All expenses properly included in tax calculations
+
+**ICMS Tax Base Formula** (Enhanced):
+```
+Base ICMS = (CIF + II + IPI + PIS + COFINS + DI Expenses + Extra Taxable Expenses) / (1 - ICMS rate)
+```
+
 ## Tax Calculation Logic
 
 The system handles Brazilian import taxes with specific rules:
@@ -105,6 +133,7 @@ The system handles Brazilian import taxes with specific rules:
 2. **Markup Calculation**: Based on total landed cost including all taxes
 3. **State-Specific Logic**: Each state has unique fiscal benefits requiring separate calculation paths
 4. **XML Parsing**: Must handle Brazilian DI (Declaração de Importação) format with additions (adições)
+5. **Import Expenses Management**: System must handle both automatic DI expenses and manual extra expenses, with proper ICMS tax base calculation
 
 ## Development Notes
 
@@ -114,7 +143,21 @@ The system handles Brazilian import taxes with specific rules:
 - XMLParser.js serves as single source of truth for DI data processing
 - Extensive documentation exists in `documentos/` directory for implementation guidance
 
-### Recent Updates (2025-08-26)
+### Recent Updates (2025-08-27)
+
+**Import Expenses Enhancement Planning**
+- **Analysis**: Completed system analysis for expenses management integration
+- **Documentation**: Created comprehensive implementation plan at `documentos/plano-implementacao-despesas-extras.md`
+- **Architecture**: Defined new workflow with expense review step
+- **Technical Spec**: Detailed modifications for XMLParser, Calculator, App.js, and interface
+
+**Key Technical Decisions:**
+- **Consolidation Approach**: Merge automatic DI expenses + manual extra expenses
+- **Tax Classification**: Allow users to mark expenses as ICMS taxable vs costing-only
+- **Real-time Preview**: Show ICMS impact before applying changes
+- **Backward Compatibility**: Maintain existing functionality while adding new features
+
+### Previous Updates (2025-08-26)
 
 **Major Implementation: Standardized Currency Structure**
 - **XMLParser.js**: Implemented standardized USD/BRL value structure with automatic exchange rate calculation
