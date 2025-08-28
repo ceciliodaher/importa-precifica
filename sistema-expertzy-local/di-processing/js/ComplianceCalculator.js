@@ -55,51 +55,10 @@ class ComplianceCalculator {
             
         } catch (error) {
             console.error('❌ Erro ao carregar configurações:', error);
-            // Usar configurações padrão
-            this.configuracoes = this.getConfiguracoesPadrao();
+            throw new Error('Falha crítica ao carregar configurações fiscais. Sistema não pode funcionar sem elas.');
         }
     }
 
-    /**
-     * Configurações fiscais padrão (fallback)
-     */
-    getConfiguracoesPadrao() {
-        return {
-            aliquotas: {
-                pis: 2.1,
-                cofins: 9.65,
-                icms: {
-                    'GO': 17.0,
-                    'SP': 18.0,
-                    'MG': 18.0,
-                    'SC': 17.0,
-                    'ES': 17.0
-                },
-                ipi: {
-                    default: 0
-                },
-                ii: {
-                    default: 0
-                }
-            },
-            beneficios: {
-                'GO': {
-                    tipo: 'credito_icms',
-                    percentual: 67,
-                    ncms_beneficiados: ['8517', '9018', '8471']
-                },
-                'SC': {
-                    tipo: 'diferimento',
-                    percentual: 75,
-                    codigo: 'TTD060'
-                },
-                'ES': {
-                    tipo: 'fundap',
-                    aliquota_efetiva: 9.0
-                }
-            }
-        };
-    }
 
     /**
      * Calcula impostos de importação para uma adição da DI
@@ -227,15 +186,20 @@ class ComplianceCalculator {
      * Calcula II - Imposto de Importação
      */
     calcularII(adicao, valoresBase) {
-        const aliquota = this.obterAliquotaII(adicao.ncm);
+        if (!adicao.tributos || adicao.tributos.ii_aliquota_ad_valorem === undefined) {
+            throw new Error('Dados de II não encontrados na DI');
+        }
+        
+        // Usar valores já extraídos da DI (conforme POP de Impostos)
+        const aliquota = adicao.tributos.ii_aliquota_ad_valorem;
+        const valorDevido = adicao.tributos.ii_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
-        const valorCalculado = baseCalculo * (aliquota / 100);
         
         return {
             aliquota: aliquota,
             base_calculo: baseCalculo,
-            valor_calculado: valorCalculado,
-            valor_devido: valorCalculado,
+            valor_calculado: valorDevido,
+            valor_devido: valorDevido,
             regime: adicao.tributos?.ii_regime_nome || 'RECOLHIMENTO INTEGRAL'
         };
     }
@@ -244,15 +208,20 @@ class ComplianceCalculator {
      * Calcula IPI 
      */
     calcularIPI(adicao, valoresBase, ii) {
-        const aliquota = this.obterAliquotaIPI(adicao.ncm);
+        if (!adicao.tributos || adicao.tributos.ipi_aliquota_ad_valorem === undefined) {
+            throw new Error('Dados de IPI não encontrados na DI');
+        }
+        
+        // Usar valores já extraídos da DI (conforme POP de Impostos)
+        const aliquota = adicao.tributos.ipi_aliquota_ad_valorem;
+        const valorDevido = adicao.tributos.ipi_valor_devido;
         const baseCalculo = valoresBase.cif_brl + ii.valor_devido;
-        const valorCalculado = baseCalculo * (aliquota / 100);
         
         return {
             aliquota: aliquota,
             base_calculo: baseCalculo,
-            valor_calculado: valorCalculado,
-            valor_devido: valorCalculado,
+            valor_calculado: valorDevido,
+            valor_devido: valorDevido,
             regime: adicao.tributos?.ipi_regime_nome || 'SEM BENEFÍCIO'
         };
     }
@@ -261,15 +230,20 @@ class ComplianceCalculator {
      * Calcula PIS
      */
     calcularPIS(adicao, valoresBase) {
-        const aliquota = this.configuracoes?.aliquotas?.pis || 2.1;
+        if (!adicao.tributos || !adicao.tributos.pis_aliquota_ad_valorem) {
+            throw new Error('Dados de PIS não encontrados na DI');
+        }
+        
+        // Usar valores já extraídos da DI (conforme POP de Impostos)
+        const aliquota = adicao.tributos.pis_aliquota_ad_valorem;
+        const valorDevido = adicao.tributos.pis_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
-        const valorCalculado = baseCalculo * (aliquota / 100);
         
         return {
             aliquota: aliquota,
             base_calculo: baseCalculo,
-            valor_calculado: valorCalculado,
-            valor_devido: valorCalculado
+            valor_calculado: valorDevido,
+            valor_devido: valorDevido
         };
     }
 
@@ -277,15 +251,20 @@ class ComplianceCalculator {
      * Calcula COFINS
      */
     calcularCOFINS(adicao, valoresBase) {
-        const aliquota = this.configuracoes?.aliquotas?.cofins || 9.65;
+        if (!adicao.tributos || !adicao.tributos.cofins_aliquota_ad_valorem) {
+            throw new Error('Dados de COFINS não encontrados na DI');
+        }
+        
+        // Usar valores já extraídos da DI (conforme POP de Impostos)
+        const aliquota = adicao.tributos.cofins_aliquota_ad_valorem;
+        const valorDevido = adicao.tributos.cofins_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
-        const valorCalculado = baseCalculo * (aliquota / 100);
         
         return {
             aliquota: aliquota,
             base_calculo: baseCalculo,
-            valor_calculado: valorCalculado,
-            valor_devido: valorCalculado
+            valor_calculado: valorDevido,
+            valor_devido: valorDevido
         };
     }
 
@@ -387,17 +366,36 @@ class ComplianceCalculator {
      * Obter alíquotas por NCM (simplificado - pode ser expandido)
      */
     obterAliquotaII(ncm) {
-        // Por enquanto retorna 0 - deve ser expandido com tabela TIPI
-        return this.configuracoes?.aliquotas?.ii?.default || 0;
+        if (!this.configuracoes || !this.configuracoes.aliquotas) {
+            throw new Error('Configurações fiscais não carregadas');
+        }
+        
+        // Usar alíquota do II extraída da DI ou configuração específica por NCM
+        return this.configuracoes.aliquotas.ii && this.configuracoes.aliquotas.ii[ncm] ? 
+               this.configuracoes.aliquotas.ii[ncm] : 0;
     }
 
     obterAliquotaIPI(ncm) {
-        // Por enquanto retorna 0 - deve ser expandido com tabela TIPI
-        return this.configuracoes?.aliquotas?.ipi?.default || 0;
+        if (!this.configuracoes || !this.configuracoes.aliquotas) {
+            throw new Error('Configurações fiscais não carregadas');
+        }
+        
+        // Usar alíquota do IPI extraída da DI ou configuração específica por NCM
+        return this.configuracoes.aliquotas.ipi && this.configuracoes.aliquotas.ipi[ncm] ? 
+               this.configuracoes.aliquotas.ipi[ncm] : 0;
     }
 
     obterAliquotaICMS(estado) {
-        return this.configuracoes?.aliquotas?.icms?.[estado] || 17;
+        if (!this.configuracoes || !this.configuracoes.aliquotas || !this.configuracoes.aliquotas.aliquotas_icms_2025) {
+            throw new Error('Configurações de ICMS não carregadas');
+        }
+        
+        const aliquotaEstado = this.configuracoes.aliquotas.aliquotas_icms_2025[estado];
+        if (!aliquotaEstado || !aliquotaEstado.aliquota_interna) {
+            throw new Error(`Alíquota ICMS não encontrada para o estado: ${estado}`);
+        }
+        
+        return aliquotaEstado.aliquota_interna;
     }
 
     /**
