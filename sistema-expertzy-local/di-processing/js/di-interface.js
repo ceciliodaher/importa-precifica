@@ -138,6 +138,9 @@ async function processarDI() {
         // Populate step 2 with DI data
         populateStep2Data(currentDI);
         
+        // Show all additions (not just first one)
+        populateAllAdditions(currentDI);
+        
         // Move to step 2
         hideLoading();
         avancarStep(2);
@@ -167,18 +170,21 @@ function readFileContent(file) {
  * Populate step 2 with DI data
  */
 function populateStep2Data(diData) {
+    // Update DI summary (legacy style)
+    updateDIInfo(diData);
+    
     // Basic DI info
-    document.getElementById('diNumber').textContent = diData.di_numero || 'N/A';
+    document.getElementById('diNumber').textContent = diData.numero_di || 'N/A';
     document.getElementById('diDate').textContent = diData.data_registro || 'N/A';
-    document.getElementById('diIncoterm').textContent = diData.incoterm?.codigo || 'N/A';
+    document.getElementById('diIncoterm').textContent = diData.incoterm_identificado?.codigo || 'N/A';
     
     // First addition data (most DIs have one main addition)
     const firstAddition = diData.adicoes?.[0];
     if (firstAddition) {
-        document.getElementById('diCifValue').textContent = `R$ ${firstAddition.valor_reais?.toFixed(2) || '0,00'}`;
+        document.getElementById('diCifValue').textContent = formatCurrency(firstAddition.valor_reais || 0);
         document.getElementById('productNCM').textContent = firstAddition.ncm || 'N/A';
         document.getElementById('productDesc').textContent = firstAddition.descricao_ncm || 'N/A';
-        document.getElementById('productWeight').textContent = `${firstAddition.peso_liquido?.toFixed(2) || '0'} kg`;
+        document.getElementById('productWeight').textContent = `${formatNumber(firstAddition.peso_liquido || 0)} kg`;
         document.getElementById('supplierName').textContent = firstAddition.fornecedor?.nome || 'N/A';
     }
     
@@ -187,6 +193,225 @@ function populateStep2Data(diData) {
     
     // Initialize expense preview
     updateExpensePreview();
+}
+
+/**
+ * Populate all additions (copied from legacy system)
+ */
+function populateAllAdditions(diData) {
+    const container = createAdditionsContainer();
+    
+    if (!diData.adicoes || diData.adicoes.length === 0) {
+        container.innerHTML = '<div class="alert alert-warning">Nenhuma adição encontrada na DI.</div>';
+        return;
+    }
+    
+    const tableHtml = `
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6><i class="bi bi-list"></i> Todas as Adições da DI (${diData.adicoes.length})</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Adição</th>
+                                <th>NCM</th>
+                                <th>Descrição</th>
+                                <th>Peso (kg)</th>
+                                <th>Valor (R$)</th>
+                                <th>Incoterm</th>
+                                <th>Fornecedor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${diData.adicoes.map(adicao => `
+                                <tr>
+                                    <td><strong>${adicao.numero_adicao}</strong></td>
+                                    <td><code>${adicao.ncm}</code></td>
+                                    <td class="text-truncate" style="max-width: 200px;" title="${adicao.descricao_ncm}">${adicao.descricao_ncm}</td>
+                                    <td>${formatNumber(adicao.peso_liquido || 0)}</td>
+                                    <td>${formatCurrency(adicao.valor_reais || 0)}</td>
+                                    <td><span class="badge bg-info">${adicao.condicao_venda_incoterm || 'N/A'}</span></td>
+                                    <td class="text-truncate" style="max-width: 150px;" title="${adicao.fornecedor?.nome}">${adicao.fornecedor?.nome || 'N/A'}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewAdicaoDetails('${adicao.numero_adicao}')" title="Ver detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary">${formatCurrency(diData.totais?.valor_total_fob_brl || 0)}</h5>
+                                    <p class="card-text small">Valor Total FOB</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-success">${formatNumber(diData.totais?.peso_liquido_total || 0)} kg</h5>
+                                    <p class="card-text small">Peso Total</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h5 class="card-title text-info">${diData.adicoes.length}</h5>
+                                    <p class="card-text small">Total de Adições</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = tableHtml;
+}
+
+/**
+ * Create additions container if it doesn't exist
+ */
+function createAdditionsContainer() {
+    let container = document.getElementById('allAdditionsContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'allAdditionsContainer';
+        container.className = 'all-additions mb-4';
+        
+        // Insert after the DI summary in step2
+        const diSummary = document.getElementById('diSummary');
+        if (diSummary && diSummary.parentNode) {
+            diSummary.parentNode.insertBefore(container, diSummary.nextSibling);
+        } else {
+            const step2 = document.getElementById('step2');
+            if (step2) {
+                step2.appendChild(container);
+            }
+        }
+    }
+    return container;
+}
+
+/**
+ * View addition details (copied from legacy system)
+ */
+function viewAdicaoDetails(numeroAdicao) {
+    if (!currentDI || !currentDI.adicoes) {
+        showAlert('Nenhuma DI carregada.', 'warning');
+        return;
+    }
+    
+    const adicao = currentDI.adicoes.find(add => add.numero_adicao === numeroAdicao);
+    if (!adicao) {
+        showAlert('Adição não encontrada.', 'warning');
+        return;
+    }
+    
+    // Create modal for addition details
+    const modalContent = `
+        <div class="modal fade" id="adicaoModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-box"></i> Detalhes da Adição ${numeroAdicao}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Classificação Fiscal</h6>
+                                <p><strong>NCM:</strong> ${adicao.ncm}</p>
+                                <p><strong>Descrição:</strong> ${adicao.descricao_ncm}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Valores Comerciais</h6>
+                                <p><strong>Valor USD:</strong> ${formatCurrency(adicao.valor_moeda_negociacao || 0)}</p>
+                                <p><strong>Valor BRL:</strong> ${formatCurrency(adicao.valor_reais || 0)}</p>
+                                <p><strong>Peso Líquido:</strong> ${formatNumber(adicao.peso_liquido || 0)} kg</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Fornecedor</h6>
+                                <p><strong>Nome:</strong> ${adicao.fornecedor?.nome || 'N/A'}</p>
+                                <p><strong>Endereço:</strong> ${adicao.fornecedor?.endereco_completo || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Tributos Federais</h6>
+                                <p><strong>II:</strong> ${adicao.tributos?.ii_aliquota || 0}% - ${formatCurrency(adicao.tributos?.ii_valor_devido || 0)}</p>
+                                <p><strong>IPI:</strong> ${adicao.tributos?.ipi_aliquota || 0}% - ${formatCurrency(adicao.tributos?.ipi_valor_devido || 0)}</p>
+                                <p><strong>PIS:</strong> ${adicao.tributos?.pis_aliquota_ad_valorem || 0}% - ${formatCurrency(adicao.tributos?.pis_valor_devido || 0)}</p>
+                                <p><strong>COFINS:</strong> ${adicao.tributos?.cofins_aliquota_ad_valorem || 0}% - ${formatCurrency(adicao.tributos?.cofins_valor_devido || 0)}</p>
+                            </div>
+                        </div>
+                        
+                        ${adicao.produtos ? `
+                        <div class="mt-3">
+                            <h6>Produtos desta Adição</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Descrição</th>
+                                            <th>Quantidade</th>
+                                            <th>Valor Unit.</th>
+                                            <th>Valor Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${adicao.produtos.map(produto => `
+                                            <tr>
+                                                <td>${produto.numero_sequencial_item || '-'}</td>
+                                                <td>${produto.descricao_mercadoria || '-'}</td>
+                                                <td>${formatNumber(produto.quantidade || 0)} ${produto.unidade_medida || ''}</td>
+                                                <td>${formatCurrency(produto.valor_unitario || 0)}</td>
+                                                <td>${formatCurrency(produto.valor_total_item || 0)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove modal if exists
+    const existingModal = document.getElementById('adicaoModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Show modal (Bootstrap 5)
+    const modal = new bootstrap.Modal(document.getElementById('adicaoModal'));
+    modal.show();
 }
 
 /**
@@ -268,7 +493,11 @@ function updateExpensePreview() {
         (agentICMS ? agent : 0);
     
     // Calculate ICMS impact using parser legado structure
-    const automaticExpenses = currentDI.despesas_aduaneiras?.total_despesas_aduaneiras || 0;
+    if (!currentDI.despesas_aduaneiras || !currentDI.despesas_aduaneiras.total_despesas_aduaneiras) {
+        console.error('❌ Despesas aduaneiras não encontradas na DI');
+        return;
+    }
+    const automaticExpenses = currentDI.despesas_aduaneiras.total_despesas_aduaneiras;
     const baseICMSBefore = automaticExpenses;
     const baseICMSAfter = automaticExpenses + totalExtraICMS;
     const icmsDifference = (baseICMSAfter - baseICMSBefore) * 0.17 / 0.83; // Approximate ICMS calculation
@@ -294,9 +523,9 @@ async function calcularImpostos() {
         
         // Configure extra expenses
         const extraExpenses = {
-            armazenagem: parseFloat(document.getElementById('expenseStorage').value) || 0,
-            transporte_interno: parseFloat(document.getElementById('expenseTransport').value) || 0,
-            despachante: parseFloat(document.getElementById('expenseAgent').value) || 0,
+            armazenagem: parseFloat(document.getElementById('expenseStorage').value),
+            transporte_interno: parseFloat(document.getElementById('expenseTransport').value),
+            despachante: parseFloat(document.getElementById('expenseAgent').value),
             
             // ICMS classification
             armazenagem_icms: document.getElementById('storageICMS').checked,
@@ -485,43 +714,139 @@ function updateStepIndicator(activeStep) {
  * Export functions
  */
 function exportarPlanilhaCustos() {
-    if (!currentDI?.calculoImpostos) {
-        showAlert('Calcule os impostos antes de exportar.', 'warning');
+    if (!currentDI) {
+        showAlert('Nenhuma DI carregada para exportar.', 'warning');
         return;
     }
     
-    // Implementation would create Excel file
-    showAlert('Funcionalidade de exportação será implementada.', 'info');
+    try {
+        // Call the global export function from the legacy system
+        if (typeof exportData === 'function') {
+            exportData('excel');
+            showAlert('Planilha de custos exportada com sucesso!', 'success');
+        } else {
+            // Fallback: Export as JSON
+            exportAsJSON('custos_di_' + currentDI.numero_di, currentDI);
+            showAlert('Dados exportados como JSON.', 'success');
+        }
+    } catch (error) {
+        console.error('Erro na exportação:', error);
+        showAlert('Erro ao exportar planilha: ' + error.message, 'danger');
+    }
 }
 
 function exportarRelatórioImpostos() {
     if (!currentDI?.calculoImpostos) {
-        showAlert('Calcule os impostos antes de exportar.', 'warning');
+        showAlert('Calcule os impostos antes de exportar o relatório.', 'warning');
         return;
     }
     
-    // Implementation would create detailed report
-    showAlert('Funcionalidade de exportação será implementada.', 'info');
+    try {
+        // Create a detailed tax report
+        const report = createTaxReport(currentDI, currentDI.calculoImpostos);
+        exportAsJSON('relatorio_impostos_' + currentDI.numero_di, report);
+        showAlert('Relatório de impostos exportado com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro na exportação:', error);
+        showAlert('Erro ao exportar relatório: ' + error.message, 'danger');
+    }
 }
 
 function exportarCroquiNF() {
-    if (!currentDI?.calculoImpostos) {
-        showAlert('Calcule os impostos antes de exportar.', 'warning');
+    if (!currentDI) {
+        showAlert('Nenhuma DI carregada para gerar croqui.', 'warning');
         return;
     }
     
-    // Implementation would create PDF croqui
-    showAlert('Funcionalidade de exportação será implementada.', 'info');
+    try {
+        // Call the legacy croqui function if available
+        if (typeof gerarCroquiPDFNovo === 'function') {
+            gerarCroquiPDFNovo(currentDI);
+            showAlert('Croqui NF gerado com sucesso!', 'success');
+        } else {
+            showAlert('Função de geração de croqui não disponível.', 'warning');
+        }
+    } catch (error) {
+        console.error('Erro na geração do croqui:', error);
+        showAlert('Erro ao gerar croqui: ' + error.message, 'danger');
+    }
 }
 
 function exportarMemoriaCalculo() {
-    if (!currentDI?.calculoImpostos) {
-        showAlert('Calcule os impostos antes de exportar.', 'warning');
+    if (!currentDI) {
+        showAlert('Nenhuma DI carregada.', 'warning');
         return;
     }
     
-    // Implementation would create calculation memory
-    showAlert('Funcionalidade de exportação será implementada.', 'info');
+    try {
+        // Get calculation memory from the calculator
+        const memory = complianceCalculator?.getHistoricoCalculos() || [];
+        const memoryData = {
+            di_numero: currentDI.numero_di,
+            timestamp: new Date().toISOString(),
+            calculationMemory: memory,
+            summary: {
+                total_calculations: memory.length,
+                last_calculation: complianceCalculator?.getUltimoCalculo()
+            }
+        };
+        
+        exportAsJSON('memoria_calculo_' + currentDI.numero_di, memoryData);
+        showAlert('Memória de cálculo exportada com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro na exportação:', error);
+        showAlert('Erro ao exportar memória de cálculo: ' + error.message, 'danger');
+    }
+}
+
+/**
+ * Export data as JSON file
+ */
+function exportAsJSON(filename, data) {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the blob URL
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Create detailed tax report
+ */
+function createTaxReport(diData, calculations) {
+    return {
+        di_info: {
+            numero: diData.numero_di,
+            data: diData.data_registro,
+            incoterm: diData.incoterm_identificado?.codigo
+        },
+        calculations: calculations,
+        totals: {
+            total_taxes: calculations?.totais?.total_impostos || 0,
+            total_cost: calculations?.totais?.custo_total || 0
+        },
+        additions_summary: diData.adicoes?.map(adicao => ({
+            numero: adicao.numero_adicao,
+            ncm: adicao.ncm,
+            value: adicao.valor_reais,
+            weight: adicao.peso_liquido,
+            taxes: {
+                ii: adicao.tributos?.ii_valor_devido || 0,
+                ipi: adicao.tributos?.ipi_valor_devido || 0,
+                pis: adicao.tributos?.pis_valor_devido || 0,
+                cofins: adicao.tributos?.cofins_valor_devido || 0
+            }
+        })) || [],
+        generated_at: new Date().toISOString()
+    };
 }
 
 function processarNovaDI() {
@@ -546,6 +871,88 @@ function processarNovaDI() {
     avancarStep(1);
     
     showAlert('Sistema resetado. Selecione uma nova DI.', 'info');
+}
+
+/**
+ * Format currency values (Brazilian format)
+ */
+function formatCurrency(valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) {
+        return 'R$ 0,00';
+    }
+    
+    return valor.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Format number (Brazilian format)
+ */
+function formatNumber(valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) {
+        return '0';
+    }
+    
+    return valor.toLocaleString('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Update DI information display (copied from legacy system)
+ */
+function updateDIInfo(diData) {
+    const diInfoDiv = document.querySelector('.di-summary') || createDISummaryDiv();
+    
+    if (diInfoDiv && diData) {
+        // Calculate total values properly
+        const totalFOB = diData.totais?.valor_total_fob_brl || 0;
+        const totalAdicoes = diData.adicoes?.length || 0;
+        
+        diInfoDiv.innerHTML = `
+            <div class="alert alert-success">
+                <h6><i class="bi bi-file-text"></i> DI ${diData.numero_di || 'N/A'}</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small><strong>Data:</strong> ${diData.data_registro || 'N/A'}</small><br>
+                        <small><strong>Importador:</strong> ${diData.importador?.nome || 'N/A'}</small><br>
+                        <small><strong>URF:</strong> ${diData.urf_despacho_nome || 'N/A'}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <small><strong>Adições:</strong> ${totalAdicoes}</small><br>
+                        <small><strong>Incoterm:</strong> ${diData.incoterm_identificado?.codigo || 'N/A'}</small><br>
+                        <small><strong>Valor Total:</strong> ${formatCurrency(totalFOB)}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        diInfoDiv.style.display = 'block';
+    }
+}
+
+/**
+ * Create DI summary div if it doesn't exist
+ */
+function createDISummaryDiv() {
+    let diInfoDiv = document.getElementById('diSummary');
+    if (!diInfoDiv) {
+        diInfoDiv = document.createElement('div');
+        diInfoDiv.id = 'diSummary';
+        diInfoDiv.className = 'di-summary mb-4';
+        
+        // Insert at the beginning of step2
+        const step2 = document.getElementById('step2');
+        if (step2) {
+            step2.insertBefore(diInfoDiv, step2.firstChild);
+        }
+    }
+    return diInfoDiv;
 }
 
 /**
@@ -653,6 +1060,7 @@ window.processarDI = processarDI;
 window.calcularImpostos = calcularImpostos;
 window.avancarStep = avancarStep;
 window.voltarStep = voltarStep;
+window.viewAdicaoDetails = viewAdicaoDetails;
 window.exportarPlanilhaCustos = exportarPlanilhaCustos;
 window.exportarRelatórioImpostos = exportarRelatórioImpostos;
 window.exportarCroquiNF = exportarCroquiNF;
