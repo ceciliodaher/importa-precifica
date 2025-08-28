@@ -9,153 +9,67 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     
-    <!-- CSS Customizado -->
-    <link href="../shared/css/shared.css" rel="stylesheet">
-    <link href="css/compliance-theme.css" rel="stylesheet">
-    
-    <style>
-        /* Tema Compliance - Azul */
-        :root {
-            --compliance-primary: #0066cc;
-            --compliance-secondary: #004499;
-            --compliance-accent: #3399ff;
-            --compliance-light: #e6f2ff;
-            --compliance-dark: #003366;
-        }
-        
-        .compliance-header {
-            background: linear-gradient(135deg, var(--compliance-primary), var(--compliance-secondary));
-            color: white;
-            padding: 2rem 0;
-        }
-        
-        .compliance-card {
-            border-left: 4px solid var(--compliance-primary);
-            box-shadow: 0 2px 10px rgba(0,102,204,0.1);
-        }
-        
-        .btn-compliance {
-            background-color: var(--compliance-primary);
-            border-color: var(--compliance-primary);
-            color: white;
-        }
-        
-        .btn-compliance:hover {
-            background-color: var(--compliance-secondary);
-            border-color: var(--compliance-secondary);
-        }
-        
-        .process-step {
-            background: var(--compliance-light);
-            border: 2px solid var(--compliance-accent);
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            position: relative;
-        }
-        
-        .process-step.active {
-            border-color: var(--compliance-primary);
-            background: white;
-            box-shadow: 0 4px 15px rgba(0,102,204,0.15);
-        }
-        
-        .process-step.completed {
-            border-color: #28a745;
-            background: #f8fff9;
-        }
-        
-        .step-number {
-            position: absolute;
-            top: -15px;
-            left: 20px;
-            background: var(--compliance-primary);
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        
-        .expense-card {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-        }
-        
-        .auto-expense {
-            border-left: 4px solid #28a745;
-        }
-        
-        .manual-expense {
-            border-left: 4px solid #ffc107;
-        }
-        
-        .tax-summary {
-            background: var(--compliance-light);
-            border: 1px solid var(--compliance-accent);
-            border-radius: 10px;
-            padding: 1.5rem;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        
-        .loading-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            text-align: center;
-        }
-    </style>
+    <!-- Expertzy Brand System -->
+    <link href="../shared/css/expertzy-brand.css" rel="stylesheet">
+    <link href="../shared/css/compliance-theme.css" rel="stylesheet">
 </head>
 <body>
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loading-content">
-            <div class="spinner-border text-primary mb-3" role="status">
-                <span class="visually-hidden">Carregando...</span>
-            </div>
+            <div class="expertzy-spinner mb-3"></div>
             <h5 id="loadingMessage">Processando DI...</h5>
             <p id="loadingDetail" class="text-muted">Aguarde enquanto processamos os dados</p>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="compliance-header">
+    <!-- Professional Navigation -->
+    <nav class="navbar navbar-expand-lg expertzy-navbar fixed-top">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1><i class="bi bi-file-earmark-text"></i> Processador de DI</h1>
-                    <p class="mb-0">Sistema de Compliance para Importações</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <button class="btn btn-outline-light" onclick="window.location.href='../index.html'">
-                        <i class="bi bi-house"></i> Início
-                    </button>
-                    <button class="btn btn-outline-light ms-2" onclick="window.location.href='../pricing-strategy/pricing-system.html'">
-                        <i class="bi bi-graph-up-arrow"></i> Precificação
-                    </button>
+            <a class="navbar-brand d-flex align-items-center" href="https://expertzy.com.br" target="_blank">
+                <img src="../images/expertzy-it.png" alt="Expertzy - Inteligência Tributária" class="expertzy-complete-logo">
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="../index.html">
+                            <i class="bi bi-house"></i> Início
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-bold" href="di-processor.html">
+                            <i class="bi bi-file-earmark-text"></i> Processamento DI
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="../pricing-strategy/pricing-system.html">
+                            <i class="bi bi-graph-up-arrow"></i> Precificação
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-compliance ms-3" href="#step1">
+                            <i class="bi bi-play-fill"></i> Começar
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Compliance Header -->
+    <header class="di-processing-header">
+        <div class="container">
+            <div class="row align-items-center text-center">
+                <div class="col-12">
+                    <i class="bi bi-file-earmark-text hero-icon"></i>
+                    <h1 class="display-4 fw-bold mb-3">Processador de DI</h1>
+                    <p class="lead mb-4">Sistema de Compliance para Importações</p>
+                    <p class="mb-0 opacity-75">Fase 1 • Processamento de Declarações • Cálculo de Impostos • Relatórios de Compliance</p>
                 </div>
             </div>
         </div>
@@ -198,10 +112,35 @@
                     <h3><i class="bi bi-cloud-upload"></i> Upload da Declaração de Importação</h3>
                     <p class="text-muted">Faça o upload do arquivo XML da DI para iniciar o processamento de compliance.</p>
                     
-                    <div class="mb-4">
-                        <label for="xmlFile" class="form-label">Arquivo XML da DI</label>
-                        <input type="file" class="form-control" id="xmlFile" accept=".xml" required>
-                        <div class="form-text">Aceita apenas arquivos XML de Declarações de Importação</div>
+                    <!-- Drag & Drop Upload Area -->
+                    <div class="upload-area mb-4" id="dropZone">
+                        <div class="upload-content">
+                            <i class="bi bi-cloud-upload upload-icon"></i>
+                            <h4>Arraste o arquivo XML aqui</h4>
+                            <p class="text-muted mb-3">ou clique para selecionar</p>
+                            <input type="file" id="xmlFile" accept=".xml" style="display: none;">
+                            <button type="button" class="btn btn-compliance" onclick="document.getElementById('xmlFile').click()">
+                                <i class="bi bi-folder2-open"></i> Selecionar Arquivo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File Info Display -->
+                    <div class="file-info mt-3 d-none" id="fileInfo">
+                        <div class="alert alert-compliance">
+                            <h6><i class="bi bi-file-earmark-text"></i> Arquivo Selecionado:</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Nome:</strong> <span id="fileName">-</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Tamanho:</strong> <span id="fileSize">-</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Tipo:</strong> <span id="fileType">-</span></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <button type="button" class="btn btn-compliance btn-lg" onclick="processarDI()">
@@ -479,9 +418,27 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-light py-4 mt-5">
-        <div class="container text-center">
-            <p class="text-muted mb-0">Sistema Expertzy - Processador de DI v2.0 | Compliance Phase</p>
+    <footer class="expertzy-footer">
+        <div class="container">
+            <div class="row align-items-center py-4">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <img src="../images/expertzy-it.png" alt="Expertzy - Inteligência Tributária" class="footer-logo me-3">
+                        <div>
+                            <p class="mb-0 fw-bold">Sistema Expertzy v2.0</p>
+                            <small class="text-light opacity-75">Fase 1: Processamento de DI</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0 small text-light opacity-75">
+                        Compliance • Cálculo de Impostos • Relatórios Oficiais
+                    </p>
+                    <p class="mb-0 small text-light opacity-50 mt-1">
+                        © 2025 Expertzy. Todos os direitos reservados.
+                    </p>
+                </div>
+            </div>
         </div>
     </footer>
 

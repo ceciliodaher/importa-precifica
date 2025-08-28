@@ -49,16 +49,25 @@ function setupEventListeners() {
     // File input change
     document.getElementById('xmlFile').addEventListener('change', handleFileSelection);
     
+    // ===== DRAG & DROP FUNCIONAL (copiado do sistema legado) =====
+    setupDragAndDrop();
+    
     // Expense inputs with real-time preview
     const expenseInputs = ['expenseStorage', 'expenseTransport', 'expenseAgent'];
     const icmsCheckboxes = ['storageICMS', 'transportICMS', 'agentICMS'];
     
     expenseInputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', updateExpensePreview);
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', updateExpensePreview);
+        }
     });
     
     icmsCheckboxes.forEach(id => {
-        document.getElementById(id).addEventListener('change', updateExpensePreview);
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', updateExpensePreview);
+        }
     });
 }
 
@@ -69,10 +78,40 @@ function handleFileSelection(event) {
     const file = event.target.files[0];
     if (file && file.type === 'text/xml') {
         console.log(`📁 Arquivo selecionado: ${file.name}`);
+        showFileInfo(file);
     } else if (file) {
         showAlert('Por favor, selecione um arquivo XML válido.', 'warning');
         event.target.value = '';
+        hideFileInfo();
     }
+}
+
+/**
+ * Show file information
+ */
+function showFileInfo(file) {
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatFileSize(file.size);
+    document.getElementById('fileType').textContent = file.type || 'text/xml';
+    document.getElementById('fileInfo').classList.remove('d-none');
+}
+
+/**
+ * Hide file information
+ */
+function hideFileInfo() {
+    document.getElementById('fileInfo').classList.add('d-none');
+}
+
+/**
+ * Format file size for display
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 /**
@@ -93,8 +132,8 @@ async function processarDI() {
         // Read file content
         const xmlContent = await readFileContent(file);
         
-        // Process DI
-        currentDI = await diProcessor.processarXML(xmlContent, file.name);
+        // Process DI usando o parser legado funcional
+        currentDI = await diProcessor.parseXML(xmlContent);
         
         // Populate step 2 with DI data
         populateStep2Data(currentDI);
@@ -143,8 +182,8 @@ function populateStep2Data(diData) {
         document.getElementById('supplierName').textContent = firstAddition.fornecedor?.nome || 'N/A';
     }
     
-    // Automatic expenses
-    populateAutomaticExpenses(diData.despesas_automaticas);
+    // Automatic expenses using legacy parser structure
+    populateAutomaticExpenses(diData.despesas_aduaneiras);
     
     // Initialize expense preview
     updateExpensePreview();
@@ -159,10 +198,11 @@ function populateAutomaticExpenses(despesasAuto) {
     
     if (!despesasAuto) return;
     
+    const calculadas = despesasAuto.calculadas || {};
     const expenses = [
-        { key: 'siscomex', label: 'SISCOMEX', icon: 'file-text', value: despesasAuto.siscomex || 0 },
-        { key: 'afrmm', label: 'AFRMM', icon: 'ship', value: despesasAuto.afrmm || 0 },
-        { key: 'capatazia', label: 'Capatazia/Armazenagem', icon: 'box', value: despesasAuto.capatazia || 0 }
+        { key: 'siscomex', label: 'SISCOMEX', icon: 'file-text', value: calculadas.siscomex || 0 },
+        { key: 'afrmm', label: 'AFRMM', icon: 'ship', value: calculadas.afrmm || 0 },
+        { key: 'capatazia', label: 'Capatazia/Armazenagem', icon: 'box', value: calculadas.capatazia || 0 }
     ];
     
     expenses.forEach(expense => {
@@ -227,8 +267,8 @@ function updateExpensePreview() {
         (transportICMS ? transport : 0) +
         (agentICMS ? agent : 0);
     
-    // Calculate ICMS impact (simplified)
-    const automaticExpenses = currentDI.despesas_automaticas?.total || 0;
+    // Calculate ICMS impact using parser legado structure
+    const automaticExpenses = currentDI.despesas_aduaneiras?.total_despesas_aduaneiras || 0;
     const baseICMSBefore = automaticExpenses;
     const baseICMSAfter = automaticExpenses + totalExtraICMS;
     const icmsDifference = (baseICMSAfter - baseICMSBefore) * 0.17 / 0.83; // Approximate ICMS calculation
@@ -264,11 +304,8 @@ async function calcularImpostos() {
             despachante_icms: document.getElementById('agentICMS').checked
         };
         
-        // Configure extra expenses in DI processor
-        diProcessor.configurarDespesasExtras(extraExpenses);
-        
-        // Get consolidated expenses
-        const despesasConsolidadas = diProcessor.consolidarDespesas();
+        // Get consolidated expenses using legacy method
+        const despesasConsolidadas = diProcessor.consolidarDespesasCompletas(extraExpenses);
         
         // Calculate taxes for first addition (main product)
         const firstAddition = currentDI.adicoes[0];
@@ -493,6 +530,9 @@ function processarNovaDI() {
     currentStep = 1;
     document.getElementById('xmlFile').value = '';
     
+    // Clear file info
+    hideFileInfo();
+    
     // Clear forms
     document.getElementById('expenseStorage').value = '0';
     document.getElementById('expenseTransport').value = '0';
@@ -542,6 +582,70 @@ function showAlert(message, type = 'info') {
             element.remove();
         }
     }, 5000);
+}
+
+// ===== DRAG & DROP FUNCTIONALITY (copiado do sistema legado funcionando) =====
+
+/**
+ * Setup drag and drop functionality
+ */
+function setupDragAndDrop() {
+    const fileInput = document.getElementById('xmlFile');
+    const uploadArea = document.querySelector('.upload-area');
+    
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleFileDrop);
+        uploadArea.addEventListener('click', () => fileInput.click());
+    }
+}
+
+/**
+ * Handle drag over
+ */
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.add('dragover');
+}
+
+/**
+ * Handle drag leave
+ */
+function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('dragover');
+}
+
+/**
+ * Handle file drop
+ */
+function handleFileDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('dragover');
+    
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        
+        // Validate file type
+        if (file.type === 'text/xml' || file.name.toLowerCase().endsWith('.xml')) {
+            // Set the file input and trigger processing
+            const fileInput = document.getElementById('xmlFile');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+            
+            console.log(`📁 Arquivo arrastado: ${file.name}`);
+            showFileInfo(file);
+            showAlert(`Arquivo "${file.name}" carregado. Clique em "Processar DI" para continuar.`, 'success');
+        } else {
+            showAlert('Por favor, arraste apenas arquivos XML.', 'warning');
+        }
+    }
 }
 
 // Make functions available globally for button onclick handlers

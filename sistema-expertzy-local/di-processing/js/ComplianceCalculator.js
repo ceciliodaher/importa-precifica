@@ -18,20 +18,40 @@ class ComplianceCalculator {
     }
 
     /**
-     * Carrega configurações fiscais (alíquotas, regimes)
+     * Carrega configurações fiscais (alíquotas, regimes) - USANDO ARQUIVOS EXISTENTES
      */
     async carregarConfiguracoes() {
         try {
             console.log('📂 ComplianceCalculator: Carregando configurações fiscais...');
             
-            // Carregar configurações de impostos
-            const response = await fetch('../shared/data/tax-rates.json');
-            if (!response.ok) {
-                throw new Error('Erro ao carregar configurações fiscais');
+            // Carregar arquivos de configuração existentes (como no sistema legado)
+            const [aliquotasResponse, beneficiosResponse, configResponse] = await Promise.all([
+                fetch('../shared/data/aliquotas.json'),
+                fetch('../shared/data/beneficios.json'),
+                fetch('../shared/data/config.json')
+            ]);
+
+            if (!aliquotasResponse.ok || !beneficiosResponse.ok || !configResponse.ok) {
+                throw new Error('Erro ao carregar arquivos de configuração');
             }
-            
-            this.configuracoes = await response.json();
-            console.log('✅ Configurações fiscais carregadas');
+
+            const aliquotas = await aliquotasResponse.json();
+            const beneficios = await beneficiosResponse.json();
+            const config = await configResponse.json();
+
+            // Estruturar configurações no formato esperado
+            this.configuracoes = {
+                aliquotas: aliquotas,
+                beneficios: beneficios,
+                config: config,
+                versao: config.versao || '2025.1'
+            };
+
+            console.log('✅ Configurações fiscais carregadas:', {
+                aliquotas: aliquotas.versao,
+                beneficios: beneficios.versao,
+                config: config.versao
+            });
             
         } catch (error) {
             console.error('❌ Erro ao carregar configurações:', error);
