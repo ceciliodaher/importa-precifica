@@ -186,13 +186,13 @@ class ComplianceCalculator {
      * Calcula II - Imposto de Importação
      */
     calcularII(adicao, valoresBase) {
-        if (!adicao.tributos || adicao.tributos.ii_aliquota_ad_valorem === undefined) {
+        if (!adicao.tributos || adicao.tributos.ii_aliquota_ad_valorem === null || adicao.tributos.ii_aliquota_ad_valorem === undefined) {
             throw new Error('Dados de II não encontrados na DI');
         }
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.ii_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.ii_valor_devido;
+        const valorDevido = adicao.tributos.ii_valor_devido || 0;
         const baseCalculo = valoresBase.cif_brl;
         
         return {
@@ -208,13 +208,13 @@ class ComplianceCalculator {
      * Calcula IPI 
      */
     calcularIPI(adicao, valoresBase, ii) {
-        if (!adicao.tributos || adicao.tributos.ipi_aliquota_ad_valorem === undefined) {
+        if (!adicao.tributos || adicao.tributos.ipi_aliquota_ad_valorem === null || adicao.tributos.ipi_aliquota_ad_valorem === undefined) {
             throw new Error('Dados de IPI não encontrados na DI');
         }
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.ipi_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.ipi_valor_devido;
+        const valorDevido = adicao.tributos.ipi_valor_devido || 0;
         const baseCalculo = valoresBase.cif_brl + ii.valor_devido;
         
         return {
@@ -230,13 +230,13 @@ class ComplianceCalculator {
      * Calcula PIS
      */
     calcularPIS(adicao, valoresBase) {
-        if (!adicao.tributos || !adicao.tributos.pis_aliquota_ad_valorem) {
+        if (!adicao.tributos || adicao.tributos.pis_aliquota_ad_valorem === null || adicao.tributos.pis_aliquota_ad_valorem === undefined) {
             throw new Error('Dados de PIS não encontrados na DI');
         }
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.pis_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.pis_valor_devido;
+        const valorDevido = adicao.tributos.pis_valor_devido || 0;
         const baseCalculo = valoresBase.cif_brl;
         
         return {
@@ -251,13 +251,13 @@ class ComplianceCalculator {
      * Calcula COFINS
      */
     calcularCOFINS(adicao, valoresBase) {
-        if (!adicao.tributos || !adicao.tributos.cofins_aliquota_ad_valorem) {
+        if (!adicao.tributos || adicao.tributos.cofins_aliquota_ad_valorem === null || adicao.tributos.cofins_aliquota_ad_valorem === undefined) {
             throw new Error('Dados de COFINS não encontrados na DI');
         }
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.cofins_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.cofins_valor_devido;
+        const valorDevido = adicao.tributos.cofins_valor_devido || 0;
         const baseCalculo = valoresBase.cif_brl;
         
         return {
