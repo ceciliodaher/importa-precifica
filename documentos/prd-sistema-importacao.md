@@ -31,6 +31,7 @@ A interface deve permitir a configuração de quais despesas serão incluídas n
 
 #### 3.3 Apresentação e Análise de Dados
 
+<<<<<<< HEAD
 O sistema apresenta os dados processados em formato de tabela expansível, organizando as informações conforme estrutura real das DIs brasileiras. Baseando-se no exemplo da DI 2300120746, a interface exibe:
 
 **Nível 1 - Dados Gerais:**
@@ -52,11 +53,17 @@ O sistema apresenta os dados processados em formato de tabela expansível, organ
 - Fabricante: JINKAIDA AUTO MOTOR PARTS CO.,LTD
 
 A interface permite navegação intuitiva entre diferentes níveis de detalhamento, facilitando a análise granular dos custos reais extraídos da DI.
+=======
+O sistema apresenta os dados processados em formato de tabela expansível, organizando as informações por adição e item. A estrutura de apresentação inclui dados detalhados como NCM, pesos por adição e item, unidades de medida, quantidades por caixa, valores CFR unitários e totais, além de informações sobre incidência de capatazia.
+
+A interface permite navegação intuitiva entre diferentes níveis de detalhamento, facilitando a análise granular dos custos e a identificação de oportunidades de otimização tributária.
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
 #### 3.4 Cálculos Tributários Automatizados
 
 O sistema executa automaticamente os cálculos de todos os tributos incidentes na importação, incluindo Imposto de Importação (II), Imposto sobre Produtos Industrializados (IPI), Programa de Integração Social (PIS), Contribuição para o Financiamento da Seguridade Social (COFINS) e Imposto sobre Circulação de Mercadorias e Serviços (ICMS).
 
+<<<<<<< HEAD
 Os cálculos consideram as alíquotas reais de ICMS por estado conforme legislação 2025, incluindo:
 - Alíquotas internas específicas por UF (variando de 17% a 23%)
 - FCP (Fundo de Combate à Pobreza) conforme regras específicas por estado
@@ -131,6 +138,21 @@ O sistema disponibiliza funcionalidades de exportação em formatos Excel e PDF,
 A exportação inclui todas as informações processadas da DI real, cálculos realizados com alíquotas corretas por estado, análises de benefícios fiscais aplicáveis e simulações de precificação geradas, proporcionando documentação completa para fins de auditoria e apresentação a clientes.
 
 Os relatórios incorporam dados extraídos do campo `<informacaoComplementar>` formatados adequadamente, incluindo responsáveis legais, detalhes de containers e informações logísticas essenciais.
+=======
+Os cálculos consideram as diferentes alíquotas aplicáveis, regimes especiais, reduções de base de cálculo e eventuais direitos antidumping. O sistema deve manter base atualizada de alíquotas e permitir ajustes manuais quando necessário.
+
+#### 3.5 Sistema de Precificação Avançado
+
+O módulo de precificação oferece cálculo automatizado de preços de venda considerando diferentes perfis de clientes: consumidor final, revenda e indústria. O sistema contempla os diversos regimes tributários brasileiros, incluindo Lucro Real, Lucro Presumido e Simples Nacional.
+
+A funcionalidade inclui análise específica para ICMS normal e substituição tributária, considerando os benefícios fiscais disponíveis nos estados de Goiás, Santa Catarina, Minas Gerais e Espírito Santo. O sistema deve permitir simulações de cenários e comparação de resultados.
+
+#### 3.6 Exportação e Relatórios
+
+O sistema disponibiliza funcionalidades de exportação em formatos Excel e PDF, permitindo a geração do espelho da DI e croqui da nota fiscal. Os relatórios devem manter formatação profissional consistente com o padrão Expertzy.
+
+A exportação deve incluir todas as informações processadas, cálculos realizados e análises geradas, proporcionando documentação completa para fins de auditoria e apresentação a clientes.
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
 ### 4. Especificações Técnicas
 
@@ -140,6 +162,7 @@ Considerando as limitações de infraestrutura, o sistema será desenvolvido uti
 
 O sistema utilizará predominantemente armazenamento em arquivos para dados temporários e sessões, minimizando a dependência de banco de dados e reduzindo a complexidade de deployment em ambientes compartilhados.
 
+<<<<<<< HEAD
 #### 4.1.1 Extração Completa de Dados XML
 
 O sistema extrairá TODOS os dados disponíveis no XML da DI, incluindo:
@@ -153,6 +176,8 @@ O sistema extrairá TODOS os dados disponíveis no XML da DI, incluindo:
 - Detalhes de containers e transporte
 - Dados completos de fabricantes e fornecedores
 
+=======
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 #### 4.2 Tecnologias Utilizadas
 
 **Backend:** PHP 7.4+ com suporte a XML parsing e manipulação de arrays multidimensionais para processamento dos dados da DI. Utilização de bibliotecas nativas para leitura de XML e geração de arquivos Excel.
@@ -183,6 +208,7 @@ O sistema será organizado em estrutura modular, facilitando manutenção e evol
 
 #### 5.1 Processo de Importação
 
+<<<<<<< HEAD
 O fluxo operacional inicia-se com o upload do arquivo XML da DI através de interface web segura. O sistema valida o arquivo, verifica sua estrutura conforme schema oficial da Receita Federal e extrai automaticamente TODAS as informações disponíveis, incluindo:
 
 - Dados gerais da DI (número, data, URF, modalidade, situação)
@@ -197,6 +223,11 @@ O fluxo operacional inicia-se com o upload do arquivo XML da DI através de inte
 - Taxas de câmbio específicas por operação
 
 Após o processamento inicial, o sistema valida a consistência matemática dos valores, verifica a coerência entre somatórias e identifica automaticamente despesas que devem ser incluídas no cálculo de custos.
+=======
+O fluxo operacional inicia-se com o upload do arquivo XML da DI através de interface web segura. O sistema valida o arquivo, verifica sua estrutura e extrai automaticamente todas as informações relevantes. Após o processamento inicial, o usuário é direcionado para a tela de configuração de despesas extra-DI.
+
+Na etapa de configuração, o sistema apresenta formulário intuitivo para inclusão de despesas adicionais, permitindo especificar valores, natureza da despesa e se deve compor a base de cálculo do ICMS. O usuário pode salvar configurações como templates para uso futuro.
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
 #### 5.2 Análise e Cálculos
 
@@ -266,6 +297,7 @@ O sistema será testado em diferentes ambientes de hospedagem compartilhada para
 
 O sistema será estruturado para facilitar atualizações de alíquotas e regras tributárias, com arquivos de configuração separados e procedimentos documentados para modificações.
 
+<<<<<<< HEAD
 #### 9.2 Considerações Finais sobre Precisão dos Dados
 
 O sistema foi especificado com base em dados reais extraídos da DI 2300120746 e incorpora as alíquotas oficiais de ICMS por estado vigentes em 2025, incluindo as recentes alterações no Maranhão (23%), Piauí (22,5%) e Rio Grande do Norte (20%).
@@ -285,6 +317,12 @@ A documentação incluirá guias específicos sobre:
 - Procedimentos de validação e auditoria
 - Troubleshooting de cálculos complexos
 
+=======
+#### 9.2 Suporte e Documentação
+
+Desenvolvimento de documentação técnica completa e manual do usuário, além de sistema de suporte integrado para resolução de dúvidas e problemas operacionais.
+
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 ---
 
 *© 2025 Expertzy Inteligência Tributária*

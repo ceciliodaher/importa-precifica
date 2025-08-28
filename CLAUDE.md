@@ -4,23 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
+<<<<<<< HEAD
 Brazilian import taxation and pricing system (Sistema de Importação e Precificação Expertzy) that processes XML files from Import Declarations (DI - Declaração de Importação), calculates import taxes, and optimizes pricing strategies with fiscal incentives across different Brazilian states.
 
 ## Current Implementation
 
 Working Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py` providing:
+=======
+This is a Brazilian import taxation and pricing system (Sistema de Importação e Precificação Expertzy) designed to process XML files from Import Declarations (DI - Declaração de Importação), calculate import taxes, and optimize pricing strategies with fiscal incentives across different Brazilian states.
+
+## Current Implementation
+
+The project has a working Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py` that provides:
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 - GUI interface using Tkinter
 - XML parsing for DI documents
 - Tax calculation engine (ICMS, IPI, PIS, COFINS, II)
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
+<<<<<<< HEAD
 **Current Web System** (JavaScript-based):
 - Automatic DI processing with expense extraction
 - ICMS tax base calculation including DI expenses
 - Manual extra expenses form for costing purposes
 - **Limitation**: Extra expenses not integrated with ICMS tax base calculation
 
+=======
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 ## Key Commands
 
 ### Running the Current Prototype
@@ -38,6 +49,7 @@ The prototype requires these packages (no requirements.txt exists yet):
 ## Architecture and Structure
 
 ### Current Directory Structure
+<<<<<<< HEAD
 - `documentos/` - Product requirements, technical specifications, implementation plans
 - `orientacoes/` - Python prototype, sample XML files, Excel templates, reference documents
 - `sistema-expertzy-local/` - Current web implementation with centralized data processing
@@ -98,6 +110,28 @@ DI (XML) → XMLParser.js (ONLY PROCESSOR) → Standardized Data → Consumer Mo
 **ICMS Tax Base Formula** (Enhanced):
 ```
 Base ICMS = (CIF + II + IPI + PIS + COFINS + DI Expenses + Extra Taxable Expenses) / (1 - ICMS rate)
+=======
+- `documentos/` - Product requirements, technical specifications, and implementation plans
+- `orientacoes/` - Python prototype, sample XML files, Excel templates, and reference documents
+
+### Planned Web Architecture (PHP-based)
+According to `documentos/especificacao-tecnica-sistema.md`:
+- **Backend**: PHP 7.4+ with MVC pattern
+- **Frontend**: HTML5/CSS3 with Bootstrap 4.x
+- **Database**: MySQL (optional)
+- **JavaScript**: ES6 with jQuery 3.x
+
+Planned directory structure for web application:
+```
+/public_html/
+├── index.php
+├── /controllers/
+├── /models/
+├── /views/
+├── /config/
+├── /assets/
+└── /uploads/
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 ```
 
 ## Tax Calculation Logic
@@ -133,6 +167,7 @@ The system handles Brazilian import taxes with specific rules:
 2. **Markup Calculation**: Based on total landed cost including all taxes
 3. **State-Specific Logic**: Each state has unique fiscal benefits requiring separate calculation paths
 4. **XML Parsing**: Must handle Brazilian DI (Declaração de Importação) format with additions (adições)
+<<<<<<< HEAD
 5. **Import Expenses Management**: System must handle both automatic DI expenses and manual extra expenses, with proper ICMS tax base calculation
 
 ## Development Notes
@@ -301,3 +336,13 @@ produto = {
 - Reprocessing of XML elements
 - Custom parsing or data extraction
 - Recalculation of values already processed by XMLParser
+=======
+
+## Development Notes
+
+- No version control initialized yet (consider `git init`)
+- No dependency management files exist (create `requirements.txt` for Python)
+- Tax rates and incentives are hardcoded in the prototype
+- The project is transitioning from Python prototype to PHP web application
+- Extensive documentation exists in `documentos/` directory for implementation guidance
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
