@@ -6,13 +6,19 @@
  */
 
 :root {
-    /* Compliance Blue Palette */
-    --compliance-primary: #0066cc;
-    --compliance-secondary: #004499;
-    --compliance-accent: #3399ff;
-    --compliance-light: #e6f2ff;
-    --compliance-dark: #003366;
-    --compliance-muted: #6699cc;
+    /* Expertzy Brand Palette - Compliance Phase */
+    --expertzy-red: #FF002D;
+    --expertzy-navy: #091A30;
+    --expertzy-light-gray: #F8F9FA;
+    --expertzy-dark-gray: #6C757D;
+    
+    /* Compliance Theme using Expertzy Colors */
+    --compliance-primary: var(--expertzy-red);
+    --compliance-secondary: var(--expertzy-navy);
+    --compliance-accent: #ff3d5c;
+    --compliance-light: #fff0f3;
+    --compliance-dark: var(--expertzy-navy);
+    --compliance-muted: #cc0024;
     
     /* Status Colors */
     --compliance-success: #28a745;

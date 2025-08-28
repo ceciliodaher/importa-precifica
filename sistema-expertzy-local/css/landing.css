@@ -300,6 +300,194 @@ footer {
 }
 
 /* Responsive */
+/* Landing Page Specific Styles */
+.phase-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(9, 26, 48, 0.08);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    min-height: 450px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.phase-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(9, 26, 48, 0.15);
+}
+
+.phase-card.phase-1 {
+    border-color: var(--expertzy-red);
+    border-left: 6px solid var(--expertzy-red);
+}
+
+.phase-card.phase-2 {
+    border-color: var(--expertzy-navy);
+    border-left: 6px solid var(--expertzy-navy);
+}
+
+.phase-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.phase-card.phase-1 .phase-icon {
+    color: var(--expertzy-red);
+}
+
+.phase-card.phase-2 .phase-icon {
+    color: var(--expertzy-navy);
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: var(--expertzy-red);
+    color: white;
+}
+
+.status-optional {
+    background: var(--expertzy-navy);
+    color: white;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-list li {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+}
+
+.feature-list li i {
+    margin-right: 0.75rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+}
+
+.btn-phase-1 {
+    background: linear-gradient(135deg, var(--expertzy-red), var(--expertzy-red-dark));
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-phase-1:hover {
+    background: linear-gradient(135deg, var(--expertzy-red-dark), var(--expertzy-red));
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 0, 45, 0.3);
+}
+
+.btn-phase-2 {
+    background: linear-gradient(135deg, var(--expertzy-navy), var(--expertzy-navy-dark));
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-phase-2:hover {
+    background: linear-gradient(135deg, var(--expertzy-navy-dark), var(--expertzy-navy));
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(9, 26, 48, 0.3);
+}
+
+.workflow-arrow {
+    margin: 2rem 0;
+}
+
+.workflow-arrow i {
+    font-size: 2rem;
+    color: var(--expertzy-gray);
+    opacity: 0.6;
+}
+
+.workflow-explanation {
+    background: var(--expertzy-light-gray);
+    border-radius: 12px;
+    padding: 3rem;
+    margin-top: 3rem;
+}
+
+.workflow-explanation h4 {
+    color: var(--expertzy-navy);
+    margin-bottom: 2rem;
+}
+
+.workflow-step-number {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.info-section {
+    background: var(--expertzy-light-gray);
+    padding: 4rem 0;
+}
+
+.info-section .card {
+    transition: all 0.3s ease;
+}
+
+.info-section .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(9, 26, 48, 0.1);
+}
+
+.info-section .text-primary {
+    color: var(--expertzy-red) !important;
+}
+
+.info-section .text-success {
+    color: var(--expertzy-navy) !important;
+}
+
+.info-section .text-info {
+    color: var(--expertzy-red) !important;
+}
+
+.info-icon {
+    font-size: 3rem;
+}
+
 @media (max-width: 768px) {
     .hero-section h1 {
         font-size: 2rem;
@@ -315,5 +503,211 @@ footer {
     
     .hero-section {
         padding-top: 100px;
+    }
+    
+    .phase-card {
+        margin-bottom: 2rem;
+        min-height: auto;
+    }
+}
+
+/* ========================================
+   EXPERTZY PROFESSIONAL BRANDING
+   ======================================== */
+
+/* Professional Navigation */
+.expertzy-navbar {
+    background: var(--expertzy-navy) !important;
+    box-shadow: 0 2px 20px rgba(9, 26, 48, 0.3);
+    padding: 0.5rem 0;
+    transition: all 0.3s ease;
+}
+
+.expertzy-navbar .navbar-brand {
+    font-family: var(--expertzy-font-secondary);
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+.expertzy-complete-logo {
+    height: 38px;
+    width: auto;
+    max-width: 280px;
+    background: white;
+    padding: 6px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.expertzy-complete-logo:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.home-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    filter: brightness(1.1);
+}
+
+.home-avatar:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2) drop-shadow(0 2px 8px rgba(255, 255, 255, 0.3));
+}
+
+.expertzy-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 400;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.expertzy-navbar .nav-link:hover {
+    color: var(--expertzy-red) !important;
+    transform: translateY(-1px);
+}
+
+.expertzy-navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--expertzy-red);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.expertzy-navbar .nav-link:hover::after {
+    width: 80%;
+}
+
+/* Enhanced Hero Section */
+.expertzy-hero {
+    background: linear-gradient(135deg, var(--expertzy-navy) 0%, #1a2d4a 50%, var(--expertzy-red) 100%);
+    color: white;
+    text-align: center;
+    padding: 8rem 0 6rem 0;
+    margin-top: 76px;
+    position: relative;
+    overflow: hidden;
+}
+
+.expertzy-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.expertzy-hero .container {
+    position: relative;
+    z-index: 2;
+}
+
+.expertzy-hero-logo-complete {
+    height: 150px;
+    width: auto;
+    filter: brightness(1.1) drop-shadow(0 4px 20px rgba(255, 255, 255, 0.3));
+    animation: float 3s ease-in-out infinite;
+}
+
+.expertzy-hero-logo {
+    height: 120px;
+    width: auto;
+    filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.2));
+    animation: float 3s ease-in-out infinite;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 500;
+    color: white;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    font-family: var(--expertzy-font-secondary);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1rem;
+    font-weight: 300;
+}
+
+.hero-description {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2rem;
+}
+
+.btn-lg {
+    padding: 0.8rem 2.5rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+}
+
+/* Section Styling */
+.section-title {
+    font-family: var(--expertzy-font-secondary);
+    font-weight: 500;
+    color: var(--expertzy-navy);
+    font-size: 2.5rem;
+}
+
+.section-subtitle {
+    font-size: 1.2rem;
+    color: var(--expertzy-dark-gray);
+    font-weight: 300;
+}
+
+/* Professional Footer */
+.expertzy-footer {
+    background: var(--expertzy-navy) !important;
+    color: white;
+}
+
+.footer-logo {
+    height: 35px;
+    width: auto;
+    filter: brightness(1.1);
+}
+
+/* Enhanced Responsiveness */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .expertzy-hero-logo-complete {
+        height: 100px;
+    }
+    
+    .expertzy-complete-logo {
+        height: 35px;
+    }
+    
+    .expertzy-hero-logo {
+        height: 80px;
+    }
+    
+    .expertzy-hero {
+        padding: 6rem 0 4rem 0;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .footer-logo {
+        height: 30px;
     }
 }
