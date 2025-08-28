@@ -1,0 +1,19 @@
+🚀 DI Interface: Inicializando sistema... di-interface.js:17:13
+📂 ComplianceCalculator: Carregando configurações fiscais... ComplianceCalculator.js:25:21
+❌ Erro ao carregar configurações: Error: Erro ao carregar configurações fiscais
+    carregarConfiguracoes https://importa-precifica.local/di-processing/js/ComplianceCalculator.js:30
+ComplianceCalculator.js:37:21
+✅ Sistema inicializado com sucesso di-interface.js:37:17
+📁 Arquivo selecionado: 2518173187.xml di-interface.js:71:17
+🔄 DIProcessor: Iniciando processamento da DI... DIProcessor.js:51:17
+📋 Extraindo dados básicos da DI... DIProcessor.js:92:17
+❌ DIProcessor: Erro no processamento: Error: Estrutura de DI não encontrada no XML
+    extrairDadosBasicos https://importa-precifica.local/di-processing/js/DIProcessor.js:96
+    processarXML https://importa-precifica.local/di-processing/js/DIProcessor.js:65
+    processarDI https://importa-precifica.local/di-processing/js/di-interface.js:97
+DIProcessor.js:83:21
+❌ Erro no processamento: Error: Estrutura de DI não encontrada no XML
+    extrairDadosBasicos https://importa-precifica.local/di-processing/js/DIProcessor.js:96
+    processarXML https://importa-precifica.local/di-processing/js/DIProcessor.js:65
+    processarDI https://importa-precifica.local/di-processing/js/di-interface.js:97
+di-interface.js:110:17

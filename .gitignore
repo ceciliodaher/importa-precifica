@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MacOS
 .DS_Store
 .AppleDouble
@@ -33,10 +34,54 @@ test-results/
 *.temp
 .tmp/
 .temp/
+=======
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
 # Environment variables
 .env
 .env.local
+<<<<<<< HEAD
 .env.*.local
 
 # Build outputs
@@ -62,3 +107,35 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+=======
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Archives
+*.zip
+*.rar
+*.tar.gz
+*.tgz
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# PHP (for future implementation)
+/vendor/
+composer.phar
+.phpunit.result.cache
+
+# Upload directories
+uploads/
+temp/
+cache/
+>>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
