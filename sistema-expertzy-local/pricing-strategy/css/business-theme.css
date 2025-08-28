@@ -6,13 +6,19 @@
  */
 
 :root {
-    /* Business Green Palette */
-    --business-primary: #28a745;
-    --business-secondary: #1e7e34;
-    --business-accent: #5cb85c;
-    --business-light: #e6f7e6;
-    --business-dark: #155724;
-    --business-muted: #6c9b6c;
+    /* Expertzy Brand Palette - Business Phase */
+    --expertzy-red: #FF002D;
+    --expertzy-navy: #091A30;
+    --expertzy-light-gray: #F8F9FA;
+    --expertzy-dark-gray: #6C757D;
+    
+    /* Business Theme using Expertzy Colors (Navy as primary for differentiation) */
+    --business-primary: var(--expertzy-navy);
+    --business-secondary: var(--expertzy-red);
+    --business-accent: #1a2d4a;
+    --business-light: #f0f2f5;
+    --business-dark: #061220;
+    --business-muted: #4a5866;
     
     /* Success/Performance Colors */
     --business-success: #20c997;
