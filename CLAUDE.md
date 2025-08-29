@@ -4,42 +4,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-<<<<<<< HEAD
-Brazilian import taxation and pricing system (Sistema de Importação e Precificação Expertzy) that processes XML files from Import Declarations (DI - Declaração de Importação), calculates import taxes, and optimizes pricing strategies with fiscal incentives across different Brazilian states.
+Brazilian import taxation and pricing system (Sistema de Importação e Precificação Expertzy) designed to process XML files from Import Declarations (DI - Declaração de Importação), calculate import taxes, and optimize pricing strategies with fiscal incentives across different Brazilian states.
 
 ## Current Implementation
 
-Working Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py` providing:
-=======
-This is a Brazilian import taxation and pricing system (Sistema de Importação e Precificação Expertzy) designed to process XML files from Import Declarations (DI - Declaração de Importação), calculate import taxes, and optimize pricing strategies with fiscal incentives across different Brazilian states.
+### **Production Web System** (JavaScript-based)
+Located at `sistema-expertzy-local/` - **Two-phase architecture** with fully functional DI processing:
 
-## Current Implementation
+**Phase 1: DI Compliance Processor** (`/di-processing/`) ✅ **FULLY FUNCTIONAL**
+- ✅ **Complete DI data display**: Shows correct DI number, incoterm, all additions
+- ✅ **Multiple additions support**: Interactive table with 16+ additions, detail modals
+- ✅ **Brazilian formatting**: Currency (R$ 33.112,20), numbers (1.234,56)
+- ✅ **Real export functions**: Excel, PDF croqui, JSON, calculation memory
+- ✅ **Drag & drop XML upload** with visual feedback and validation
+- ✅ **DIProcessor.js**: Proven legacy parsing with correct field naming
+- ✅ **ComplianceCalculator.js**: DI-extracted tax rates (POP compliant)
+- ✅ **Real-time expense preview** and ICMS impact calculation
+- ✅ **ICMS Goiás = 19%** (corrected from 17% fallback)
+- ✅ **Automatic SISCOMEX, AFRMM, capatazia** extraction from DI
+- ✅ **Manual extra expenses** with ICMS base classification
+- ✅ **Legacy system parity**: All core functionality replicated
 
-The project has a working Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py` that provides:
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
+**Phase 2: Pricing Strategy System** (`/pricing-strategy/`)
+- Multi-scenario pricing analysis (planned)
+- State-specific fiscal incentive optimization
+- Business-focused interface (green theme)
+
+### **Legacy Python Prototype**
+Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py`:
 - GUI interface using Tkinter
 - XML parsing for DI documents
 - Tax calculation engine (ICMS, IPI, PIS, COFINS, II)
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
-<<<<<<< HEAD
-**Current Web System** (JavaScript-based):
-- Automatic DI processing with expense extraction
-- ICMS tax base calculation including DI expenses
-- Manual extra expenses form for costing purposes
-- **Limitation**: Extra expenses not integrated with ICMS tax base calculation
+## Recent Critical Fixes (2025-08-29)
 
-=======
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
+### **🎯 KISS Implementation: Replicating Legacy System Functionality**
+**Approach**: "Keep It Simple, Stupid" - copied exactly what **ALREADY WORKED** in the legacy system
+
+**Problems Solved**:
+- ❌ DI showing "Número: N/A, Incoterm: N/A" → ✅ Shows **"DI 2300120746, Incoterm: CFR"**
+- ❌ Incorrect CIF value from unknown source → ✅ **Correct total from all additions**
+- ❌ Only first addition displayed → ✅ **All 16 additions** in interactive table
+- ❌ Export functions showing placeholders → ✅ **Real Excel/PDF/JSON exports**
+- ❌ Poor number formatting → ✅ **Brazilian format: R$ 33.112,20**
+
+### **✅ Implementation Details (5 Phases)**
+
+**PHASE 1: Field Name Standardization**
+- Fixed `di_numero` → `numero_di` (matching legacy)  
+- Fixed `incoterm?.codigo` → `incoterm_identificado?.codigo` (matching DIProcessor)
+
+**PHASE 2: Legacy updateDIInfo() Replication**
+- Implemented `updateDIInfo()` function copying exact legacy behavior
+- Added DI summary display at top of Step 2
+- Brazilian currency formatting with `formatCurrency()`
+
+**PHASE 3: Multiple Additions Support**
+- `populateAllAdditions()`: Table showing all DI additions
+- `viewAdicaoDetails()`: Modal with detailed addition view (taxes, products, supplier)
+- Interactive navigation between additions (legacy-style buttons)
+
+**PHASE 4: Export Functions Activation** 
+- Connected to legacy export scripts: `exportCroquiNF.js`, `globals.js`
+- Real export functions (not placeholders):
+  - Excel: via SheetJS integration
+  - PDF: via jsPDF + legacy croqui system
+  - JSON: native JavaScript implementation
+- Proper error handling and user feedback
+
+**PHASE 5: Brazilian Number Formatting**
+- `formatCurrency()`: R$ 33.112,20 (pt-BR locale)
+- `formatNumber()`: 1.234,56 formatting
+- Applied throughout interface
+
+### **🔧 Previous Tax Calculation Fix (2025-08-28)**
+**Problem**: ComplianceCalculator was using non-existent JSON configurations instead of DI-extracted values
+**Solution**: Implemented POP compliance - **"alíquotas devem ser extraídas da DI nesta etapa"**
+
+**Fixed**:
+- ✅ **PIS**: Uses `adicao.tributos.pis_aliquota_ad_valorem` + `pis_valor_devido`
+- ✅ **COFINS**: Uses `adicao.tributos.cofins_aliquota_ad_valorem` + `cofins_valor_devido`
+- ✅ **II**: Uses `adicao.tributos.ii_aliquota_ad_valorem` + `ii_valor_devido`
+- ✅ **IPI**: Uses `adicao.tributos.ipi_aliquota_ad_valorem` + `ipi_valor_devido`
+- ✅ **ICMS**: Uses `aliquotas_icms_2025[estado].aliquota_interna` (GO = 19%)
+
+**Eliminated**:
+- ❌ Fallback configurations with incorrect values
+- ❌ Validation errors with zero tax rates
+- ❌ "Configuração PIS não carregada" errors
+- ❌ ICMS Goiás 17% fallback (now correctly 19%)
+- ❌ Redundant tax recalculations
+
+### **🏆 Current System Status**
+**DI Compliance Processor** is now **production-ready** with:
+- ✅ Complete DI data extraction and display
+- ✅ All 16 additions viewable with detailed breakdowns
+- ✅ Correct tax calculations using DI values
+- ✅ Brazilian formatting standards  
+- ✅ Functional export capabilities
+- ✅ Legacy system parity achieved
+
+**Key Commits**:
+- `a5b618d` - KISS implementation replicating legacy functionality
+- `419824f` - Tax validation fixes for zero values
+- `4974771` - Tax calculation using DI-extracted values
 ## Key Commands
 
-### Running the Current Prototype
+### Running the Web System
+```bash
+# Open the main system
+open sistema-expertzy-local/index.html
+
+# Or directly access DI processor
+open sistema-expertzy-local/di-processing/di-processor.html
+```
+
+### Running the Legacy Python Prototype
 ```bash
 python orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py
 ```
 
-### Python Dependencies
+### Serena MCP Analysis
+```bash
+# Global Serena MCP access (configured)
+uvx --python 3.11 --from git+https://github.com/oraios/serena.git serena --help
+```
+
+### Python Dependencies (Legacy)
 The prototype requires these packages (no requirements.txt exists yet):
 - tkinter (usually included with Python)
 - pandas
@@ -48,90 +141,61 @@ The prototype requires these packages (no requirements.txt exists yet):
 
 ## Architecture and Structure
 
-### Current Directory Structure
-<<<<<<< HEAD
-- `documentos/` - Product requirements, technical specifications, implementation plans
-- `orientacoes/` - Python prototype, sample XML files, Excel templates, reference documents
-- `sistema-expertzy-local/` - Current web implementation with centralized data processing
-
-### Current Web Architecture (JavaScript-based)
-Implemented as a client-side application with centralized data processing:
-- **Frontend**: HTML5/CSS3 with responsive design
-- **JavaScript**: ES6 modules with centralized XMLParser
-- **Data Processing**: Single XMLParser handles all DI conversions
-- **Storage**: LocalStorage for client-side data persistence
-
-Current directory structure:
+### **Current Directory Structure** 
 ```
 /sistema-expertzy-local/
-├── index.html
-├── sistema-importacao.html
-├── /js/
-│   ├── xmlParser.js (CORE - All DI data processing)
-│   ├── calculator.js
-│   ├── exportCroquiNF.js
-│   ├── exportNF.js
-│   └── storage.js
-├── /css/
-├── /data/
-└── /samples/
+├── index.html                    # Landing page with navigation
+├── di-processing/                # PHASE 1: Compliance System
+│   ├── di-processor.html         # DI processing interface (blue theme)
+│   └── js/
+│       ├── DIProcessor.js        # XML parser (legacy xmlParser.js)
+│       ├── ComplianceCalculator.js  # Tax calculations using DI data
+│       └── di-interface.js       # UI logic with drag & drop
+├── pricing-strategy/             # PHASE 2: Business System
+│   └── pricing-system.html      # Pricing interface (green theme)
+├── shared/                       # Common resources
+│   ├── css/
+│   │   ├── expertzy-brand.css    # Brand identity system
+│   │   ├── compliance-theme.css  # Blue compliance theme
+│   │   └── business-theme.css    # Green business theme
+│   └── data/
+│       ├── aliquotas.json        # Tax rates by state
+│       ├── beneficios.json       # Fiscal incentives
+│       └── config.json           # System configuration
+├── samples/                      # XML test files
+└── legacy/                       # Original sistema-importacao.html
 ```
 
-### Data Processing Architecture Principles
+### **Data Processing Architecture**
 
-**CRITICAL: Centralized Data Processing Rule**
-- **XMLParser.js is the ONLY module authorized to process and convert DI data**
-- All other modules (Calculator, ExportCroqui, ExportNF, Storage) are DATA CONSUMERS only
-- No conversions, calculations, or data transformations outside XMLParser
-- Ensures data consistency and prevents unit conversion errors
+**KISS Principle Applied** - Single source of truth for DI data:
 
-**Data Flow:**
 ```
-DI (XML) → XMLParser.js (ONLY PROCESSOR) → Standardized Data → Consumer Modules
+DI (XML) → DIProcessor.js → ComplianceCalculator.js → Interface
+   ↓
+✅ Extract real tax rates from SISCOMEX data
+✅ Use actual values (not JSON fallbacks)  
+✅ Conform to POP: "alíquotas extraídas da DI"
 ```
 
-## Import Expenses Management
+### **Tax Calculation Flow** 
+1. **DIProcessor.js**: Extracts all tax rates and values from DI XML
+2. **ComplianceCalculator.js**: Uses extracted values (not recalculates)
+3. **ICMS Only**: Uses JSON configuration (by state) for ICMS rates
+4. **All Federal Taxes**: PIS, COFINS, II, IPI from DI directly
 
-### Current System Behavior
-- **Automatic DI Processing**: System extracts SISCOMEX, AFRMM, capatazia from DI XML
-- **Manual Extra Expenses**: User can input additional costs (storage, internal transport, customs agent)
-- **Current Issue**: Extra expenses used only for costing, not included in ICMS tax base
+### **Import Expenses Management**
 
-### Planned Enhancement (See: documentos/plano-implementacao-despesas-extras.md)
-**New Workflow**: Upload DI → Review Expenses → Configure Extras → Final Processing
+**Current System (Functional)**:
+- ✅ **Automatic DI Processing**: SISCOMEX, AFRMM, capatazia extraction
+- ✅ **Manual Extra Expenses**: Storage, transport, customs agent
+- ✅ **ICMS Classification**: Mark expenses as taxable or cost-only
+- ✅ **Real-time Preview**: Show ICMS impact before applying
 
-**Key Features**:
-1. **Automatic Expense Display**: Show SISCOMEX, AFRMM, capatazia found in DI
-2. **Extra Expenses Form**: Storage, internal transport, customs agent, port fees
-3. **Tax Classification**: Mark expenses as "ICMS tax base" vs "costing only"
-4. **Real-time Preview**: Show impact on ICMS calculation before applying
-5. **Consolidated Calculation**: All expenses properly included in tax calculations
-
-**ICMS Tax Base Formula** (Enhanced):
+**ICMS Tax Base Formula**:
 ```
 Base ICMS = (CIF + II + IPI + PIS + COFINS + DI Expenses + Extra Taxable Expenses) / (1 - ICMS rate)
-=======
-- `documentos/` - Product requirements, technical specifications, and implementation plans
-- `orientacoes/` - Python prototype, sample XML files, Excel templates, and reference documents
-
-### Planned Web Architecture (PHP-based)
-According to `documentos/especificacao-tecnica-sistema.md`:
-- **Backend**: PHP 7.4+ with MVC pattern
-- **Frontend**: HTML5/CSS3 with Bootstrap 4.x
-- **Database**: MySQL (optional)
-- **JavaScript**: ES6 with jQuery 3.x
-
-Planned directory structure for web application:
 ```
-/public_html/
-├── index.php
-├── /controllers/
-├── /models/
-├── /views/
-├── /config/
-├── /assets/
-└── /uploads/
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 ```
 
 ## Tax Calculation Logic
