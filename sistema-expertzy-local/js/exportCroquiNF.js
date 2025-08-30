@@ -14,6 +14,9 @@ class CroquiNFExporter {
         this.subtitulo = 'SISTEMA DE IMPORTAÇÃO E PRECIFICAÇÃO';
         this.versao = '2.0.0';
         
+        // Instância do calculador de itens individuais
+        this.itemCalculator = new ItemCalculator();
+        
         // Configurações de impostos por estado
         this.aliquotasICMS = {
             'GO': 19.00,  // Goiás
@@ -33,7 +36,7 @@ class CroquiNFExporter {
         console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', diData.numero_di);
         
         this.initializeStyles();
-        this.prepareAllData();
+        // Prepare data será chamado assincronamente pelos métodos de export
     }
     
     initializeStyles() {
@@ -112,10 +115,10 @@ class CroquiNFExporter {
     
     // ========== PREPARAÇÃO DE DADOS ==========
     
-    prepareAllData() {
+    async prepareAllData() {
         console.log('📊 Preparando dados do croqui...');
         this.header = this.prepareHeader();
-        this.produtos = this.prepareProdutos();
+        this.produtos = await this.prepareProdutos();
         this.totais = this.prepareTotais();
         console.log('✅ Dados preparados:', { 
             produtos: this.produtos.length, 
@@ -168,86 +171,88 @@ class CroquiNFExporter {
         };
     }
     
-    prepareProdutos() {
+    async prepareProdutos() {
         const produtos = [];
         let itemCounter = 1;
         
-        // Obter alíquota ICMS uma vez (é a mesma para toda a DI)
-        const aliqICMS = this.getAliquotaICMS();
+        // Sincronizar configurações ICMS com interface se disponível
+        if (window.icmsConfig) {
+            this.itemCalculator.atualizarConfigICMS(window.icmsConfig);
+        }
         
-        this.di.adicoes.forEach(adicao => {
-            // Obter alíquota IPI específica da adição
-            const aliqIPI = this.getAliquotaIPI(adicao);
+        // Processar cada adição usando ItemCalculator
+        for (const adicao of this.di.adicoes) {
+            console.log(`📊 Processando adição ${adicao.numero_adicao} com ItemCalculator...`);
             
-            // Para cada produto na adição
-            const produtosList = adicao.produtos || [];
-            if (produtosList.length === 0) {
-                // Se não há lista de produtos, criar um item único da adição
-                produtosList.push({
-                    descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
-                    quantidade: adicao.quantidade_estatistica || 1,
-                    valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || 0
-                });
+            // Processar itens da adição
+            const resultadoAdicao = this.itemCalculator.processarItensAdicao(
+                adicao,
+                this.di.despesas_aduaneiras,
+                this.di.despesasExtras
+            );
+            
+            // Mostrar resultado da validação
+            if (!resultadoAdicao.validacao.ok) {
+                console.warn(`⚠️ Validação falhou para adição ${adicao.numero_adicao}:`, resultadoAdicao.validacao.diferencas);
             }
             
-            produtosList.forEach(produto => {
-                // Priorizar valores BRL já calculados pelo XMLParser
-                const valorUnitarioReais = produto.valor_unitario_brl || 
-                    this.convertToReais(produto.valor_unitario || adicao.valor_unitario || 0, adicao);
-                // Usar valor total BRL já calculado ou calcular baseado na quantidade
-                const valorTotalReais = produto.valor_total_brl || (valorUnitarioReais * (produto.quantidade || 1));
-                
-                // Calcular bases e valores de impostos
-                const bcICMS = this.calculateBaseICMS(adicao, valorTotalReais);
-                const valorICMS = (bcICMS * aliqICMS) / 100;
-                
-                const bcIPI = this.calculateBaseIPI(adicao, valorTotalReais);
-                const valorIPI = (bcIPI * aliqIPI) / 100;
+            // Converter para formato do croqui
+            resultadoAdicao.itens.forEach(itemCalculado => {
+                const produto = itemCalculado.produto;
+                const tributos = itemCalculado.tributos;
                 
                 const produtoProcessado = {
                     // Identificação
                     adicao: adicao.numero_adicao || '001',
                     item: this.generateItemCode(itemCounter),
-                    descricao: this.formatDescription(
-                        produto.descricao_mercadoria || adicao.descricao_mercadoria || ''
-                    ),
-                    ncm: adicao.ncm || '',
+                    descricao: this.formatDescription(produto.descricao),
+                    ncm: produto.ncm || '',
                     
-                    // Quantidades (peso já vem convertido do XMLParser)
-                    peso_kg: adicao.peso_liquido || 0,
+                    // Quantidades
+                    peso_kg: produto.peso_kg,
                     quant_cx: 1, // Default
-                    quant_por_cx: produto.quantidade || adicao.quantidade_estatistica || 1,
-                    total_un: produto.quantidade || adicao.quantidade_estatistica || 1,
+                    quant_por_cx: produto.quantidade,
+                    total_un: produto.quantidade,
                     
                     // Valores em R$
-                    valor_unitario: valorUnitarioReais,
-                    valor_total: valorTotalReais,
+                    valor_unitario: produto.valor_unitario,
+                    valor_total: itemCalculado.valorItem,
                     
-                    // Base de Cálculo e Impostos
-                    bc_icms: bcICMS,
-                    valor_icms: valorICMS,
-                    bc_ipi: bcIPI,
-                    valor_ipi: valorIPI,
+                    // Base de Cálculo e Impostos (INDIVIDUAIS)
+                    bc_icms: itemCalculado.baseICMS,
+                    valor_icms: itemCalculado.valorICMS,
+                    bc_ipi: itemCalculado.valorItem + tributos.ii.valor, // Base IPI
+                    valor_ipi: tributos.ipi.valor,
                     
-                    // ALÍQUOTAS (CAMPOS CRÍTICOS)
-                    aliq_icms: aliqICMS,
-                    aliq_ipi: aliqIPI,
+                    // ALÍQUOTAS
+                    aliq_icms: itemCalculado.aliquotaICMS,
+                    aliq_ipi: tributos.ipi.aliquota,
                     
-                    // Substituição Tributária (geralmente não aplicável em importação)
+                    // Substituição Tributária
                     mva: '-',
                     bc_st: 0,
                     valor_st: 0,
                     fp: '-',
                     
-                    // PIS/COFINS
-                    valor_pis: adicao.tributos?.pis_valor_devido || 0,
-                    valor_cofins: adicao.tributos?.cofins_valor_devido || 0
+                    // PIS/COFINS (INDIVIDUAIS)
+                    valor_pis: tributos.pis.valor,
+                    valor_cofins: tributos.cofins.valor,
+                    
+                    // Valores II individuais
+                    valor_ii: tributos.ii.valor,
+                    aliq_ii: tributos.ii.aliquota,
+                    
+                    // Dados do rateio de despesas
+                    rateio_despesas: itemCalculado.rateio,
+                    custo_total_item: itemCalculado.custoTotalItem
                 };
                 
                 produtos.push(produtoProcessado);
                 itemCounter++;
             });
-        });
+            
+            console.log(`✅ Adição ${adicao.numero_adicao} processada: ${resultadoAdicao.itens.length} itens`);
+        }
         
         return produtos;
     }
@@ -555,6 +560,9 @@ class CroquiNFExporter {
         try {
             console.log('📝 Iniciando geração do Excel...');
             
+            // Preparar dados usando ItemCalculator
+            await this.prepareAllData();
+            
             if (typeof XLSX === 'undefined') {
                 throw new Error('Biblioteca SheetJS não encontrada');
             }
@@ -765,6 +773,9 @@ class CroquiNFExporter {
     async generatePDF() {
         try {
             console.log('📝 Iniciando geração do PDF...');
+            
+            // Preparar dados usando ItemCalculator
+            await this.prepareAllData();
             
             // Verificação correta do jsPDF
             if (typeof window.jspdf === 'undefined' && typeof jspdf === 'undefined') {

@@ -1283,3 +1283,232 @@ window.exportarCroquiNF = exportarCroquiNF;
 window.exportarMemoriaCalculo = exportarMemoriaCalculo;
 window.processarNovaDI = processarNovaDI;
 window.addExpenseRow = addExpenseRow;
+
+// ===== CONFIGURAÇÃO DE ALÍQUOTAS ICMS POR NCM =====
+
+// Storage para configurações de alíquotas
+let icmsConfig = {
+    estado: 'GO',
+    aliquotaPadrao: 19,
+    ncmConfigs: {} // ncm -> aliquota específica
+};
+
+// Cache das alíquotas carregadas do JSON
+let aliquotasCache = null;
+
+/**
+ * Carregar alíquotas do arquivo JSON
+ */
+async function carregarAliquotasICMS() {
+    if (aliquotasCache) return aliquotasCache;
+    
+    try {
+        const response = await fetch('../data/aliquotas.json');
+        aliquotasCache = await response.json();
+        console.log('✅ Alíquotas ICMS carregadas:', aliquotasCache);
+        return aliquotasCache;
+    } catch (error) {
+        console.error('❌ Erro ao carregar alíquotas:', error);
+        showAlert('Erro ao carregar configurações de alíquotas ICMS', 'danger');
+        return null;
+    }
+}
+
+/**
+ * Preencher select de estados com alíquotas do JSON
+ */
+async function preencherSelectEstados() {
+    const aliquotas = await carregarAliquotasICMS();
+    if (!aliquotas) return;
+    
+    const select = document.getElementById('estadoDestinoSelect');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    
+    Object.entries(aliquotas.aliquotas_icms_2025).forEach(([uf, config]) => {
+        const option = document.createElement('option');
+        option.value = uf;
+        option.textContent = `${uf} (${config.aliquota_interna}%)`;
+        if (config.fcp) {
+            option.textContent += ` + FCP`;
+        }
+        
+        if (uf === 'GO') {
+            option.selected = true;
+        }
+        
+        select.appendChild(option);
+    });
+    
+    // Atualizar alíquota padrão
+    atualizarAliquotaPadrao();
+}
+
+/**
+ * Atualizar alíquota padrão baseada no estado selecionado
+ */
+async function atualizarAliquotaPadrao() {
+    const aliquotas = await carregarAliquotasICMS();
+    if (!aliquotas) return;
+    
+    const estadoSelect = document.getElementById('estadoDestinoSelect');
+    const aliquotaInput = document.getElementById('aliquotaPadraoInput');
+    
+    if (!estadoSelect || !aliquotaInput) return;
+    
+    const estado = estadoSelect.value;
+    const config = aliquotas.aliquotas_icms_2025[estado];
+    
+    if (config) {
+        let aliquotaTotal = config.aliquota_interna;
+        
+        // Adicionar FCP se aplicável
+        if (config.fcp && typeof config.fcp === 'number') {
+            aliquotaTotal += config.fcp;
+        }
+        
+        aliquotaInput.value = aliquotaTotal;
+        icmsConfig.estado = estado;
+        icmsConfig.aliquotaPadrao = aliquotaTotal;
+    }
+}
+
+/**
+ * Extrair NCMs únicos da DI carregada
+ */
+function extrairNCMsUnicos() {
+    if (!currentDI || !currentDI.adicoes) return [];
+    
+    const ncmsMap = new Map();
+    
+    currentDI.adicoes.forEach(adicao => {
+        const ncm = adicao.ncm;
+        if (ncm && !ncmsMap.has(ncm)) {
+            ncmsMap.set(ncm, {
+                ncm: ncm,
+                descricao: adicao.descricao_mercadoria || adicao.nome_ncm || 'Descrição não disponível',
+                valor: adicao.valor_reais || 0
+            });
+        }
+    });
+    
+    return Array.from(ncmsMap.values());
+}
+
+/**
+ * Mostrar modal de configuração de alíquotas ICMS
+ */
+async function mostrarModalICMS() {
+    // Carregar configurações e preencher estados
+    await preencherSelectEstados();
+    
+    const ncms = extrairNCMsUnicos();
+    
+    if (ncms.length === 0) {
+        showAlert('Nenhum NCM encontrado na DI carregada.', 'warning');
+        return;
+    }
+    
+    console.log('📊 NCMs encontrados para configuração:', ncms);
+    
+    // Preencher tabela de NCMs
+    const tableBody = document.getElementById('ncmConfigTableBody');
+    tableBody.innerHTML = '';
+    
+    ncms.forEach(ncmData => {
+        const aliquotaAtual = icmsConfig.ncmConfigs[ncmData.ncm] || icmsConfig.aliquotaPadrao;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="fw-bold">${ncmData.ncm}</td>
+            <td class="small">${ncmData.descricao}</td>
+            <td class="text-end">${formatCurrency(ncmData.valor)}</td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control text-center ncm-aliquota-input" 
+                           data-ncm="${ncmData.ncm}" 
+                           value="${aliquotaAtual}" 
+                           min="0" max="27" step="0.01">
+                    <span class="input-group-text">%</span>
+                </div>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('icmsConfigModal'));
+    modal.show();
+}
+
+/**
+ * Salvar configurações de alíquotas
+ */
+function salvarConfiguracoesICMS() {
+    // Atualizar estado e alíquota padrão
+    icmsConfig.estado = document.getElementById('estadoDestinoSelect').value;
+    icmsConfig.aliquotaPadrao = parseFloat(document.getElementById('aliquotaPadraoInput').value) || 19;
+    
+    // Coletar alíquotas específicas por NCM
+    const inputs = document.querySelectorAll('.ncm-aliquota-input');
+    inputs.forEach(input => {
+        const ncm = input.dataset.ncm;
+        const aliquota = parseFloat(input.value) || icmsConfig.aliquotaPadrao;
+        
+        // Apenas salvar se diferente da alíquota padrão
+        if (aliquota !== icmsConfig.aliquotaPadrao) {
+            icmsConfig.ncmConfigs[ncm] = aliquota;
+        } else {
+            delete icmsConfig.ncmConfigs[ncm]; // Remove se igual ao padrão
+        }
+    });
+    
+    console.log('✅ Configurações ICMS salvas:', icmsConfig);
+    
+    // Sincronizar com ItemCalculator se disponível
+    if (window.ItemCalculator) {
+        const itemCalculatorInstance = new window.ItemCalculator();
+        itemCalculatorInstance.atualizarConfigICMS(icmsConfig);
+        
+        // Tornar configurações globalmente disponíveis
+        window.icmsConfig = icmsConfig;
+    }
+    
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('icmsConfigModal'));
+    modal.hide();
+    
+    // Mostrar confirmação
+    const ncmsDiferentes = Object.keys(icmsConfig.ncmConfigs).length;
+    showAlert(`Configurações salvas! Estado: ${icmsConfig.estado}, Alíquota padrão: ${icmsConfig.aliquotaPadrao}%` + 
+              (ncmsDiferentes > 0 ? `, ${ncmsDiferentes} NCM(s) com alíquota específica` : ''), 'success');
+}
+
+/**
+ * Obter alíquota ICMS para um NCM específico
+ */
+function getAliquotaICMSParaNCM(ncm) {
+    return icmsConfig.ncmConfigs[ncm] || icmsConfig.aliquotaPadrao;
+}
+
+/**
+ * Configurar listeners do modal de alíquotas
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Listener para o botão de salvar alíquotas
+    const salvarBtn = document.getElementById('salvarAliquotasBtn');
+    if (salvarBtn) {
+        salvarBtn.addEventListener('click', salvarConfiguracoesICMS);
+    }
+    
+    // Listener para mudança de estado
+    const estadoSelect = document.getElementById('estadoDestinoSelect');
+    if (estadoSelect) {
+        estadoSelect.addEventListener('change', atualizarAliquotaPadrao);
+    }
+});
+
+// Exportar funções para uso global
+window.mostrarModalICMS = mostrarModalICMS;
+window.getAliquotaICMSParaNCM = getAliquotaICMSParaNCM;

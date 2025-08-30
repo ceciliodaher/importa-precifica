@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(npm search:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(pip install:*)",
+      "Bash(uvx:*)"
     ],
     "deny": [],
     "ask": []
