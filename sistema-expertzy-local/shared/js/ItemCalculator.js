@@ -161,20 +161,37 @@ class ItemCalculator {
     }
 
     /**
+     * Definir dados da DI para uso interno
+     * @param {object} di - Dados da DI
+     */
+    setDIData(di) {
+        this.diData = di;
+        console.log('✅ ItemCalculator: DI data set for internal calculations');
+    }
+
+    /**
      * Calcular valor total da DI (helper para rateios)
      * @param {object} di - Dados completos da DI
      * @returns {number} Valor total da DI
      */
     calcularValorTotalDI(di = null) {
-        // Usar DI passada ou global
-        const diData = di || window.currentDI;
+        // Usar DI passada, interna ou global (em ordem de prioridade)
+        const diData = di || this.diData || window.currentDI;
         
-        if (diData && diData.adicoes) {
-            return diData.adicoes.reduce((total, adicao) => {
-                return total + (adicao.valor_reais || 0);
-            }, 0);
+        if (!diData) {
+            console.warn('⚠️ ItemCalculator: Nenhuma DI encontrada para cálculo do valor total');
+            return 0;
         }
         
+        if (diData && diData.adicoes) {
+            const total = diData.adicoes.reduce((total, adicao) => {
+                return total + (adicao.valor_reais || 0);
+            }, 0);
+            console.log(`💰 ItemCalculator: Valor total da DI calculado: R$ ${total.toFixed(2)}`);
+            return total;
+        }
+        
+        console.warn('⚠️ ItemCalculator: DI sem adições para cálculo do valor total');
         return 0;
     }
 

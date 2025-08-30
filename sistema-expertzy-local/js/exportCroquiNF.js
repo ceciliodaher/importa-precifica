@@ -180,6 +180,9 @@ class CroquiNFExporter {
             this.itemCalculator.atualizarConfigICMS(window.icmsConfig);
         }
         
+        // Set DI data in ItemCalculator for internal calculations
+        this.itemCalculator.setDIData(this.di);
+        
         // Processar cada adição usando ItemCalculator
         for (const adicao of this.di.adicoes) {
             console.log(`📊 Processando adição ${adicao.numero_adicao} com ItemCalculator...`);

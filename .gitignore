@@ -1,4 +1,13 @@
-<<<<<<< HEAD
+# Arquivos XML com dados empresariais sensíveis
+*.xml
+
+# Arquivos temporários e exports
+console-export-*.txt
+memoria_calculo_*.json
+relatorio_impostos_*.json
+Croqui_NF_*.pdf
+*.docx
+
 # MacOS
 .DS_Store
 .AppleDouble
@@ -22,19 +31,16 @@ yarn-error.log*
 
 # Dependencies
 node_modules/
+/vendor/
+composer.phar
 
 # Testing
 coverage/
 .nyc_output
 playwright-report/
 test-results/
+.phpunit.result.cache
 
-# Temporary files
-*.tmp
-*.temp
-.tmp/
-.temp/
-=======
 # Python
 __pycache__/
 *.py[cod]
@@ -60,29 +66,29 @@ wheels/
 .installed.cfg
 *.egg
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Logs
-*.log
-logs/
-
 # Database
 *.db
 *.sqlite
 *.sqlite3
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
 # Environment variables
 .env
 .env.local
-<<<<<<< HEAD
 .env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+*.bak
+*.backup
+*~
+*.cache
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
 
 # Build outputs
 dist/
@@ -96,46 +102,16 @@ build/
 *.7z
 *.rar
 *.tar.gz
-
-# Backup files
-*.bak
-*.backup
-*~
+*.tgz
 
 # OS generated files
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-=======
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.cache
-
-# Excel temporary files
-~$*.xlsx
-~$*.xls
-
-# Archives
-*.zip
-*.rar
-*.tar.gz
-*.tgz
-
-# OS files
-Thumbs.db
 desktop.ini
-
-# PHP (for future implementation)
-/vendor/
-composer.phar
-.phpunit.result.cache
 
 # Upload directories
 uploads/
 temp/
 cache/
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b

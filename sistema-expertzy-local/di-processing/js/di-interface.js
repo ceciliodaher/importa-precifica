@@ -9,6 +9,7 @@
 // Global instances
 let diProcessor = null;
 let complianceCalculator = null;
+let validator = null;
 let currentDI = null;
 let currentStep = 1;
 let expenseCounter = 0;
@@ -29,6 +30,7 @@ async function initializeSystem() {
         // Initialize processor instances
         diProcessor = new DIProcessor();
         complianceCalculator = new ComplianceCalculator();
+        validator = new CalculationValidator();
         
         // Load tax configurations
         await complianceCalculator.carregarConfiguracoes();
@@ -176,6 +178,9 @@ async function processarDI() {
         // Process DI usando o parser legado funcional
         currentDI = await diProcessor.parseXML(xmlContent);
         
+        // Set global variable for ItemCalculator access
+        window.currentDI = currentDI;
+        
         // Populate step 2 with DI data
         populateStep2Data(currentDI);
         
@@ -278,8 +283,11 @@ function populateAllAdditions(diData) {
                                     <td><span class="badge bg-info">${adicao.condicao_venda_incoterm || 'N/A'}</span></td>
                                     <td class="text-truncate" style="max-width: 150px;" title="${adicao.fornecedor?.nome}">${adicao.fornecedor?.nome || 'N/A'}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewAdicaoDetails('${adicao.numero_adicao}')" title="Ver detalhes">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewAdicaoDetails('${adicao.numero_adicao}')" title="Ver detalhes">
                                             <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="viewCalculationMemory('${adicao.numero_adicao}')" title="Memória de cálculo">
+                                            <i class="bi bi-calculator"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -289,7 +297,7 @@ function populateAllAdditions(diData) {
                 </div>
                 
                 <div class="mt-3">
-                    <div class="row">
+                    <div class="row mb-3">
                         <div class="col-md-4">
                             <div class="card text-center">
                                 <div class="card-body">
@@ -314,6 +322,12 @@ function populateAllAdditions(diData) {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button class="btn btn-success" onclick="viewMultiAdditionSummary()" title="Visão consolidada de todas as adições">
+                            <i class="bi bi-collection"></i> Ver Resumo Completo (${diData.adicoes.length} Adições)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1277,12 +1291,730 @@ window.calcularImpostos = calcularImpostos;
 window.avancarStep = avancarStep;
 window.voltarStep = voltarStep;
 window.viewAdicaoDetails = viewAdicaoDetails;
+window.viewCalculationMemory = viewCalculationMemory;
+window.exportCalculationMemory = exportCalculationMemory;
+window.exportCalculationMemoryPDF = exportCalculationMemoryPDF;
+window.viewMultiAdditionSummary = viewMultiAdditionSummary;
+window.exportMultiAdditionSummary = exportMultiAdditionSummary;
 window.exportarPlanilhaCustos = exportarPlanilhaCustos;
 window.exportarRelatórioImpostos = exportarRelatórioImpostos;
 window.exportarCroquiNF = exportarCroquiNF;
 window.exportarMemoriaCalculo = exportarMemoriaCalculo;
 window.processarNovaDI = processarNovaDI;
 window.addExpenseRow = addExpenseRow;
+
+// ===== MEMÓRIA DE CÁLCULO DETALHADA =====
+
+/**
+ * View detailed calculation memory for a specific addition
+ */
+function viewCalculationMemory(numeroAdicao) {
+    if (!currentCalculation) {
+        showAlert('Nenhum cálculo encontrado. Execute o cálculo de impostos primeiro.', 'warning');
+        return;
+    }
+
+    const adicao = currentDI.adicoes.find(a => a.numero_adicao === numeroAdicao);
+    if (!adicao) {
+        showAlert('Adição não encontrada.', 'warning');
+        return;
+    }
+
+    const modalContent = document.getElementById('calculationMemoryContent');
+    const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao) || 5.392800;
+    
+    // Perform validation
+    const validation = validator.validateCalculation(currentDI, currentCalculation, numeroAdicao);
+    
+    modalContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-12">
+                ${validator.generateValidationReport(validation)}
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Adição ${numeroAdicao} - NCM ${adicao.ncm}</h6>
+                    <p class="mb-0">${adicao.descricao_ncm}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6><i class="bi bi-currency-exchange"></i> Valores Base</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Valor FOB (USD):</strong></td>
+                                <td class="text-end">$${(adicao.valor_moeda_negociacao || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor CIF (BRL):</strong></td>
+                                <td class="text-end">${formatCurrency(adicao.valor_reais || 0)}</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Taxa de Câmbio:</strong></td>
+                                <td class="text-end"><strong>${taxaCambio.toFixed(6)}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Peso Líquido:</strong></td>
+                                <td class="text-end">${(adicao.peso_liquido || 0).toFixed(2)} kg</td>
+                            </tr>
+                        </table>
+                        
+                        <div class="alert alert-light small">
+                            <i class="bi bi-lightbulb"></i> <strong>Como é calculado:</strong><br>
+                            Taxa de Câmbio = Valor em R$ ÷ Valor em USD<br>
+                            ${formatCurrency(adicao.valor_reais || 0)} ÷ $${(adicao.valor_moeda_negociacao || 0).toFixed(2)} = ${taxaCambio.toFixed(6)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6><i class="bi bi-receipt"></i> Impostos Federais (DI)</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>II (${adicao.tributos.ii_aliquota_ad_valorem}%):</strong></td>
+                                <td class="text-end">${formatCurrency(adicao.tributos.ii_valor_devido || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>IPI (${adicao.tributos.ipi_aliquota_ad_valorem}%):</strong></td>
+                                <td class="text-end">${formatCurrency(adicao.tributos.ipi_valor_devido || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PIS (${adicao.tributos.pis_aliquota_ad_valorem}%):</strong></td>
+                                <td class="text-end">${formatCurrency(adicao.tributos.pis_valor_devido || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>COFINS (${adicao.tributos.cofins_aliquota_ad_valorem}%):</strong></td>
+                                <td class="text-end">${formatCurrency(adicao.tributos.cofins_valor_devido || 0)}</td>
+                            </tr>
+                        </table>
+                        
+                        <div class="alert alert-light small">
+                            <i class="bi bi-lightbulb"></i> <strong>Fonte:</strong><br>
+                            Alíquotas e valores extraídos diretamente da DI (SISCOMEX).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h6><i class="bi bi-piggy-bank"></i> Cálculo ICMS Detalhado</h6>
+                    </div>
+                    <div class="card-body">
+                        ${generateICMSCalculationBreakdown(currentCalculation)}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6><i class="bi bi-cash-stack"></i> Despesas Incluídas</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>SISCOMEX:</td>
+                                <td class="text-end">${formatCurrency(currentDI.despesas_aduaneiras?.calculadas?.siscomex || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td>AFRMM:</td>
+                                <td class="text-end">${formatCurrency(currentDI.despesas_aduaneiras?.calculadas?.afrmm || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td>Capatazia:</td>
+                                <td class="text-end">${formatCurrency(currentDI.despesas_aduaneiras?.calculadas?.capatazia || 0)}</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Total Despesas Automáticas:</strong></td>
+                                <td class="text-end"><strong>${formatCurrency(currentDI.despesas_aduaneiras?.total_despesas_aduaneiras || 0)}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6><i class="bi bi-graph-up"></i> Resumo Final</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Total Impostos:</td>
+                                <td class="text-end">${formatCurrency(currentCalculation.totais.total_impostos)}</td>
+                            </tr>
+                            <tr>
+                                <td>Custo Total:</td>
+                                <td class="text-end">${formatCurrency(currentCalculation.totais.custo_total)}</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Custo por kg:</strong></td>
+                                <td class="text-end"><strong>${formatCurrency(currentCalculation.totais.custo_por_kg)}</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <div class="alert alert-success small">
+                            <i class="bi bi-check-circle"></i> <strong>Cálculo Validado:</strong><br>
+                            Impostos calculados conforme legislação brasileira.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('calculationMemoryModal'));
+    modal.show();
+}
+
+/**
+ * Generate detailed ICMS calculation breakdown
+ */
+function generateICMSCalculationBreakdown(calculation) {
+    const icms = calculation.impostos.icms;
+    const valores = calculation.valores_base;
+    const impostos = calculation.impostos;
+    
+    return `
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="text-primary">1️⃣ Cálculo da Base ICMS (passo a passo)</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td>CIF (valor da mercadoria):</td>
+                        <td class="text-end">${formatCurrency(valores.cif_brl)}</td>
+                        <td class="text-muted">Valor base da importação</td>
+                    </tr>
+                    <tr>
+                        <td>+ II (Imposto de Importação):</td>
+                        <td class="text-end">${formatCurrency(impostos.ii.valor_devido)}</td>
+                        <td class="text-muted">${impostos.ii.aliquota}% sobre CIF</td>
+                    </tr>
+                    <tr>
+                        <td>+ IPI (${impostos.ipi.aliquota}%):</td>
+                        <td class="text-end">${formatCurrency(impostos.ipi.valor_devido)}</td>
+                        <td class="text-muted">Sobre CIF + II</td>
+                    </tr>
+                    <tr>
+                        <td>+ PIS (${impostos.pis.aliquota}%):</td>
+                        <td class="text-end">${formatCurrency(impostos.pis.valor_devido)}</td>
+                        <td class="text-muted">Sobre CIF</td>
+                    </tr>
+                    <tr>
+                        <td>+ COFINS (${impostos.cofins.aliquota}%):</td>
+                        <td class="text-end">${formatCurrency(impostos.cofins.valor_devido)}</td>
+                        <td class="text-muted">Sobre CIF</td>
+                    </tr>
+                    <tr>
+                        <td>+ Despesas Aduaneiras:</td>
+                        <td class="text-end">${formatCurrency(icms.despesas_inclusas)}</td>
+                        <td class="text-muted">SISCOMEX, AFRMM, etc.</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td><strong>= Base ICMS (antes do ICMS):</strong></td>
+                        <td class="text-end"><strong>${formatCurrency(icms.base_calculo_antes)}</strong></td>
+                        <td class="text-muted">Soma de todos os itens acima</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="alert alert-warning">
+                    <h6 class="text-primary">2️⃣ ICMS "Por Dentro"</h6>
+                    <p class="small mb-2">O ICMS é calculado "por dentro", ou seja, a alíquota incide sobre o valor final incluindo o próprio ICMS.</p>
+                    
+                    <div class="bg-light p-2 rounded">
+                        <strong>Fórmula:</strong><br>
+                        <code>Base Final = Base Antes ÷ (1 - alíquota)</code><br><br>
+                        
+                        <strong>Aplicação:</strong><br>
+                        ${formatCurrency(icms.base_calculo_antes)} ÷ ${icms.fator_divisao.toFixed(3)} = <br>
+                        <strong>${formatCurrency(icms.base_calculo_final)}</strong>
+                    </div>
+                    
+                    <div class="mt-2 p-2 bg-success text-white rounded">
+                        <strong>ICMS Devido:</strong><br>
+                        ${formatCurrency(icms.base_calculo_final)} - ${formatCurrency(icms.base_calculo_antes)} = <br>
+                        <strong>${formatCurrency(icms.valor_devido)}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Export calculation memory to Excel format
+ */
+function exportCalculationMemory() {
+    if (!currentCalculation || !currentDI) {
+        showAlert('Nenhuma memória de cálculo disponível para exportar.', 'warning');
+        return;
+    }
+
+    try {
+        const workbook = XLSX.utils.book_new();
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio || 5.392800;
+        
+        // Sheet 1: Resumo Geral
+        const resumoData = [
+            ['MEMÓRIA DE CÁLCULO DETALHADA - IMPORTAÇÃO'],
+            [''],
+            ['DI Número:', currentDI.numero_di],
+            ['Data:', new Date().toLocaleDateString('pt-BR')],
+            ['Estado Destino:', currentCalculation.estado],
+            [''],
+            ['RESUMO FISCAL'],
+            ['Adição', 'NCM', 'CIF (R$)', 'Total Impostos (R$)', 'Custo Total (R$)'],
+            [
+                currentCalculation.adicao_numero,
+                currentCalculation.ncm,
+                currentCalculation.valores_base.cif_brl,
+                currentCalculation.totais.total_impostos,
+                currentCalculation.totais.custo_total
+            ]
+        ];
+        
+        const resumoSheet = XLSX.utils.aoa_to_sheet(resumoData);
+        XLSX.utils.book_append_sheet(workbook, resumoSheet, 'Resumo');
+        
+        // Sheet 2: Cálculo Detalhado
+        const detalhesData = [
+            ['CÁLCULO DETALHADO DE IMPOSTOS'],
+            [''],
+            ['VALORES BASE'],
+            ['Descrição', 'Valor', 'Observação'],
+            ['CIF USD', `$${(currentCalculation.valores_base.cif_usd || 0).toFixed(2)}`, 'Valor original da DI'],
+            ['CIF BRL', formatCurrencyValue(currentCalculation.valores_base.cif_brl), 'Valor convertido'],
+            ['Taxa de Câmbio', taxaCambio.toFixed(6), 'R$/USD'],
+            ['Peso Líquido', `${(currentCalculation.valores_base.peso_liquido || 0).toFixed(2)} kg`, 'Conforme DI'],
+            [''],
+            ['IMPOSTOS FEDERAIS'],
+            ['Imposto', 'Alíquota (%)', 'Base Cálculo (R$)', 'Valor Devido (R$)', 'Explicação'],
+            [
+                'II - Imposto de Importação',
+                currentCalculation.impostos.ii.aliquota,
+                formatCurrencyValue(currentCalculation.impostos.ii.base_calculo),
+                formatCurrencyValue(currentCalculation.impostos.ii.valor_devido),
+                'Incide sobre o valor CIF'
+            ],
+            [
+                'IPI - Imposto sobre Produtos Industrializados', 
+                currentCalculation.impostos.ipi.aliquota,
+                formatCurrencyValue(currentCalculation.impostos.ipi.base_calculo),
+                formatCurrencyValue(currentCalculation.impostos.ipi.valor_devido),
+                'Incide sobre CIF + II'
+            ],
+            [
+                'PIS - Programa de Integração Social',
+                currentCalculation.impostos.pis.aliquota,
+                formatCurrencyValue(currentCalculation.impostos.pis.base_calculo),
+                formatCurrencyValue(currentCalculation.impostos.pis.valor_devido),
+                'Incide sobre CIF'
+            ],
+            [
+                'COFINS - Contribuição Social',
+                currentCalculation.impostos.cofins.aliquota,
+                formatCurrencyValue(currentCalculation.impostos.cofins.base_calculo),
+                formatCurrencyValue(currentCalculation.impostos.cofins.valor_devido),
+                'Incide sobre CIF'
+            ],
+            [''],
+            ['DESPESAS ADUANEIRAS'],
+            ['Tipo', 'Valor (R$)', 'Incluso na Base ICMS'],
+            ['SISCOMEX', formatCurrencyValue(currentDI.despesas_aduaneiras?.calculadas?.siscomex || 0), 'Sim'],
+            ['AFRMM', formatCurrencyValue(currentDI.despesas_aduaneiras?.calculadas?.afrmm || 0), 'Sim'],
+            ['Capatazia', formatCurrencyValue(currentDI.despesas_aduaneiras?.calculadas?.capatazia || 0), 'Sim'],
+            ['Total Despesas', formatCurrencyValue(currentCalculation.despesas.total_base_icms), 'Sim'],
+            [''],
+            ['CÁLCULO ICMS (POR DENTRO)'],
+            ['Componente', 'Valor (R$)', 'Explicação'],
+            ['Base antes ICMS', formatCurrencyValue(currentCalculation.impostos.icms.base_calculo_antes), 'CIF + II + IPI + PIS + COFINS + Despesas'],
+            ['Alíquota ICMS', `${currentCalculation.impostos.icms.aliquota}%`, `Estado: ${currentCalculation.estado}`],
+            ['Fator de Divisão', currentCalculation.impostos.icms.fator_divisao.toFixed(3), '1 - (alíquota ÷ 100)'],
+            ['Base Final ICMS', formatCurrencyValue(currentCalculation.impostos.icms.base_calculo_final), 'Base antes ÷ Fator'],
+            ['ICMS Devido', formatCurrencyValue(currentCalculation.impostos.icms.valor_devido), 'Base Final - Base Antes']
+        ];
+        
+        const detalhesSheet = XLSX.utils.aoa_to_sheet(detalhesData);
+        XLSX.utils.book_append_sheet(workbook, detalhesSheet, 'Cálculo Detalhado');
+        
+        // Export file
+        const fileName = `Memoria_Calculo_${currentDI.numero_di}_${currentCalculation.adicao_numero}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+        showAlert('Memória de cálculo exportada para Excel com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao exportar memória de cálculo:', error);
+        showAlert('Erro ao exportar memória de cálculo: ' + error.message, 'danger');
+    }
+}
+
+/**
+ * Export calculation memory to PDF format
+ */
+function exportCalculationMemoryPDF() {
+    if (!currentCalculation || !currentDI) {
+        showAlert('Nenhuma memória de cálculo disponível para exportar.', 'warning');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio || 5.392800;
+        
+        // Header
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('MEMÓRIA DE CÁLCULO DETALHADA', 20, 20);
+        doc.text('IMPOSTOS DE IMPORTAÇÃO', 20, 30);
+        
+        // DI Info
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`DI: ${currentDI.numero_di}`, 20, 45);
+        doc.text(`Adição: ${currentCalculation.adicao_numero}`, 80, 45);
+        doc.text(`NCM: ${currentCalculation.ncm}`, 140, 45);
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 55);
+        doc.text(`Taxa Câmbio: ${taxaCambio.toFixed(6)}`, 80, 55);
+        doc.text(`Estado: ${currentCalculation.estado}`, 140, 55);
+        
+        // Base Values Table
+        doc.autoTable({
+            startY: 70,
+            head: [['VALORES BASE', 'VALOR', 'OBSERVAÇÃO']],
+            body: [
+                ['CIF USD', `$${(currentCalculation.valores_base.cif_usd || 0).toFixed(2)}`, 'Valor original da DI'],
+                ['CIF BRL', formatCurrencyValue(currentCalculation.valores_base.cif_brl), 'Valor convertido'],
+                ['Peso Líquido', `${(currentCalculation.valores_base.peso_liquido || 0).toFixed(2)} kg`, 'Conforme DI']
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [52, 58, 64] },
+            margin: { left: 20, right: 20 }
+        });
+        
+        // Federal Taxes Table
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['IMPOSTOS FEDERAIS', 'ALÍQUOTA', 'BASE CÁLCULO', 'VALOR DEVIDO', 'EXPLICAÇÃO']],
+            body: [
+                [
+                    'II', 
+                    `${currentCalculation.impostos.ii.aliquota}%`,
+                    formatCurrencyValue(currentCalculation.impostos.ii.base_calculo),
+                    formatCurrencyValue(currentCalculation.impostos.ii.valor_devido),
+                    'Sobre CIF'
+                ],
+                [
+                    'IPI', 
+                    `${currentCalculation.impostos.ipi.aliquota}%`,
+                    formatCurrencyValue(currentCalculation.impostos.ipi.base_calculo),
+                    formatCurrencyValue(currentCalculation.impostos.ipi.valor_devido),
+                    'Sobre CIF + II'
+                ],
+                [
+                    'PIS', 
+                    `${currentCalculation.impostos.pis.aliquota}%`,
+                    formatCurrencyValue(currentCalculation.impostos.pis.base_calculo),
+                    formatCurrencyValue(currentCalculation.impostos.pis.valor_devido),
+                    'Sobre CIF'
+                ],
+                [
+                    'COFINS', 
+                    `${currentCalculation.impostos.cofins.aliquota}%`,
+                    formatCurrencyValue(currentCalculation.impostos.cofins.base_calculo),
+                    formatCurrencyValue(currentCalculation.impostos.cofins.valor_devido),
+                    'Sobre CIF'
+                ]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [25, 135, 84] },
+            margin: { left: 20, right: 20 }
+        });
+        
+        // ICMS Calculation
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['CÁLCULO ICMS (POR DENTRO)', 'VALOR', 'FÓRMULA/EXPLICAÇÃO']],
+            body: [
+                ['Base antes ICMS', formatCurrencyValue(icms.base_calculo_antes), 'CIF + II + IPI + PIS + COFINS + Despesas'],
+                ['Alíquota ICMS', `${icms.aliquota}%`, `Alíquota do estado ${currentCalculation.estado}`],
+                ['Fator de Divisão', icms.fator_divisao.toFixed(3), '1 - (alíquota ÷ 100)'],
+                ['Base Final ICMS', formatCurrencyValue(icms.base_calculo_final), 'Base antes ÷ Fator'],
+                ['ICMS Devido', formatCurrencyValue(icms.valor_devido), 'Base Final - Base Antes']
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [255, 193, 7], textColor: [0, 0, 0] },
+            margin: { left: 20, right: 20 }
+        });
+        
+        // Summary
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['RESUMO FINAL', 'VALOR']],
+            body: [
+                ['Total Impostos', formatCurrencyValue(currentCalculation.totais.total_impostos)],
+                ['Custo Total', formatCurrencyValue(currentCalculation.totais.custo_total)],
+                ['Custo por kg', formatCurrencyValue(currentCalculation.totais.custo_por_kg)]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [13, 110, 253] },
+            margin: { left: 20, right: 20 }
+        });
+        
+        // Save PDF
+        const fileName = `Memoria_Calculo_${currentDI.numero_di}_${currentCalculation.adicao_numero}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        showAlert('Memória de cálculo exportada para PDF com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        showAlert('Erro ao exportar PDF: ' + error.message, 'danger');
+    }
+}
+
+/**
+ * Helper function to format currency values for export
+ */
+function formatCurrencyValue(value) {
+    return `R$ ${(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * View multi-addition summary with all calculations
+ */
+function viewMultiAdditionSummary() {
+    if (!currentDI || !currentDI.adicoes || currentDI.adicoes.length === 0) {
+        showAlert('Nenhuma DI carregada ou adições não encontradas.', 'warning');
+        return;
+    }
+
+    const modalContent = document.getElementById('multiAdditionSummaryContent');
+    
+    // Calculate totals for all additions
+    let totalCIF = 0;
+    let totalWeight = 0;
+    let totalFederalTaxes = 0;
+    
+    const additionsSummary = currentDI.adicoes.map(adicao => {
+        const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao) || 5.392800;
+        const federalTaxes = (adicao.tributos.ii_valor_devido || 0) +
+                           (adicao.tributos.ipi_valor_devido || 0) +
+                           (adicao.tributos.pis_valor_devido || 0) +
+                           (adicao.tributos.cofins_valor_devido || 0);
+        
+        totalCIF += adicao.valor_reais || 0;
+        totalWeight += adicao.peso_liquido || 0;
+        totalFederalTaxes += federalTaxes;
+        
+        return {
+            numero: adicao.numero_adicao,
+            ncm: adicao.ncm,
+            descricao: adicao.descricao_ncm,
+            cif_usd: adicao.valor_moeda_negociacao || 0,
+            cif_brl: adicao.valor_reais || 0,
+            taxa_cambio: taxaCambio,
+            peso: adicao.peso_liquido || 0,
+            ii: adicao.tributos.ii_valor_devido || 0,
+            ipi: adicao.tributos.ipi_valor_devido || 0,
+            pis: adicao.tributos.pis_valor_devido || 0,
+            cofins: adicao.tributos.cofins_valor_devido || 0,
+            total_federal: federalTaxes,
+            fornecedor: adicao.fornecedor?.nome || 'N/A'
+        };
+    });
+    
+    modalContent.innerHTML = `
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> DI ${currentDI.numero_di} - Resumo de ${currentDI.adicoes.length} Adições</h6>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <strong>Total CIF:</strong> ${formatCurrency(totalCIF)}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Peso Total:</strong> ${totalWeight.toFixed(2)} kg
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Impostos Federais:</strong> ${formatCurrency(totalFederalTaxes)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Adição</th>
+                        <th>NCM</th>
+                        <th>Descrição</th>
+                        <th>CIF USD</th>
+                        <th>CIF BRL</th>
+                        <th>Taxa Câmbio</th>
+                        <th>Peso (kg)</th>
+                        <th>II</th>
+                        <th>IPI</th>
+                        <th>PIS</th>
+                        <th>COFINS</th>
+                        <th>Total Federal</th>
+                        <th>Fornecedor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${additionsSummary.map(item => `
+                        <tr>
+                            <td><strong>${item.numero}</strong></td>
+                            <td><code class="small">${item.ncm}</code></td>
+                            <td class="text-truncate" style="max-width: 200px;" title="${item.descricao}">
+                                ${item.descricao.length > 30 ? item.descricao.substring(0, 30) + '...' : item.descricao}
+                            </td>
+                            <td class="text-end">$${item.cif_usd.toFixed(2)}</td>
+                            <td class="text-end">${formatCurrency(item.cif_brl)}</td>
+                            <td class="text-end"><span class="badge bg-primary">${item.taxa_cambio.toFixed(4)}</span></td>
+                            <td class="text-end">${item.peso.toFixed(2)}</td>
+                            <td class="text-end">${formatCurrency(item.ii)}</td>
+                            <td class="text-end">${formatCurrency(item.ipi)}</td>
+                            <td class="text-end">${formatCurrency(item.pis)}</td>
+                            <td class="text-end">${formatCurrency(item.cofins)}</td>
+                            <td class="text-end"><strong>${formatCurrency(item.total_federal)}</strong></td>
+                            <td class="text-truncate" style="max-width: 120px;" title="${item.fornecedor}">
+                                ${item.fornecedor.length > 15 ? item.fornecedor.substring(0, 15) + '...' : item.fornecedor}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="viewAdicaoDetails('${item.numero}')" title="Ver detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="viewCalculationMemory('${item.numero}')" title="Memória de cálculo">
+                                    <i class="bi bi-calculator"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot class="table-primary">
+                    <tr>
+                        <th colspan="4">TOTAIS</th>
+                        <th class="text-end">${formatCurrency(totalCIF)}</th>
+                        <th></th>
+                        <th class="text-end">${totalWeight.toFixed(2)} kg</th>
+                        <th class="text-end">${formatCurrency(additionsSummary.reduce((sum, item) => sum + item.ii, 0))}</th>
+                        <th class="text-end">${formatCurrency(additionsSummary.reduce((sum, item) => sum + item.ipi, 0))}</th>
+                        <th class="text-end">${formatCurrency(additionsSummary.reduce((sum, item) => sum + item.pis, 0))}</th>
+                        <th class="text-end">${formatCurrency(additionsSummary.reduce((sum, item) => sum + item.cofins, 0))}</th>
+                        <th class="text-end"><strong>${formatCurrency(totalFederalTaxes)}</strong></th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6><i class="bi bi-graph-up"></i> Análise Consolidada</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h5 class="text-primary">${formatCurrency(totalCIF)}</h5>
+                                    <small>Valor Total CIF</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h5 class="text-success">${formatCurrency(totalFederalTaxes)}</h5>
+                                    <small>Impostos Federais</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h5 class="text-info">${totalWeight.toFixed(2)} kg</h5>
+                                    <small>Peso Total</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h5 class="text-warning">${(totalCIF / totalWeight).toFixed(2)}</h5>
+                                    <small>CIF Médio por kg</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-light mt-3">
+                            <h6><i class="bi bi-exclamation-circle"></i> Importante:</h6>
+                            <p class="mb-0">
+                                Este resumo mostra os <strong>impostos federais extraídos da DI</strong>. 
+                                Para ver o cálculo completo com ICMS e despesas aduaneiras, 
+                                utilize o botão "Calcular Impostos" na etapa de processamento.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('multiAdditionSummaryModal'));
+    modal.show();
+}
+
+/**
+ * Export multi-addition summary using dedicated exporter
+ */
+function exportMultiAdditionSummary() {
+    if (!currentDI || !currentDI.adicoes || currentDI.adicoes.length === 0) {
+        showAlert('Nenhuma DI carregada para exportar.', 'warning');
+        return;
+    }
+    
+    try {
+        // Create exporter instance
+        const exporter = new MultiAdditionExporter(currentDI);
+        
+        // Export to Excel (default)
+        const result = exporter.exportToExcel();
+        
+        if (result.success) {
+            showAlert(`Resumo multi-adição exportado: ${result.fileName}`, 'success');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao exportar resumo multi-adição:', error);
+        showAlert('Erro ao exportar resumo: ' + error.message, 'danger');
+    }
+}
 
 // ===== CONFIGURAÇÃO DE ALÍQUOTAS ICMS POR NCM =====
 

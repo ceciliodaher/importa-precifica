@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Expertzy - Importação e Precificação</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="sistema-expertzy-local/shared/css/expertzy-brand.css" rel="stylesheet">
+    <style>
+        /* Quick Stats com cores Expertzy */
+        .stats-card {
+            background: var(--expertzy-white);
+            border: 2px solid var(--expertzy-red-lighter);
+            border-radius: var(--expertzy-radius-lg);
+        }
+        
+        .stats-number {
+            color: var(--expertzy-red);
+        }
+        
+        /* Feature icons personalizadas */
+        .feature-icon.red {
+            background: var(--expertzy-red-lighter);
+            color: var(--expertzy-red);
+        }
+        
+        .feature-icon.navy {
+            background: var(--expertzy-navy-lighter);
+            color: var(--expertzy-navy);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark expertzy-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <div class="logo-container">
+                    <span class="logo-text">EXPERTZY</span>
+                </div>
+                <span class="navbar-subtitle d-none d-md-inline">Sistema de Importação e Precificação</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#features">Recursos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#docs">Documentação</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#tech">Tecnologia</a>
+                    </li>
+                    <li class="nav-item ms-3">
+                        <a class="btn btn-outline-light btn-sm" href="sistema-expertzy-local/index.html">
+                            <i class="bi bi-box-arrow-in-right"></i> Acessar Sistema
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section expertzy-hero">
+        <div class="container">
+            <div class="hero-content text-center">
+                <h1 class="hero-title">Sistema Completo de Importação</h1>
+                <p class="hero-subtitle">Cálculo de impostos, análise fiscal e otimização de custos para importadores brasileiros</p>
+                
+                <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+                    <a href="sistema-expertzy-local/index.html" class="btn btn-expertzy-primary">
+                        <i class="bi bi-rocket-takeoff"></i> Acessar Sistema
+                    </a>
+                    <a href="#features" class="btn btn-expertzy-outline">
+                        <i class="bi bi-info-circle"></i> Saiba Mais
+                    </a>
+                </div>
+                
+                <div class="mt-5">
+                    <img src="https://img.shields.io/badge/Versão-2.0.0-success?style=for-the-badge" alt="Version" class="me-2">
+                    <img src="https://img.shields.io/badge/Status-Produção-green?style=for-the-badge" alt="Status" class="me-2">
+                    <img src="https://img.shields.io/badge/Licença-MIT-blue?style=for-the-badge" alt="License">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">16+</div>
+                        <div class="stats-label">Adições Simultâneas</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">100%</div>
+                        <div class="stats-label">Conformidade Fiscal</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">5</div>
+                        <div class="stats-label">Tipos de Impostos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-number">4</div>
+                        <div class="stats-label">Estados com Benefícios</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5 bg-light">
+        <div class="container">
+            <h2 class="section-title">Recursos Principais</h2>
+            
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon red">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Processamento de DI</h5>
+                        <p class="text-muted text-center">Parse automático de XML SISCOMEX com extração completa de dados e validação</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon navy">
+                            <i class="bi bi-calculator"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Cálculo Automático</h5>
+                        <p class="text-muted text-center">II, IPI, PIS, COFINS e ICMS calculados com memória detalhada e validação</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon red">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Análise Fiscal</h5>
+                        <p class="text-muted text-center">Otimização com benefícios fiscais estaduais e análise comparativa</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon navy">
+                            <i class="bi bi-currency-exchange"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Multi-Moeda</h5>
+                        <p class="text-muted text-center">Suporte a múltiplas taxas de câmbio com validação automática</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4 mt-3">
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon navy">
+                            <i class="bi bi-file-earmark-excel"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Exportação Completa</h5>
+                        <p class="text-muted text-center">Relatórios em Excel, PDF e JSON com formatação profissional</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon red">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Validação Automática</h5>
+                        <p class="text-muted text-center">Sistema de validação com indicadores visuais de conformidade</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon navy">
+                            <i class="bi bi-collection"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Multi-Adição</h5>
+                        <p class="text-muted text-center">Processamento simultâneo de múltiplas adições com consolidação</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="expertzy-card">
+                        <div class="feature-icon red">
+                            <i class="bi bi-lightbulb"></i>
+                        </div>
+                        <h5 class="text-center mb-3">Memória de Cálculo</h5>
+                        <p class="text-muted text-center">Detalhamento passo a passo de todos os cálculos realizados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section id="docs" class="py-5">
+        <div class="container">
+            <h2 class="section-title">Documentação</h2>
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <a href="documentos/PRD-Multi-Currency-Support.md" class="doc-card">
+                        <h5><i class="doc-icon bi bi-file-text"></i>PRD - Suporte Multi-Moeda</h5>
+                        <p class="text-muted mb-2">Requisitos completos e workflow de implementação para múltiplas taxas de câmbio</p>
+                        <small class="text-primary">Atualizado: 30/08/2025 • 12 páginas</small>
+                    </a>
+                </div>
+                
+                <div class="col-md-6">
+                    <a href="CLAUDE.md" class="doc-card">
+                        <h5><i class="doc-icon bi bi-robot"></i>CLAUDE.md</h5>
+                        <p class="text-muted mb-2">Instruções para Claude Code e documentação técnica da arquitetura</p>
+                        <small class="text-primary">Guia técnico completo • Sempre atualizado</small>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4"><i class="bi bi-rocket text-primary"></i> Quick Start Guide</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">Como usar:</h6>
+                                    <ol>
+                                        <li>Faça upload do XML da DI (SISCOMEX)</li>
+                                        <li>Configure despesas extras opcionais</li>
+                                        <li>Execute o cálculo automático de impostos</li>
+                                        <li>Visualize a memória de cálculo detalhada</li>
+                                        <li>Exporte relatórios em Excel ou PDF</li>
+                                    </ol>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">Recursos Disponíveis:</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success"></i> Upload de arquivos XML DI<br>
+                                            <small class="text-muted">Drag & drop ou seleção manual</small></li>
+                                        <li class="mt-2"><i class="bi bi-check-circle text-success"></i> Validação automática<br>
+                                            <small class="text-muted">Verificação de conformidade</small></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="tech" class="py-5 bg-light">
+        <div class="container">
+            <h2 class="section-title">Stack Tecnológico</h2>
+            
+            <div class="text-center mb-5">
+                <span class="tech-badge">JavaScript ES6+</span>
+                <span class="tech-badge">Bootstrap 5.3</span>
+                <span class="tech-badge">SheetJS (XLSX)</span>
+                <span class="tech-badge">jsPDF</span>
+                <span class="tech-badge">DOM Parser API</span>
+                <span class="tech-badge">LocalStorage</span>
+                <span class="tech-badge">GitHub Pages</span>
+                <span class="tech-badge">Bootstrap Icons</span>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary"><i class="bi bi-cpu"></i> Core Modules</h6>
+                            <ul class="small list-unstyled mt-3">
+                                <li class="mb-2"><strong>DIProcessor.js</strong><br>
+                                    <small class="text-muted">Parser XML completo</small></li>
+                                <li class="mb-2"><strong>ComplianceCalculator.js</strong><br>
+                                    <small class="text-muted">Motor de cálculo fiscal</small></li>
+                                <li><strong>ItemCalculator.js</strong><br>
+                                    <small class="text-muted">Cálculos individuais</small></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-success"><i class="bi bi-check-circle"></i> Validation</h6>
+                            <ul class="small list-unstyled mt-3">
+                                <li class="mb-2"><strong>CalculationValidator.js</strong><br>
+                                    <small class="text-muted">Validação de cálculos</small></li>
+                                <li class="mb-2"><strong>Multi-currency</strong><br>
+                                    <small class="text-muted">Suporte a múltiplas moedas</small></li>
+                                <li><strong>Tolerance checks</strong><br>
+                                    <small class="text-muted">Verificação de tolerância</small></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-warning"><i class="bi bi-download"></i> Export</h6>
+                            <ul class="small list-unstyled mt-3">
+                                <li class="mb-2"><strong>CroquiNFExporter.js</strong><br>
+                                    <small class="text-muted">Exportação de croqui</small></li>
+                                <li class="mb-2"><strong>MultiAdditionExporter.js</strong><br>
+                                    <small class="text-muted">Resumo multi-adição</small></li>
+                                <li><strong>Excel/PDF generators</strong><br>
+                                    <small class="text-muted">Geradores de relatórios</small></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-info"><i class="bi bi-window"></i> Interface</h6>
+                            <ul class="small list-unstyled mt-3">
+                                <li class="mb-2"><strong>di-interface.js</strong><br>
+                                    <small class="text-muted">Coordenação geral</small></li>
+                                <li class="mb-2"><strong>Bootstrap modals</strong><br>
+                                    <small class="text-muted">Interface responsiva</small></li>
+                                <li><strong>Real-time validation</strong><br>
+                                    <small class="text-muted">Validação em tempo real</small></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="expertzy-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="footer-logo">
+                        <div class="logo-container">
+                            <span class="logo-text">EXPERTZY</span>
+                        </div>
+                        <span class="ms-3">Sistema de Importação e Precificação</span>
+                    </div>
+                    <p class="text-white-50">
+                        Solução completa para cálculo de impostos de importação<br>
+                        com análise fiscal e otimização de custos.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="footer-links mt-4">
+                        <a href="https://github.com/ceciliodaher/importa-precifica" target="_blank">
+                            <i class="bi bi-github"></i> GitHub
+                        </a>
+                        <a href="sistema-expertzy-local/index.html">
+                            <i class="bi bi-box-arrow-in-right"></i> Sistema
+                        </a>
+                        <a href="#docs">
+                            <i class="bi bi-book"></i> Docs
+                        </a>
+                    </div>
+                    <p class="text-white-50 mt-3">
+                        © 2025 Sistema Expertzy. Todos os direitos reservados.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

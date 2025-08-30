@@ -411,6 +411,9 @@ class DIProcessor {
         const valorMoedaNegociacao = adicaoData.valor_moeda_negociacao || 0;
         const valorReais = adicaoData.valor_reais || 0;
         const taxaCambio = valorMoedaNegociacao > 0 ? valorReais / valorMoedaNegociacao : 5.392800;
+        
+        // Adicionar taxa de câmbio aos dados da adição
+        adicaoData.taxa_cambio = taxaCambio;
 
         produtoNodes.forEach(produtoNode => {
             // Extrair dados originais da DI
