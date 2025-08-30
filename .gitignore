@@ -1,5 +1,9 @@
-# Arquivos XML com dados empresariais sensíveis
+# Arquivos com dados empresariais sensíveis
 *.xml
+*.pdf
+*.xlsx
+*.7z
+*.docx
 
 # Arquivos temporários e exports
 console-export-*.txt
