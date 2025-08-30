@@ -843,15 +843,16 @@ function avancarStep(stepNumber) {
     }
     
     // Show target step
-    document.getElementById(`step${stepNumber}`).classList.remove('hidden');
+    const targetStep = document.getElementById(`step${stepNumber}`);
+    targetStep.classList.remove('hidden');
     
     // Update step indicator
     updateStepIndicator(stepNumber);
     
     currentStep = stepNumber;
     
-    // Scroll to top
-    window.scrollTo(0, 0);
+    // Smooth scroll to step instead of forcing to top
+    targetStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function voltarStep(stepNumber) {

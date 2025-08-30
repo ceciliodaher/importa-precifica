@@ -307,7 +307,7 @@ class CroquiNFExporter {
     
     calculateBaseICMS(adicao, valorMercadoria) {
         // ===== FÓRMULA OFICIAL CONFORME LEGISLAÇÃO =====
-        // Base ICMS = (VMLD + II + IPI + PIS + COFINS + Despesas Aduaneiras) / (1 - alíquota ICMS)
+        // Base ICMS = (VMLD + II + IPI + PIS + COFINS + Rateio Despesas) / (1 - alíquota ICMS)
         
         let baseAntesICMS = valorMercadoria;
         
@@ -328,24 +328,83 @@ class CroquiNFExporter {
             baseAntesICMS += adicao.tributos.cofins_valor_devido;
         }
         
-        // ===== ADICIONAR DESPESAS ADUANEIRAS (CORREÇÃO CRÍTICA) =====
-        if (this.di.despesas_aduaneiras?.total_despesas_aduaneiras) {
-            baseAntesICMS += this.di.despesas_aduaneiras.total_despesas_aduaneiras;
-            console.log(`📊 Despesas aduaneiras adicionadas à base: R$ ${this.di.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
-        }
+        // ===== RATEIO PROPORCIONAL DE DESPESAS (CORREÇÃO CRÍTICA) =====
+        const rateioAduaneiras = this.calcularRateioDespesasAduaneiras(adicao);
+        const rateioExtras = this.calcularRateioDespesasExtras(adicao);
+        
+        baseAntesICMS += rateioAduaneiras + rateioExtras;
+        
+        console.log(`📊 Cálculo Base ICMS para adição ${adicao.numero_adicao}:
+        - Valor mercadoria: R$ ${valorMercadoria.toFixed(2)}
+        - Rateio despesas aduaneiras: R$ ${rateioAduaneiras.toFixed(2)}
+        - Rateio despesas extras: R$ ${rateioExtras.toFixed(2)}
+        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}`);
         
         // ===== APLICAR FÓRMULA "POR DENTRO" =====
         const aliquotaICMS = this.getAliquotaICMS();
         const fatorDivisao = 1 - (aliquotaICMS / 100);
         const baseICMS = baseAntesICMS / fatorDivisao;
         
-        console.log(`📊 Cálculo Base ICMS:
-        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}
-        - Alíquota ICMS: ${aliquotaICMS}%
-        - Fator divisão: ${fatorDivisao.toFixed(4)}
-        - Base ICMS final: R$ ${baseICMS.toFixed(2)}`);
-        
         return baseICMS;
+    }
+    
+    calcularRateioDespesasAduaneiras(adicao) {
+        // Ratear despesas aduaneiras proporcionalmente ao valor CIF da adição
+        if (!this.di.despesas_aduaneiras?.total_despesas_aduaneiras) {
+            return 0;
+        }
+        
+        const valorAdicao = adicao.valor_reais || 0;
+        const valorTotalDI = this.calcularValorTotalDI();
+        
+        if (valorTotalDI === 0) return 0;
+        
+        const percentualAdicao = valorAdicao / valorTotalDI;
+        const rateio = this.di.despesas_aduaneiras.total_despesas_aduaneiras * percentualAdicao;
+        
+        console.log(`📊 Rateio despesas aduaneiras - Adição ${adicao.numero_adicao}:
+        - Valor adição: R$ ${valorAdicao.toFixed(2)}
+        - Total DI: R$ ${valorTotalDI.toFixed(2)}
+        - Percentual: ${(percentualAdicao * 100).toFixed(4)}%
+        - Rateio: R$ ${rateio.toFixed(2)}`);
+        
+        return rateio;
+    }
+    
+    calcularRateioDespesasExtras(adicao) {
+        // Ratear despesas extras que compõem base ICMS
+        if (!this.di.despesasExtras) {
+            return 0;
+        }
+        
+        const despesasICMS = this.di.despesasExtras.filter(d => d.includeInICMS);
+        const totalDespesasICMS = despesasICMS.reduce((sum, d) => sum + d.value, 0);
+        
+        if (totalDespesasICMS === 0) return 0;
+        
+        const valorAdicao = adicao.valor_reais || 0;
+        const valorTotalDI = this.calcularValorTotalDI();
+        
+        if (valorTotalDI === 0) return 0;
+        
+        const percentualAdicao = valorAdicao / valorTotalDI;
+        const rateio = totalDespesasICMS * percentualAdicao;
+        
+        console.log(`📊 Rateio despesas extras - Adição ${adicao.numero_adicao}:
+        - Total despesas ICMS: R$ ${totalDespesasICMS.toFixed(2)}
+        - Percentual: ${(percentualAdicao * 100).toFixed(4)}%
+        - Rateio: R$ ${rateio.toFixed(2)}`);
+        
+        return rateio;
+    }
+    
+    calcularValorTotalDI() {
+        // Somar valores de todas as adições para base do rateio
+        if (!this.di.adicoes) return 0;
+        
+        return this.di.adicoes.reduce((total, adicao) => {
+            return total + (adicao.valor_reais || 0);
+        }, 0);
     }
     
     calculateBaseIPI(adicao, valorMercadoria) {
@@ -1037,13 +1096,32 @@ class CroquiNFExporter {
         // Informações dos tributos e despesas aduaneiras
         const infoLines = [
             `II R$ ${this.totais.valor_ii.toFixed(2)} IPI R$ ${this.totais.valor_ipi.toFixed(2)} PIS R$ ${this.totais.valor_pis.toFixed(2)} COFINS R$ ${this.totais.valor_cofins.toFixed(2)}`,
-            `SISCOMEX R$ ${this.getDespesaAduaneira('siscomex')} CAPATAZIA R$ ${this.getDespesaAduaneira('capatazia')} AFRMM R$ ${this.getDespesaAduaneira('afrmm')}`,
+            `SISCOMEX R$ ${this.getDespesaAduaneira('siscomex')} CAPATAZIA R$ ${this.getDespesaAduaneira('capatazia')} AFRMM R$ ${this.getDespesaAduaneira('afrmm')}`
+        ];
+        
+        // Adicionar despesas extras se existirem
+        if (this.di.despesasExtras && this.di.despesasExtras.length > 0) {
+            const despesasICMS = this.di.despesasExtras.filter(d => d.includeInICMS);
+            if (despesasICMS.length > 0) {
+                const despesasTexto = despesasICMS.map(d => `${d.name.toUpperCase()}: R$ ${d.value.toFixed(2)}`).join(' ');
+                infoLines.push(`DESPESAS EXTRAS NA BASE ICMS: ${despesasTexto}`);
+            }
+            
+            const despesasNaoICMS = this.di.despesasExtras.filter(d => !d.includeInICMS);
+            if (despesasNaoICMS.length > 0) {
+                const despesasTexto = despesasNaoICMS.map(d => `${d.name.toUpperCase()}: R$ ${d.value.toFixed(2)}`).join(' ');
+                infoLines.push(`OUTRAS DESPESAS: ${despesasTexto}`);
+            }
+        }
+        
+        // Informações padrão
+        infoLines.push(
             `Nossa Referência: ${this.header.referencia_twa || 'N/A'}`,
             `REF.IMPORTADOR: ${this.header.referencia_importador || 'N/A'}`,
             `NOTA FISCAL DE IMPORTAÇÃO DE ACORDO COM A DI ${this.header.di_numero}`,
             `DESCRIÇÃO DA MERCADORIA CONFORME DI ${this.header.di_numero}`,
             'GERADO PELO SISTEMA EXPERTZY - www.expertzy.com.br'
-        ];
+        );
         
         infoLines.forEach(line => {
             doc.text(line, 15, y);
