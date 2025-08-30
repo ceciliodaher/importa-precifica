@@ -1,8 +1,9 @@
 /**
- * business-theme.css - Green Theme for Pricing Strategy System
+ * business-theme.css - Expertzy Theme for Pricing Strategy System
  * 
- * Professional green color scheme focused on business strategy and growth
- * Designed to convey prosperity, growth, and strategic business decisions
+ * Professional theme using Expertzy brand colors (Navy/Red)
+ * Designed to convey strategic business decisions and growth
+ * Phase 2: Navy primary with Red accents for strategic/professional feel
  */
 
 :root {
@@ -12,13 +13,21 @@
     --expertzy-light-gray: #F8F9FA;
     --expertzy-dark-gray: #6C757D;
     
-    /* Business Theme using Expertzy Colors (Navy as primary for differentiation) */
+    /* Business Theme using ONLY Expertzy Colors (Navy as primary for differentiation) */
     --business-primary: var(--expertzy-navy);
     --business-secondary: var(--expertzy-red);
-    --business-accent: #1a2d4a;
-    --business-light: #f0f2f5;
-    --business-dark: #061220;
-    --business-muted: #4a5866;
+    --business-accent: #1a2d4a; /* Navy lighter */
+    --business-light: #f0f2f5; /* Navy lighter background */
+    --business-dark: #061220; /* Navy darker */
+    --business-muted: #4a5866; /* Navy muted */
+    
+    /* Additional Expertzy Brand Variations */
+    --business-primary-dark: #061220;
+    --business-primary-light: #1a2d4a;
+    --business-primary-lighter: #f0f2f5;
+    --business-secondary-dark: #cc0024;
+    --business-secondary-light: #ff3d5c;
+    --business-secondary-lighter: #fff0f3;
     
     /* Success/Performance Colors */
     --business-success: #20c997;
@@ -45,33 +54,69 @@
 }
 
 .business-header {
-    background: linear-gradient(135deg, var(--business-primary), var(--business-secondary));
+    background: linear-gradient(135deg, var(--expertzy-navy) 0%, #0d1a3d 100%);
     color: var(--business-white);
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
     padding: 2rem 0;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.15);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(9, 26, 48, 0.15);
+}
+
+.business-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23FF002D" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,165.3C384,171,480,149,576,154.7C672,160,768,192,864,197.3C960,203,1056,181,1152,165.3C1248,149,1344,139,1392,133.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    background-size: cover;
+    opacity: 0.3;
+}
+
+.business-header .container {
+    position: relative;
+    z-index: 1;
 }
 
 .business-header h1 {
+    font-size: 3rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    color: var(--business-white);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.business-header .lead {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--expertzy-red);
+    margin-bottom: 1rem;
 }
 
 .business-header p {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
     opacity: 0.9;
     font-weight: 300;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 /* Cards and Containers */
 .business-card {
     background: var(--business-white);
     border-left: 4px solid var(--business-primary);
-    box-shadow: 0 2px 15px rgba(40, 167, 69, 0.08);
+    box-shadow: 0 2px 15px rgba(9, 26, 48, 0.08);
     border-radius: 8px;
     transition: all 0.3s ease;
 }
 
 .business-card:hover {
-    box-shadow: 0 4px 25px rgba(40, 167, 69, 0.12);
+    box-shadow: 0 4px 25px rgba(9, 26, 48, 0.12);
     transform: translateY(-2px);
 }
 
@@ -96,7 +141,7 @@
 .strategy-step.active {
     border-color: var(--business-primary);
     background: var(--business-white);
-    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.15);
+    box-shadow: 0 6px 25px rgba(9, 26, 48, 0.15);
 }
 
 .strategy-step.completed {
@@ -119,35 +164,53 @@
     font-weight: bold;
     font-size: 1rem;
     border: 3px solid var(--business-white);
-    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+    box-shadow: 0 2px 10px rgba(9, 26, 48, 0.2);
 }
 
 .strategy-step.completed .step-number {
     background: var(--business-success);
 }
 
-/* Buttons */
+/* Buttons - Using Expertzy Brand Buttons */
 .btn-business {
-    background: linear-gradient(135deg, var(--business-primary), var(--business-secondary));
+    background: linear-gradient(135deg, var(--business-primary), var(--business-primary-dark));
     border: none;
     color: var(--business-white);
     padding: 0.75rem 2rem;
     font-weight: 600;
     border-radius: 8px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+    box-shadow: 0 2px 10px rgba(9, 26, 48, 0.2);
 }
 
 .btn-business:hover {
-    background: linear-gradient(135deg, var(--business-secondary), var(--business-dark));
+    background: linear-gradient(135deg, var(--business-primary-dark), var(--business-primary));
     color: var(--business-white);
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 4px 20px rgba(9, 26, 48, 0.3);
     transform: translateY(-2px);
 }
 
 .btn-business:focus {
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(9, 26, 48, 0.25);
     color: var(--business-white);
+}
+
+.btn-business-secondary {
+    background: linear-gradient(135deg, var(--business-secondary), var(--business-secondary-dark));
+    border: none;
+    color: var(--business-white);
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(255, 0, 45, 0.2);
+}
+
+.btn-business-secondary:hover {
+    background: linear-gradient(135deg, var(--business-secondary-dark), var(--business-secondary));
+    color: var(--business-white);
+    box-shadow: 0 4px 20px rgba(255, 0, 45, 0.3);
+    transform: translateY(-2px);
 }
 
 .btn-outline-business {
@@ -178,14 +241,14 @@
 
 .scenario-card:hover {
     border-color: var(--business-accent);
-    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.12);
+    box-shadow: 0 6px 25px rgba(9, 26, 48, 0.12);
     transform: translateY(-3px);
 }
 
 .scenario-card.best {
-    border-color: var(--business-primary);
+    border-color: var(--business-secondary);
     border-width: 2px;
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.15);
+    box-shadow: 0 4px 20px rgba(255, 0, 45, 0.15);
 }
 
 .scenario-card.best::before {
@@ -193,13 +256,13 @@
     position: absolute;
     top: -8px;
     right: 15px;
-    background: var(--business-primary);
+    background: var(--business-secondary);
     color: var(--business-white);
     padding: 4px 12px;
     font-size: 0.7rem;
     font-weight: bold;
     border-radius: 15px;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 2px 8px rgba(255, 0, 45, 0.3);
 }
 
 /* Pricing Cards */
@@ -214,7 +277,7 @@
 
 .pricing-card:hover {
     border-color: var(--business-accent);
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.1);
+    box-shadow: 0 4px 20px rgba(9, 26, 48, 0.1);
     transform: translateY(-2px);
 }
 
@@ -229,8 +292,8 @@
 }
 
 .premium-price {
-    border-left: 4px solid var(--business-premium);
-    background: #f8f4ff;
+    border-left: 4px solid var(--business-secondary);
+    background: var(--business-secondary-lighter);
 }
 
 /* Metric Cards */
@@ -239,13 +302,13 @@
     border-radius: 10px;
     padding: 1.5rem;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.05);
+    box-shadow: 0 2px 10px rgba(9, 26, 48, 0.05);
     transition: all 0.3s ease;
     border: 1px solid var(--business-gray-100);
 }
 
 .metric-card:hover {
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.1);
+    box-shadow: 0 4px 20px rgba(9, 26, 48, 0.1);
     border-color: var(--business-accent);
 }
 
@@ -268,7 +331,7 @@
     border-radius: 12px;
     padding: 2rem;
     margin: 1.5rem 0;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.08);
+    box-shadow: 0 4px 15px rgba(9, 26, 48, 0.08);
     border: 1px solid var(--business-gray-100);
 }
 
@@ -281,7 +344,7 @@
 /* Form Elements */
 .form-control:focus {
     border-color: var(--business-accent);
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(9, 26, 48, 0.15);
 }
 
 .form-check-input:checked {
@@ -291,12 +354,12 @@
 
 .form-check-input:focus {
     border-color: var(--business-accent);
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(9, 26, 48, 0.15);
 }
 
 .form-select:focus {
     border-color: var(--business-accent);
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(9, 26, 48, 0.15);
 }
 
 /* Alerts */
@@ -368,6 +431,11 @@
     color: var(--business-white);
 }
 
+.badge-business-secondary {
+    background-color: var(--business-secondary);
+    color: var(--business-white);
+}
+
 .badge-business-success {
     background-color: var(--business-success);
     color: var(--business-white);
@@ -379,13 +447,13 @@
 }
 
 .badge-premium {
-    background-color: var(--business-premium);
+    background: linear-gradient(135deg, var(--business-secondary), var(--business-secondary-dark));
     color: var(--business-white);
 }
 
 /* Loading States */
 .loading-overlay {
-    background: rgba(40, 167, 69, 0.1);
+    background: rgba(9, 26, 48, 0.1);
     backdrop-filter: blur(5px);
 }
 
@@ -393,7 +461,7 @@
     background: var(--business-white);
     border: 2px solid var(--business-accent);
     border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(40, 167, 69, 0.2);
+    box-shadow: 0 10px 40px rgba(9, 26, 48, 0.2);
 }
 
 .spinner-border-business {
@@ -418,7 +486,7 @@
 
 /* ROI and Financial Indicators */
 .roi-indicator {
-    background: linear-gradient(135deg, var(--business-success), #17a2b8);
+    background: linear-gradient(135deg, var(--business-secondary), var(--business-secondary-light));
     color: var(--business-white);
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -443,7 +511,7 @@
     padding: 1.5rem;
     border-radius: 8px;
     margin: 1rem 0;
-    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.08);
+    box-shadow: 0 2px 10px rgba(9, 26, 48, 0.08);
 }
 
 .strategy-recommendation h6 {
@@ -457,8 +525,59 @@
 }
 
 .strategy-recommendation.secondary {
-    border-left-color: var(--business-accent);
-    background: linear-gradient(135deg, var(--business-gray-50), var(--business-white));
+    border-left-color: var(--business-secondary);
+    background: linear-gradient(135deg, var(--business-secondary-lighter), var(--business-white));
+}
+
+/* Navbar - Expertzy Style (matching landing page) */
+.navbar {
+    background: var(--expertzy-navy) !important;
+    padding: 1rem 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    background: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.navbar-brand:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand img {
+    height: 35px;
+    width: auto;
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255,255,255,0.9) !important;
+    font-weight: 500;
+    margin: 0 0.5rem;
+    transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--expertzy-red) !important;
+}
+
+.navbar-nav .btn-business {
+    background: var(--expertzy-navy);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .btn-business:hover {
+    background: #061220;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(9, 26, 48, 0.3);
 }
 
 /* Responsive Design */

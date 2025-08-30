@@ -11,7 +11,7 @@
     
     <!-- Expertzy Brand System -->
     <link href="../shared/css/expertzy-brand.css" rel="stylesheet">
-    <link href="../shared/css/compliance-theme.css" rel="stylesheet">
+    <link href="css/compliance-theme.css" rel="stylesheet">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -62,11 +62,11 @@
     </nav>
 
     <!-- Compliance Header -->
-    <header class="di-processing-header">
+    <header class="compliance-header" style="margin-top: 60px;">
         <div class="container">
             <div class="row align-items-center text-center">
                 <div class="col-12">
-                    <i class="bi bi-file-earmark-text hero-icon"></i>
+                    <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: var(--expertzy-red);"></i>
                     <h1 class="display-4 fw-bold mb-3">Processador de DI</h1>
                     <p class="lead mb-4">Sistema de Compliance para Importações</p>
                     <p class="mb-0 opacity-75">Fase 1 • Processamento de Declarações • Cálculo de Impostos • Relatórios de Compliance</p>
@@ -81,23 +81,23 @@
         <div class="row">
             <div class="col-12">
                 <div class="d-flex justify-content-between mb-4">
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-primary me-2">1</span>
+                    <div class="process-indicator active">
+                        <span class="badge badge-compliance">1</span>
                         <span>Upload DI</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">2</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-compliance-secondary">2</span>
                         <span>Configurar Despesas</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">3</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-compliance-secondary">3</span>
                         <span>Calcular Impostos</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">4</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-compliance-secondary">4</span>
                         <span>Exportar Compliance</span>
                     </div>
                 </div>
@@ -114,8 +114,8 @@
                     
                     <!-- Drag & Drop Upload Area -->
                     <div class="upload-area mb-4" id="dropZone">
-                        <div class="upload-content">
-                            <i class="bi bi-cloud-upload upload-icon"></i>
+                        <div class="upload-content text-center">
+                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: var(--expertzy-red);"></i>
                             <h4>Arraste o arquivo XML aqui</h4>
                             <p class="text-muted mb-3">ou clique para selecionar</p>
                             <input type="file" id="xmlFile" accept=".xml" style="display: none;">
@@ -213,63 +213,139 @@
                     <p class="text-muted">Configure despesas adicionais e marque quais devem compor a base de cálculo do ICMS.</p>
                     
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="expense-card manual-expense">
-                                <div class="row align-items-center">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Armazenagem</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">R$</span>
-                                            <input type="number" class="form-control" id="expenseStorage" min="0" step="0.01" value="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Transporte Interno</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">R$</span>
-                                            <input type="number" class="form-control" id="expenseTransport" min="0" step="0.01" value="0">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Despachante</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">R$</span>
-                                            <input type="number" class="form-control" id="expenseAgent" min="0" step="0.01" value="0">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <label class="form-label">Incluir na Base ICMS:</label>
-                                        <div class="d-flex gap-4">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="storageICMS">
-                                                <label class="form-check-label" for="storageICMS">Armazenagem</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="transportICMS">
-                                                <label class="form-check-label" for="transportICMS">Transporte</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="agentICMS">
-                                                <label class="form-check-label" for="agentICMS">Despachante</label>
-                                            </div>
-                                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped" id="expensesTable">
+                                            <thead>
+                                                <tr>
+                                                    <th width="5%"><i class="bi bi-tag"></i></th>
+                                                    <th width="35%">Descrição da Despesa</th>
+                                                    <th width="25%">Valor (R$)</th>
+                                                    <th width="20%" class="text-center">Base ICMS</th>
+                                                    <th width="15%" class="text-center">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="expensesTableBody">
+                                                <!-- Despesas pré-determinadas -->
+                                                <tr data-expense-id="storage" data-predefined="true">
+                                                    <td><i class="bi bi-box-seam text-primary"></i></td>
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" value="Armazenagem" readonly>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text">R$</span>
+                                                            <input type="text" class="form-control expense-value" data-expense="storage" placeholder="0,00">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="form-check d-flex justify-content-center">
+                                                            <input class="form-check-input expense-icms" type="checkbox" data-expense="storage">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Item padrão">
+                                                            <i class="bi bi-lock"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr data-expense-id="transport" data-predefined="true">
+                                                    <td><i class="bi bi-truck text-info"></i></td>
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" value="Transporte Interno" readonly>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text">R$</span>
+                                                            <input type="text" class="form-control expense-value" data-expense="transport" placeholder="0,00">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="form-check d-flex justify-content-center">
+                                                            <input class="form-check-input expense-icms" type="checkbox" data-expense="transport">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Item padrão">
+                                                            <i class="bi bi-lock"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr data-expense-id="agent" data-predefined="true">
+                                                    <td><i class="bi bi-person-badge text-success"></i></td>
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm border-0 bg-transparent" value="Despachante Aduaneiro" readonly>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text">R$</span>
+                                                            <input type="text" class="form-control expense-value" data-expense="agent" placeholder="0,00">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <div class="form-check d-flex justify-content-center">
+                                                            <input class="form-check-input expense-icms" type="checkbox" data-expense="agent">
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Item padrão">
+                                                            <i class="bi bi-lock"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colspan="5">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addExpenseRow()">
+                                                            <i class="bi bi-plus-circle"></i> Adicionar Despesa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr class="table-info">
+                                                    <td colspan="2" class="text-end"><strong>Total Despesas Extras:</strong></td>
+                                                    <td><strong id="totalExtraExpenses">R$ 0,00</strong></td>
+                                                    <td colspan="2"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card">
                                 <div class="card-body">
                                     <h6 class="card-title"><i class="bi bi-calculator"></i> Preview do Impacto</h6>
                                     <div id="expensePreview">
-                                        <p><strong>Total Despesas Extras:</strong> <span id="previewTotalExtra">R$ 0,00</span></p>
-                                        <p><strong>Base ICMS (antes):</strong> <span id="previewICMSBefore">R$ 0,00</span></p>
-                                        <p><strong>Base ICMS (depois):</strong> <span id="previewICMSAfter">R$ 0,00</span></p>
-                                        <p class="text-primary"><strong>Diferença ICMS:</strong> <span id="previewICMSDiff">R$ 0,00</span></p>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td>Total Despesas Extras:</td>
+                                                <td class="text-end"><strong id="previewTotalExtra">R$ 0,00</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Despesas com ICMS:</td>
+                                                <td class="text-end"><span id="previewICMSExpenses">R$ 0,00</span></td>
+                                            </tr>
+                                            <tr class="table-warning">
+                                                <td>Base ICMS (antes):</td>
+                                                <td class="text-end"><span id="previewICMSBefore">R$ 0,00</span></td>
+                                            </tr>
+                                            <tr class="table-success">
+                                                <td>Base ICMS (depois):</td>
+                                                <td class="text-end"><strong id="previewICMSAfter">R$ 0,00</strong></td>
+                                            </tr>
+                                            <tr class="table-primary">
+                                                <td>Diferença ICMS:</td>
+                                                <td class="text-end"><strong id="previewICMSDiff">R$ 0,00</strong></td>
+                                            </tr>
+                                        </table>
+                                        <div class="alert alert-info small mt-3">
+                                            <i class="bi bi-info-circle"></i> As despesas marcadas para ICMS serão adicionadas à base de cálculo do imposto.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -279,7 +355,7 @@
             </div>
 
             <div class="text-end">
-                <button type="button" class="btn btn-outline-secondary me-2" onclick="voltarStep(1)">
+                <button type="button" class="btn btn-outline-compliance me-2" onclick="voltarStep(1)">
                     <i class="bi bi-arrow-left"></i> Voltar
                 </button>
                 <button type="button" class="btn btn-compliance" onclick="calcularImpostos()">
@@ -337,7 +413,7 @@
             </div>
             
             <div class="text-end mt-4">
-                <button type="button" class="btn btn-outline-secondary me-2" onclick="voltarStep(2)">
+                <button type="button" class="btn btn-outline-compliance me-2" onclick="voltarStep(2)">
                     <i class="bi bi-arrow-left"></i> Voltar
                 </button>
                 <button type="button" class="btn btn-compliance" onclick="avancarStep(4)">
@@ -358,19 +434,19 @@
                             <h6 class="card-title"><i class="bi bi-file-earmark-excel"></i> Relatórios Disponíveis</h6>
                             
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-success" onclick="exportarPlanilhaCustos()">
+                                <button type="button" class="btn btn-compliance-secondary" onclick="exportarPlanilhaCustos()">
                                     <i class="bi bi-file-earmark-spreadsheet"></i> Planilha de Custos de Importação
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-primary" onclick="exportarRelatórioImpostos()">
+                                <button type="button" class="btn btn-compliance-secondary" onclick="exportarRelatórioImpostos()">
                                     <i class="bi bi-file-earmark-text"></i> Relatório Detalhado de Impostos
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-info" onclick="exportarCroquiNF()">
+                                <button type="button" class="btn btn-compliance-secondary" onclick="exportarCroquiNF()">
                                     <i class="bi bi-file-earmark-pdf"></i> Croqui para Nota Fiscal
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-warning" onclick="exportarMemoriaCalculo()">
+                                <button type="button" class="btn btn-compliance-secondary" onclick="exportarMemoriaCalculo()">
                                     <i class="bi bi-journal-text"></i> Memória de Cálculo
                                 </button>
                             </div>
@@ -383,7 +459,7 @@
                         <div class="card-body">
                             <h6 class="card-title"><i class="bi bi-arrow-right-circle"></i> Próximas Ações</h6>
                             
-                            <div class="alert alert-success">
+                            <div class="alert alert-compliance">
                                 <h6><i class="bi bi-check-circle"></i> DI Processada com Sucesso!</h6>
                                 <p class="mb-2">Sua Declaração de Importação foi processada e todos os cálculos de compliance foram realizados.</p>
                             </div>
@@ -397,11 +473,11 @@
                             </ul>
                             
                             <div class="d-grid gap-2 mt-4">
-                                <button type="button" class="btn btn-outline-primary" onclick="window.location.href='../pricing-strategy/pricing-system.html'">
+                                <button type="button" class="btn btn-compliance" onclick="window.location.href='../pricing-strategy/pricing-system.html'">
                                     <i class="bi bi-graph-up-arrow"></i> Iniciar Análise de Precificação
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-secondary" onclick="processarNovaDI()">
+                                <button type="button" class="btn btn-outline-compliance" onclick="processarNovaDI()">
                                     <i class="bi bi-arrow-clockwise"></i> Processar Nova DI
                                 </button>
                             </div>
@@ -449,6 +525,8 @@
     <!-- jsPDF for PDF export -->
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
+    <!-- Cleave.js for currency formatting -->
+    <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
     
     <!-- Shared Scripts -->
     <script src="../shared/js/storage.js"></script>

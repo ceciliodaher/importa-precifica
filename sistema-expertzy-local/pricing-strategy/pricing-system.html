@@ -14,7 +14,7 @@
     
     <!-- Expertzy Brand System -->
     <link href="../shared/css/expertzy-brand.css" rel="stylesheet">
-    <link href="../shared/css/business-theme.css" rel="stylesheet">
+    <link href="css/business-theme.css" rel="stylesheet">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -65,11 +65,11 @@
     </nav>
 
     <!-- Business Header -->
-    <header class="business-processing-header">
+    <header class="business-header" style="margin-top: 60px;">
         <div class="container">
             <div class="row align-items-center text-center">
                 <div class="col-12">
-                    <i class="bi bi-graph-up-arrow hero-icon"></i>
+                    <i class="bi bi-graph-up-arrow" style="font-size: 4rem; color: var(--expertzy-navy);"></i>
                     <h1 class="display-4 fw-bold mb-3">Sistema de Precificação</h1>
                     <p class="lead mb-4">Estratégias e Análises Comerciais</p>
                     <p class="mb-0 opacity-75">Fase 2 • Cenários de Preço • Benefícios Fiscais • Competitividade</p>
@@ -84,23 +84,23 @@
         <div class="row">
             <div class="col-12">
                 <div class="d-flex justify-content-between mb-4">
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-success me-2">1</span>
+                    <div class="process-indicator active">
+                        <span class="badge badge-business">1</span>
                         <span>Carregar DI</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">2</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-business-secondary">2</span>
                         <span>Analisar Estados</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">3</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-business-secondary">3</span>
                         <span>Configurar Preços</span>
                         <i class="bi bi-arrow-right mx-3 text-muted"></i>
                     </div>
-                    <div class="process-indicator d-flex align-items-center">
-                        <span class="badge bg-secondary me-2">4</span>
+                    <div class="process-indicator">
+                        <span class="badge badge-business-secondary">4</span>
                         <span>Relatórios</span>
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                         <p class="mb-2">Não foram encontrados dados de DI processados no sistema.</p>
                         <p class="mb-0">
                             <strong>Para continuar:</strong> 
-                            <a href="../di-processing/di-processor.html" class="btn btn-sm btn-outline-primary ms-2">
+                            <a href="../di-processing/di-processor.html" class="btn btn-sm btn-business-secondary ms-2">
                                 <i class="bi bi-file-earmark-text"></i> Processar DI
                             </a>
                         </p>
@@ -235,7 +235,7 @@
                         </select>
                     </div>
                     <div class="col-md-6 d-flex align-items-end">
-                        <button type="button" class="btn btn-outline-secondary me-2" onclick="voltarStep(1)">
+                        <button type="button" class="btn btn-outline-business me-2" onclick="voltarStep(1)">
                             <i class="bi bi-arrow-left"></i> Voltar
                         </button>
                         <button type="button" class="btn btn-business" onclick="configurarPrecos()">
@@ -314,7 +314,7 @@
             </div>
             
             <div class="text-end mt-4">
-                <button type="button" class="btn btn-outline-secondary me-2" onclick="voltarStep(2)">
+                <button type="button" class="btn btn-outline-business me-2" onclick="voltarStep(2)">
                     <i class="bi bi-arrow-left"></i> Voltar
                 </button>
                 <button type="button" class="btn btn-business" onclick="gerarRelatorios()">
@@ -335,19 +335,19 @@
                             <h6 class="card-title"><i class="bi bi-download"></i> Relatórios Disponíveis</h6>
                             
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-success" onclick="exportarAnaliseComparativa()">
+                                <button type="button" class="btn btn-business-secondary" onclick="exportarAnaliseComparativa()">
                                     <i class="bi bi-file-earmark-excel"></i> Análise Comparativa de Estados
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-primary" onclick="exportarEstrategiasPreco()">
+                                <button type="button" class="btn btn-business-secondary" onclick="exportarEstrategiasPreco()">
                                     <i class="bi bi-file-earmark-text"></i> Estratégias de Precificação
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-info" onclick="exportarAnaliseMargens()">
+                                <button type="button" class="btn btn-business-secondary" onclick="exportarAnaliseMargens()">
                                     <i class="bi bi-file-earmark-bar-graph"></i> Análise de Margens
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-warning" onclick="exportarRecomendacoesEstrategicas()">
+                                <button type="button" class="btn btn-business-secondary" onclick="exportarRecomendacoesEstrategicas()">
                                     <i class="bi bi-lightbulb"></i> Recomendações Estratégicas
                                 </button>
                             </div>
@@ -360,7 +360,7 @@
                         <div class="card-body">
                             <h6 class="card-title"><i class="bi bi-check-circle"></i> Análise Concluída</h6>
                             
-                            <div class="alert alert-success">
+                            <div class="alert alert-business">
                                 <h6><i class="bi bi-trophy"></i> Estratégias Otimizadas!</h6>
                                 <p class="mb-2">Sua análise de precificação foi concluída com sucesso.</p>
                             </div>
@@ -370,11 +370,11 @@
                             </div>
                             
                             <div class="d-grid gap-2 mt-4">
-                                <button type="button" class="btn btn-outline-primary" onclick="novaAnalise()">
+                                <button type="button" class="btn btn-business" onclick="novaAnalise()">
                                     <i class="bi bi-arrow-clockwise"></i> Nova Análise
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='../di-processing/di-processor.html'">
+                                <button type="button" class="btn btn-outline-business" onclick="window.location.href='../di-processing/di-processor.html'">
                                     <i class="bi bi-file-earmark-text"></i> Processar Nova DI
                                 </button>
                             </div>

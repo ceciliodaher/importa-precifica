@@ -11,6 +11,8 @@ let diProcessor = null;
 let complianceCalculator = null;
 let currentDI = null;
 let currentStep = 1;
+let expenseCounter = 0;
+let currencyMasks = [];
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -52,23 +54,62 @@ function setupEventListeners() {
     // ===== DRAG & DROP FUNCIONAL (copiado do sistema legado) =====
     setupDragAndDrop();
     
-    // Expense inputs with real-time preview
-    const expenseInputs = ['expenseStorage', 'expenseTransport', 'expenseAgent'];
-    const icmsCheckboxes = ['storageICMS', 'transportICMS', 'agentICMS'];
+    // Initialize currency masks for predefined expenses
+    initializeCurrencyMasks();
     
-    expenseInputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('input', updateExpensePreview);
+    // Setup expense table event delegation
+    setupExpenseTableEvents();
+}
+
+/**
+ * Initialize currency masks for expense inputs
+ */
+function initializeCurrencyMasks() {
+    // Apply masks to predefined expense inputs
+    document.querySelectorAll('.expense-value').forEach(input => {
+        applyCurrencyMask(input);
+    });
+}
+
+/**
+ * Apply currency mask to an input element
+ */
+function applyCurrencyMask(input) {
+    const cleave = new Cleave(input, {
+        numeral: true,
+        numeralThousandsGroupStyle: 'thousand',
+        numeralDecimalMark: ',',
+        delimiter: '.',
+        numeralDecimalScale: 2,
+        numeralPositiveOnly: true,
+        onValueChanged: function(e) {
+            updateExpensePreview();
         }
     });
+    currencyMasks.push(cleave);
+    return cleave;
+}
+
+/**
+ * Setup expense table event delegation
+ */
+function setupExpenseTableEvents() {
+    const table = document.getElementById('expensesTableBody');
     
-    icmsCheckboxes.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('change', updateExpensePreview);
-        }
-    });
+    if (table) {
+        // Delegate events for dynamic rows
+        table.addEventListener('change', function(e) {
+            if (e.target.classList.contains('expense-icms')) {
+                updateExpensePreview();
+            }
+        });
+        
+        table.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-expense')) {
+                removeExpenseRow(e.target.closest('tr'));
+            }
+        });
+    }
 }
 
 /**
@@ -341,7 +382,7 @@ function viewAdicaoDetails(numeroAdicao) {
                             </div>
                             <div class="col-md-6">
                                 <h6>Valores Comerciais</h6>
-                                <p><strong>Valor USD:</strong> ${formatCurrency(adicao.valor_moeda_negociacao || 0)}</p>
+                                <p><strong>Valor USD:</strong> ${formatCurrencyWithCode(adicao.valor_moeda_negociacao || 0, adicao.moeda_negociacao_codigo)}</p>
                                 <p><strong>Valor BRL:</strong> ${formatCurrency(adicao.valor_reais || 0)}</p>
                                 <p><strong>Peso Líquido:</strong> ${formatNumber(adicao.peso_liquido || 0)} kg</p>
                             </div>
@@ -382,8 +423,8 @@ function viewAdicaoDetails(numeroAdicao) {
                                                 <td>${produto.numero_sequencial_item || '-'}</td>
                                                 <td>${produto.descricao_mercadoria || '-'}</td>
                                                 <td>${formatNumber(produto.quantidade || 0)} ${produto.unidade_medida || ''}</td>
-                                                <td>${formatCurrency(produto.valor_unitario || 0)}</td>
-                                                <td>${formatCurrency(produto.valor_total_item || 0)}</td>
+                                                <td>${formatUSD(produto.valor_unitario || 0)}</td>
+                                                <td>${formatUSD(produto.valor_total_item || 0)}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -440,7 +481,7 @@ function populateAutomaticExpenses(despesasAuto) {
                         <i class="bi bi-${expense.icon} me-2 text-success"></i>
                         <div>
                             <strong>${expense.label}</strong><br>
-                            <span class="text-success">R$ ${expense.value.toFixed(2)}</span>
+                            <span class="text-success">${formatCurrency(expense.value)}</span>
                             <br><small class="text-muted">Incluso na base ICMS</small>
                         </div>
                     </div>
@@ -455,7 +496,7 @@ function populateAutomaticExpenses(despesasAuto) {
     totalCard.className = 'col-12';
     totalCard.innerHTML = `
         <div class="alert alert-info">
-            <strong><i class="bi bi-calculator"></i> Total Despesas Automáticas: R$ ${(despesasAuto.total || 0).toFixed(2)}</strong>
+            <strong><i class="bi bi-calculator"></i> Total Despesas Automáticas: ${formatCurrency(despesasAuto.total || 0)}</strong>
             <br><small>Estas despesas são obrigatórias e sempre compõem a base de cálculo do ICMS</small>
         </div>
     `;
@@ -470,27 +511,105 @@ function setupExpensePreview() {
 }
 
 /**
+ * Add new expense row to the table
+ */
+function addExpenseRow() {
+    expenseCounter++;
+    const tbody = document.getElementById('expensesTableBody');
+    const newRow = document.createElement('tr');
+    newRow.dataset.expenseId = `custom_${expenseCounter}`;
+    newRow.dataset.predefined = 'false';
+    
+    newRow.innerHTML = `
+        <td><i class="bi bi-currency-dollar text-warning"></i></td>
+        <td>
+            <input type="text" class="form-control form-control-sm expense-name" 
+                   placeholder="Nome da despesa" value="">
+        </td>
+        <td>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">R$</span>
+                <input type="text" class="form-control expense-value" 
+                       data-expense="custom_${expenseCounter}" placeholder="0,00">
+            </div>
+        </td>
+        <td class="text-center">
+            <div class="form-check d-flex justify-content-center">
+                <input class="form-check-input expense-icms" type="checkbox" 
+                       data-expense="custom_${expenseCounter}">
+            </div>
+        </td>
+        <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger remove-expense" 
+                    title="Remover despesa">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(newRow);
+    
+    // Apply currency mask to the new input
+    const valueInput = newRow.querySelector('.expense-value');
+    applyCurrencyMask(valueInput);
+    
+    // Focus on the name input
+    newRow.querySelector('.expense-name').focus();
+}
+
+/**
+ * Remove expense row from the table
+ */
+function removeExpenseRow(row) {
+    if (row && row.dataset.predefined === 'false') {
+        row.remove();
+        updateExpensePreview();
+    }
+}
+
+/**
+ * Get all expenses from the table
+ */
+function getAllExpenses() {
+    const expenses = [];
+    
+    document.querySelectorAll('#expensesTableBody tr').forEach(row => {
+        const valueInput = row.querySelector('.expense-value');
+        const icmsInput = row.querySelector('.expense-icms');
+        const nameInput = row.querySelector('.expense-name') || row.querySelector('input[readonly]');
+        
+        if (valueInput) {
+            const value = parseFloat(valueInput.value.replace(/\./g, '').replace(',', '.')) || 0;
+            
+            if (value > 0) {
+                expenses.push({
+                    id: row.dataset.expenseId,
+                    name: nameInput ? nameInput.value : 'Despesa',
+                    value: value,
+                    includeInICMS: icmsInput ? icmsInput.checked : false,
+                    isPredefined: row.dataset.predefined === 'true'
+                });
+            }
+        }
+    });
+    
+    return expenses;
+}
+
+/**
  * Update expense preview in real time
  */
 function updateExpensePreview() {
     if (!currentDI) return;
     
-    // Get expense values
-    const storage = parseFloat(document.getElementById('expenseStorage').value) || 0;
-    const transport = parseFloat(document.getElementById('expenseTransport').value) || 0;
-    const agent = parseFloat(document.getElementById('expenseAgent').value) || 0;
-    
-    // Get ICMS checkboxes
-    const storageICMS = document.getElementById('storageICMS').checked;
-    const transportICMS = document.getElementById('transportICMS').checked;
-    const agentICMS = document.getElementById('agentICMS').checked;
+    // Get all expenses from the table
+    const expenses = getAllExpenses();
     
     // Calculate totals
-    const totalExtra = storage + transport + agent;
-    const totalExtraICMS = 
-        (storageICMS ? storage : 0) +
-        (transportICMS ? transport : 0) +
-        (agentICMS ? agent : 0);
+    const totalExtra = expenses.reduce((sum, exp) => sum + exp.value, 0);
+    const totalExtraICMS = expenses
+        .filter(exp => exp.includeInICMS)
+        .reduce((sum, exp) => sum + exp.value, 0);
     
     // Calculate ICMS impact using parser legado structure
     if (!currentDI.despesas_aduaneiras || !currentDI.despesas_aduaneiras.total_despesas_aduaneiras) {
@@ -500,13 +619,23 @@ function updateExpensePreview() {
     const automaticExpenses = currentDI.despesas_aduaneiras.total_despesas_aduaneiras;
     const baseICMSBefore = automaticExpenses;
     const baseICMSAfter = automaticExpenses + totalExtraICMS;
-    const icmsDifference = (baseICMSAfter - baseICMSBefore) * 0.17 / 0.83; // Approximate ICMS calculation
+    const icmsDifference = (baseICMSAfter - baseICMSBefore) * 0.19 / 0.81; // ICMS GO = 19%
     
     // Update preview
-    document.getElementById('previewTotalExtra').textContent = `R$ ${totalExtra.toFixed(2)}`;
-    document.getElementById('previewICMSBefore').textContent = `R$ ${baseICMSBefore.toFixed(2)}`;
-    document.getElementById('previewICMSAfter').textContent = `R$ ${baseICMSAfter.toFixed(2)}`;
-    document.getElementById('previewICMSDiff').textContent = `R$ ${icmsDifference.toFixed(2)}`;
+    document.getElementById('previewTotalExtra').textContent = formatCurrency(totalExtra);
+    const icmsExpensesEl = document.getElementById('previewICMSExpenses');
+    if (icmsExpensesEl) {
+        icmsExpensesEl.textContent = formatCurrency(totalExtraICMS);
+    }
+    document.getElementById('previewICMSBefore').textContent = formatCurrency(baseICMSBefore);
+    document.getElementById('previewICMSAfter').textContent = formatCurrency(baseICMSAfter);
+    document.getElementById('previewICMSDiff').textContent = formatCurrency(icmsDifference);
+    
+    // Update total in table footer
+    const totalEl = document.getElementById('totalExtraExpenses');
+    if (totalEl) {
+        totalEl.textContent = formatCurrency(totalExtra);
+    }
 }
 
 /**
@@ -521,20 +650,54 @@ async function calcularImpostos() {
     try {
         showLoading('Calculando impostos...', 'Aplicando legislação fiscal brasileira');
         
-        // Configure extra expenses
+        // Get all expenses from the table
+        const expenses = getAllExpenses();
+        
+        // Build extra expenses object for legacy compatibility
         const extraExpenses = {
-            armazenagem: parseFloat(document.getElementById('expenseStorage').value),
-            transporte_interno: parseFloat(document.getElementById('expenseTransport').value),
-            despachante: parseFloat(document.getElementById('expenseAgent').value),
-            
-            // ICMS classification
-            armazenagem_icms: document.getElementById('storageICMS').checked,
-            transporte_interno_icms: document.getElementById('transportICMS').checked,
-            despachante_icms: document.getElementById('agentICMS').checked
+            armazenagem: 0,
+            transporte_interno: 0,
+            despachante: 0,
+            armazenagem_icms: false,
+            transporte_interno_icms: false,
+            despachante_icms: false,
+            outras_despesas: []
         };
+        
+        // Process expenses
+        expenses.forEach(exp => {
+            if (exp.id === 'storage') {
+                extraExpenses.armazenagem = exp.value;
+                extraExpenses.armazenagem_icms = exp.includeInICMS;
+            } else if (exp.id === 'transport') {
+                extraExpenses.transporte_interno = exp.value;
+                extraExpenses.transporte_interno_icms = exp.includeInICMS;
+            } else if (exp.id === 'agent') {
+                extraExpenses.despachante = exp.value;
+                extraExpenses.despachante_icms = exp.includeInICMS;
+            } else {
+                // Custom expenses
+                extraExpenses.outras_despesas.push({
+                    descricao: exp.name,
+                    valor: exp.value,
+                    base_icms: exp.includeInICMS
+                });
+            }
+        });
         
         // Get consolidated expenses using legacy method
         const despesasConsolidadas = diProcessor.consolidarDespesasCompletas(extraExpenses);
+        
+        // Add custom expenses to consolidated total if needed
+        if (extraExpenses.outras_despesas.length > 0) {
+            const totalOutras = extraExpenses.outras_despesas.reduce((sum, d) => sum + d.valor, 0);
+            const totalOutrasICMS = extraExpenses.outras_despesas
+                .filter(d => d.base_icms)
+                .reduce((sum, d) => sum + d.valor, 0);
+            
+            despesasConsolidadas.total += totalOutras;
+            despesasConsolidadas.total_base_icms += totalOutrasICMS;
+        }
         
         // Calculate taxes for first addition (main product)
         const firstAddition = currentDI.adicoes[0];
@@ -542,6 +705,7 @@ async function calcularImpostos() {
         
         // Store calculation results
         currentDI.calculoImpostos = taxCalculation;
+        currentDI.despesasExtras = expenses; // Store for export
         
         // Populate step 3 with results
         populateStep3Results(taxCalculation);
@@ -570,7 +734,7 @@ function populateStep3Results(calculation) {
             <div class="card text-center">
                 <div class="card-body">
                     <h6 class="card-title">II</h6>
-                    <h4 class="text-primary">R$ ${calculation.impostos.ii.valor_devido.toFixed(2)}</h4>
+                    <h4 class="text-primary">${formatCurrency(calculation.impostos.ii.valor_devido)}</h4>
                     <small class="text-muted">${calculation.impostos.ii.aliquota}%</small>
                 </div>
             </div>
@@ -579,7 +743,7 @@ function populateStep3Results(calculation) {
             <div class="card text-center">
                 <div class="card-body">
                     <h6 class="card-title">IPI</h6>
-                    <h4 class="text-primary">R$ ${calculation.impostos.ipi.valor_devido.toFixed(2)}</h4>
+                    <h4 class="text-primary">${formatCurrency(calculation.impostos.ipi.valor_devido)}</h4>
                     <small class="text-muted">${calculation.impostos.ipi.aliquota}%</small>
                 </div>
             </div>
@@ -588,7 +752,7 @@ function populateStep3Results(calculation) {
             <div class="card text-center">
                 <div class="card-body">
                     <h6 class="card-title">PIS/COFINS</h6>
-                    <h4 class="text-primary">R$ ${(calculation.impostos.pis.valor_devido + calculation.impostos.cofins.valor_devido).toFixed(2)}</h4>
+                    <h4 class="text-primary">${formatCurrency(calculation.impostos.pis.valor_devido + calculation.impostos.cofins.valor_devido)}</h4>
                     <small class="text-muted">11.75%</small>
                 </div>
             </div>
@@ -597,15 +761,15 @@ function populateStep3Results(calculation) {
             <div class="card text-center border-primary">
                 <div class="card-body">
                     <h6 class="card-title">ICMS</h6>
-                    <h4 class="text-primary">R$ ${calculation.impostos.icms.valor_devido.toFixed(2)}</h4>
+                    <h4 class="text-primary">${formatCurrency(calculation.impostos.icms.valor_devido)}</h4>
                     <small class="text-muted">${calculation.impostos.icms.aliquota}%</small>
                 </div>
             </div>
         </div>
         <div class="col-12">
             <div class="alert alert-primary text-center">
-                <h4><strong>Total Impostos: R$ ${calculation.totais.total_impostos.toFixed(2)}</strong></h4>
-                <p class="mb-0">Custo Total da Importação: <strong>R$ ${calculation.totais.custo_total.toFixed(2)}</strong></p>
+                <h4><strong>Total Impostos: ${formatCurrency(calculation.totais.total_impostos)}</strong></h4>
+                <p class="mb-0">Custo Total da Importação: <strong>${formatCurrency(calculation.totais.custo_total)}</strong></p>
             </div>
         </div>
     `;
@@ -619,31 +783,31 @@ function populateStep3Results(calculation) {
                 <table class="table table-sm">
                     <tr>
                         <td>CIF (R$)</td>
-                        <td class="text-end">R$ ${calculation.valores_base.cif_brl.toFixed(2)}</td>
+                        <td class="text-end">${formatCurrency(calculation.valores_base.cif_brl)}</td>
                     </tr>
                     <tr>
                         <td>II</td>
-                        <td class="text-end">R$ ${calculation.impostos.ii.valor_devido.toFixed(2)}</td>
+                        <td class="text-end">${formatCurrency(calculation.impostos.ii.valor_devido)}</td>
                     </tr>
                     <tr>
                         <td>IPI</td>
-                        <td class="text-end">R$ ${calculation.impostos.ipi.valor_devido.toFixed(2)}</td>
+                        <td class="text-end">${formatCurrency(calculation.impostos.ipi.valor_devido)}</td>
                     </tr>
                     <tr>
                         <td>PIS</td>
-                        <td class="text-end">R$ ${calculation.impostos.pis.valor_devido.toFixed(2)}</td>
+                        <td class="text-end">${formatCurrency(calculation.impostos.pis.valor_devido)}</td>
                     </tr>
                     <tr>
                         <td>COFINS</td>
-                        <td class="text-end">R$ ${calculation.impostos.cofins.valor_devido.toFixed(2)}</td>
+                        <td class="text-end">${formatCurrency(calculation.impostos.cofins.valor_devido)}</td>
                     </tr>
                     <tr class="table-primary">
                         <td><strong>Despesas Aduaneiras</strong></td>
-                        <td class="text-end"><strong>R$ ${calculation.despesas.total_base_icms.toFixed(2)}</strong></td>
+                        <td class="text-end"><strong>${formatCurrency(calculation.despesas.total_base_icms)}</strong></td>
                     </tr>
                     <tr class="table-info">
                         <td><strong>Base ICMS Final</strong></td>
-                        <td class="text-end"><strong>R$ ${calculation.impostos.icms.base_calculo_final.toFixed(2)}</strong></td>
+                        <td class="text-end"><strong>${formatCurrency(calculation.impostos.icms.base_calculo_final)}</strong></td>
                     </tr>
                 </table>
             </div>
@@ -654,14 +818,14 @@ function populateStep3Results(calculation) {
                     <li><strong>NCM:</strong> ${calculation.ncm}</li>
                     <li><strong>Peso:</strong> ${calculation.valores_base.peso_liquido.toFixed(2)} kg</li>
                     <li><strong>Taxa Câmbio:</strong> ${calculation.valores_base.taxa_cambio.toFixed(4)}</li>
-                    <li><strong>Custo por kg:</strong> R$ ${calculation.totais.custo_por_kg.toFixed(2)}</li>
+                    <li><strong>Custo por kg:</strong> ${formatCurrency(calculation.totais.custo_por_kg)}</li>
                 </ul>
                 
                 ${calculation.despesas.extras_tributaveis > 0 ? `
                     <div class="alert alert-info small">
                         <i class="bi bi-exclamation-circle"></i>
                         <strong>Despesas Extras Incluídas:</strong><br>
-                        R$ ${calculation.despesas.extras_tributaveis.toFixed(2)} adicionados à base ICMS
+                        ${formatCurrency(calculation.despesas.extras_tributaveis)} adicionados à base ICMS
                     </div>
                 ` : ''}
             </div>
@@ -890,16 +1054,67 @@ function formatCurrency(valor) {
 }
 
 /**
+ * Format USD currency values
+ */
+function formatUSD(value) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(value || 0);
+}
+
+/**
+ * Format currency with specific currency code
+ */
+function formatCurrencyWithCode(value, currencyCode) {
+    // Convert currency code to symbol
+    const currencyMap = {
+        '220': 'USD',
+        '978': 'EUR',
+        '826': 'GBP',
+        '156': 'CNY',
+        '392': 'JPY',
+        '124': 'CAD',
+        '036': 'AUD'
+    };
+    
+    const currency = currencyMap[currencyCode] || currencyCode;
+    
+    if (currency === 'USD') {
+        return formatUSD(value);
+    }
+    
+    // For other currencies, show with code
+    return `${currency} ${formatNumber(value, 2)}`;
+}
+
+/**
+ * Get currency label from currency code
+ */
+function getCurrencyLabel(currencyCode) {
+    const currencyMap = {
+        '220': 'USD',
+        '978': 'EUR', 
+        '826': 'GBP',
+        '156': 'CNY',
+        '392': 'JPY',
+        '124': 'CAD',
+        '036': 'AUD'
+    };
+    return currencyMap[currencyCode] || currencyCode;
+}
+
+/**
  * Format number (Brazilian format)
  */
-function formatNumber(valor) {
+function formatNumber(valor, decimals = 2) {
     if (valor === null || valor === undefined || isNaN(valor)) {
         return '0';
     }
     
     return valor.toLocaleString('pt-BR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
     });
 }
 
@@ -1066,3 +1281,4 @@ window.exportarRelatórioImpostos = exportarRelatórioImpostos;
 window.exportarCroquiNF = exportarCroquiNF;
 window.exportarMemoriaCalculo = exportarMemoriaCalculo;
 window.processarNovaDI = processarNovaDI;
+window.addExpenseRow = addExpenseRow;
