@@ -713,9 +713,8 @@ async function calcularImpostos() {
             despesasConsolidadas.total_base_icms += totalOutrasICMS;
         }
         
-        // Calculate taxes for first addition (main product)
-        const firstAddition = currentDI.adicoes[0];
-        const taxCalculation = complianceCalculator.calcularImpostosImportacao(firstAddition, despesasConsolidadas);
+        // Use the modular method to calculate taxes for ALL additions
+        const taxCalculation = complianceCalculator.calcularTodasAdicoes(currentDI, despesasConsolidadas);
         
         // Store calculation results
         currentDI.calculoImpostos = taxCalculation;

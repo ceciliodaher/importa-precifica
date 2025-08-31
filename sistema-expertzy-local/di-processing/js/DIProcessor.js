@@ -920,16 +920,19 @@ class DIProcessor {
                 despesas.pagamentos.push(pagamentoData);
                 
                 // Mapear para despesas calculadas
+                // IMPORTANTE: PIS e COFINS são IMPOSTOS, não despesas aduaneiras!
                 if (tipoDespesa === 'SISCOMEX') {
                     despesas.calculadas.siscomex = valorReceita;
                 } else if (tipoDespesa === 'PIS') {
-                    despesas.calculadas.pis = valorReceita;
+                    // PIS é imposto, não deve ser somado às despesas
+                    console.log(`  ⚠️ PIS é imposto, não despesa: R$ ${valorReceita.toFixed(2)}`);
                 } else if (tipoDespesa === 'COFINS') {
-                    despesas.calculadas.cofins = valorReceita;
+                    // COFINS é imposto, não deve ser somado às despesas
+                    console.log(`  ⚠️ COFINS é imposto, não despesa: R$ ${valorReceita.toFixed(2)}`);
                 } else if (tipoDespesa === 'ANTI_DUMPING') {
                     despesas.calculadas.anti_dumping = valorReceita;
                 } else {
-                    // Outras despesas aduaneiras
+                    // Outras despesas aduaneiras genuínas
                     if (!despesas.calculadas.outras) despesas.calculadas.outras = 0;
                     despesas.calculadas.outras += valorReceita;
                 }
@@ -1040,10 +1043,11 @@ class DIProcessor {
     totalizarDespesasAduaneiras(despesas) {
         let total = 0;
         
-        // Somar despesas que compõem a base ICMS
+        // Somar APENAS despesas aduaneiras reais (excluir PIS/COFINS que são impostos)
         const despesasParaBaseICMS = [
             'siscomex', 'afrmm', 'capatazia', 'taxa_ce', 
             'anti_dumping', 'multas', 'outras'
+            // NÃO incluir 'pis' e 'cofins' - são impostos!
         ];
         
         despesasParaBaseICMS.forEach(campo => {

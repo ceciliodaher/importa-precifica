@@ -18,6 +18,213 @@ class ComplianceCalculator {
     }
 
     /**
+     * Calcular impostos para TODAS as adições de uma DI
+     * @param {object} di - Objeto DI completo com todas as adições
+     * @param {object} despesasConsolidadas - Despesas totais da DI
+     * @returns {object} Cálculo consolidado de todas as adições
+     */
+    calcularTodasAdicoes(di, despesasConsolidadas = null) {
+        console.log('📋 ComplianceCalculator: Processando DI completa com múltiplas adições...');
+        
+        if (!di || !di.adicoes || di.adicoes.length === 0) {
+            throw new Error('DI sem adições válidas para cálculo');
+        }
+        
+        const totalAdicoes = di.adicoes.length;
+        console.log(`  Total de adições a processar: ${totalAdicoes}`);
+        
+        // Arrays para armazenar cálculos individuais
+        const calculosIndividuais = [];
+        const resumoPorAdicao = [];
+        
+        // Calcular valor total da DI para rateio proporcional
+        const valorTotalDI = di.adicoes.reduce((sum, ad) => sum + (ad.valor_reais || 0), 0);
+        
+        // Processar cada adição
+        for (let i = 0; i < di.adicoes.length; i++) {
+            const adicao = di.adicoes[i];
+            console.log(`  Processando adição ${i + 1}/${totalAdicoes}: NCM ${adicao.ncm}`);
+            
+            // Calcular despesas proporcionais para esta adição
+            let despesasAdicao = null;
+            if (despesasConsolidadas && valorTotalDI > 0) {
+                const proporcao = (adicao.valor_reais || 0) / valorTotalDI;
+                despesasAdicao = {
+                    automaticas: (despesasConsolidadas.automaticas || 0) * proporcao,
+                    extras_tributaveis: (despesasConsolidadas.extras_tributaveis || 0) * proporcao,
+                    extras_custos: (despesasConsolidadas.extras_custos || 0) * proporcao,
+                    total_base_icms: (despesasConsolidadas.total_base_icms || 0) * proporcao,
+                    total: (despesasConsolidadas.total || 0) * proporcao
+                };
+            }
+            
+            // Calcular impostos para esta adição
+            const calculoAdicao = this.calcularImpostosImportacao(adicao, despesasAdicao);
+            calculosIndividuais.push(calculoAdicao);
+            
+            // Guardar resumo
+            resumoPorAdicao.push({
+                numero: adicao.numero_adicao,
+                ncm: adicao.ncm,
+                valor: adicao.valor_reais || 0,
+                peso: adicao.peso_liquido || 0,
+                impostos: {
+                    ii: calculoAdicao.impostos.ii.valor_devido || 0,
+                    ipi: calculoAdicao.impostos.ipi.valor_devido || 0,
+                    pis: calculoAdicao.impostos.pis.valor_devido || 0,
+                    cofins: calculoAdicao.impostos.cofins.valor_devido || 0,
+                    icms: calculoAdicao.impostos.icms?.valor_devido || 0
+                }
+            });
+        }
+        
+        // Consolidar totais
+        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao);
+        
+        console.log('✅ DI processada com sucesso:', {
+            adicoes: totalAdicoes,
+            'II Total': `R$ ${totaisConsolidados.impostos.ii.valor_devido.toFixed(2)}`,
+            'IPI Total': `R$ ${totaisConsolidados.impostos.ipi.valor_devido.toFixed(2)}`,
+            'PIS Total': `R$ ${totaisConsolidados.impostos.pis.valor_devido.toFixed(2)}`,
+            'COFINS Total': `R$ ${totaisConsolidados.impostos.cofins.valor_devido.toFixed(2)}`
+        });
+        
+        // Validação automática comparando com totais extraídos do XML
+        this.validarTotaisComXML(di, totaisConsolidados);
+        
+        return totaisConsolidados;
+    }
+    
+    /**
+     * Consolidar totais de todas as adições
+     * @private
+     */
+    consolidarTotaisDI(calculosIndividuais, resumos) {
+        // Somar todos os impostos
+        const totais = {
+            ii: 0,
+            ipi: 0,
+            pis: 0,
+            cofins: 0,
+            icms: 0,
+            valor_aduaneiro: 0,
+            despesas: 0
+        };
+        
+        calculosIndividuais.forEach(calc => {
+            totais.ii += calc.impostos.ii?.valor_devido || 0;
+            totais.ipi += calc.impostos.ipi?.valor_devido || 0;
+            totais.pis += calc.impostos.pis?.valor_devido || 0;
+            totais.cofins += calc.impostos.cofins?.valor_devido || 0;
+            totais.icms += calc.impostos.icms?.valor_devido || 0;
+            totais.valor_aduaneiro += calc.valores_base?.cif_brl || 0;
+            totais.despesas += calc.despesas?.total || 0;
+        });
+        
+        const totalImpostos = totais.ii + totais.ipi + totais.pis + totais.cofins + totais.icms;
+        
+        return {
+            tipo: 'DI_COMPLETA',
+            numero_adicoes: calculosIndividuais.length,
+            timestamp: new Date().toISOString(),
+            
+            valores_base: {
+                valor_aduaneiro_total: totais.valor_aduaneiro,
+                despesas_totais: totais.despesas
+            },
+            
+            impostos: {
+                ii: { 
+                    valor_devido: totais.ii,
+                    detalhamento: 'Soma de todas as adições'
+                },
+                ipi: { 
+                    valor_devido: totais.ipi,
+                    detalhamento: 'Soma de todas as adições'
+                },
+                pis: { 
+                    valor_devido: totais.pis,
+                    detalhamento: 'Soma de todas as adições'
+                },
+                cofins: { 
+                    valor_devido: totais.cofins,
+                    detalhamento: 'Soma de todas as adições'
+                },
+                icms: { 
+                    valor_devido: totais.icms,
+                    aliquota: 19,
+                    detalhamento: 'Soma de todas as adições'
+                }
+            },
+            
+            totais: {
+                total_impostos: totalImpostos,
+                custo_total: totais.valor_aduaneiro + totais.despesas + totalImpostos
+            },
+            
+            adicoes_detalhes: resumos,
+            calculos_individuais: calculosIndividuais
+        };
+    }
+    
+    /**
+     * Validar totais calculados vs totais extraídos do XML
+     * @private
+     */
+    validarTotaisComXML(di, totaisCalculados) {
+        // Obter totais extraídos pelo DIProcessor
+        const totaisXML = di.totals?.tributos_totais;
+        
+        if (!totaisXML) {
+            console.log('⚠️ Totais de tributos não encontrados no XML extraído');
+            return;
+        }
+        
+        const calculados = {
+            ii: totaisCalculados.impostos.ii.valor_devido,
+            ipi: totaisCalculados.impostos.ipi.valor_devido,
+            pis: totaisCalculados.impostos.pis.valor_devido,
+            cofins: totaisCalculados.impostos.cofins.valor_devido
+        };
+        
+        const extraidos = {
+            ii: totaisXML.ii_total || 0,
+            ipi: totaisXML.ipi_total || 0,
+            pis: totaisXML.pis_total || 0,
+            cofins: totaisXML.cofins_total || 0
+        };
+        
+        console.log('🔍 VALIDAÇÃO AUTOMÁTICA - Calculados vs XML:');
+        console.log('==========================================');
+        
+        let temDiferenca = false;
+        const tolerancia = 0.10; // 10 centavos de tolerância
+        
+        Object.keys(calculados).forEach(imposto => {
+            const calculado = calculados[imposto] || 0;
+            const extraido = extraidos[imposto] || 0;
+            const diferenca = Math.abs(extraido - calculado);
+            
+            if (diferenca > tolerancia) {
+                const percentual = extraido > 0 ? (diferenca / extraido * 100).toFixed(2) : '100.00';
+                console.log(`❌ ${imposto.toUpperCase()}: XML R$ ${extraido.toFixed(2)} | Calc R$ ${calculado.toFixed(2)} | Diferença: R$ ${diferenca.toFixed(2)} (${percentual}%)`);
+                temDiferenca = true;
+            } else {
+                console.log(`✅ ${imposto.toUpperCase()}: R$ ${calculado.toFixed(2)} ✓`);
+            }
+        });
+        
+        if (!temDiferenca) {
+            console.log('🎉 TODOS OS CÁLCULOS ESTÃO CONSISTENTES COM O XML!');
+        } else {
+            console.log('⚠️ ATENÇÃO: Diferenças encontradas entre cálculos e XML');
+            console.log('   Verifique se todas as adições foram processadas corretamente');
+        }
+        
+        console.log('==========================================');
+    }
+
+    /**
      * Carrega configurações fiscais (alíquotas, regimes) - USANDO ARQUIVOS EXISTENTES
      */
     async carregarConfiguracoes() {
