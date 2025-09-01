@@ -8,27 +8,12 @@
  */
 
 class CroquiNFExporter {
-    constructor(diData) {
-        this.di = diData;
+    constructor(diData, calculosData = null) {
+        this.di = diData;  // Dados já processados pelo DIProcessor
+        this.calculos = calculosData;  // Cálculos já feitos pelo ComplianceCalculator
         this.empresa = 'EXPERTZY';
         this.subtitulo = 'SISTEMA DE IMPORTAÇÃO E PRECIFICAÇÃO';
         this.versao = '2.0.0';
-        
-        // Configurações de impostos por estado
-        this.aliquotasICMS = {
-            'GO': 19.00,  // Goiás
-            'SP': 18.00,  // São Paulo
-            'RJ': 20.00,  // Rio de Janeiro
-            'MG': 18.00,  // Minas Gerais
-            'SC': 17.00,  // Santa Catarina
-            'ES': 17.00,  // Espírito Santo
-            'RS': 18.00,  // Rio Grande do Sul
-            'PR': 18.00,  // Paraná
-            'BA': 18.00,  // Bahia
-            'PE': 18.00,  // Pernambuco
-            'CE': 18.00,  // Ceará
-            'DEFAULT': 18.00
-        };
         
         console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', diData.numero_di);
         
@@ -39,17 +24,17 @@ class CroquiNFExporter {
     initializeStyles() {
         this.excelStyles = {
             header: {
-                font: { bold: true, size: 14, color: { rgb: "003366" } },
+                font: { bold: true, size: 14, color: { rgb: "091A30" } },
                 fill: { fgColor: { rgb: "E8F1F8" } },
                 alignment: { horizontal: "center", vertical: "center" }
             },
             subtitle: {
-                font: { bold: false, size: 11, color: { rgb: "003366" } },
+                font: { bold: false, size: 11, color: { rgb: "091A30" } },
                 alignment: { horizontal: "center", vertical: "center" }
             },
             tableHeader: {
                 font: { bold: true, size: 9, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "003366" } },
+                fill: { fgColor: { rgb: "091A30" } },
                 border: { 
                     top: { style: "thin", color: { rgb: "000000" } }, 
                     bottom: { style: "thin", color: { rgb: "000000" } }, 
@@ -87,7 +72,7 @@ class CroquiNFExporter {
                 }
             },
             totalsHeader: {
-                font: { bold: true, size: 10, color: { rgb: "003366" } },
+                font: { bold: true, size: 10, color: { rgb: "091A30" } },
                 fill: { fgColor: { rgb: "F0F0F0" } },
                 border: { 
                     top: { style: "medium", color: { rgb: "000000" } }, 
@@ -172,13 +157,7 @@ class CroquiNFExporter {
         const produtos = [];
         let itemCounter = 1;
         
-        // Obter alíquota ICMS uma vez (é a mesma para toda a DI)
-        const aliqICMS = this.getAliquotaICMS();
-        
         this.di.adicoes.forEach(adicao => {
-            // Obter alíquota IPI específica da adição
-            const aliqIPI = this.getAliquotaIPI(adicao);
-            
             // Para cada produto na adição
             const produtosList = adicao.produtos || [];
             if (produtosList.length === 0) {
@@ -186,23 +165,30 @@ class CroquiNFExporter {
                 produtosList.push({
                     descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
                     quantidade: adicao.quantidade_estatistica || 1,
-                    valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || 0
+                    valor_unitario_brl: adicao.valor_unitario_brl || adicao.valor_unitario || 0,
+                    // Usar valores totais da adição quando há apenas 1 produto
+                    base_icms: adicao.base_icms || 0,
+                    valor_icms: adicao.valor_icms || 0,
+                    aliquota_icms: adicao.aliquota_icms || 0,
+                    base_ipi: adicao.base_ipi || 0,
+                    valor_ipi: adicao.tributos?.ipi_valor_devido || 0,
+                    aliquota_ipi: adicao.tributos?.ipi_aliquota_ad_valorem || 0
                 });
             }
             
             produtosList.forEach(produto => {
-                // Priorizar valores BRL já calculados pelo XMLParser
-                const valorUnitarioReais = produto.valor_unitario_brl || 
-                    this.convertToReais(produto.valor_unitario || adicao.valor_unitario || 0, adicao);
-                // Usar valor total BRL já calculado ou calcular baseado na quantidade
-                const valorTotalReais = produto.valor_total_brl || (valorUnitarioReais * (produto.quantidade || 1));
+                // Usar valores já calculados por item (vindos do módulo de cálculo)
+                const valorUnitarioReais = produto.valor_unitario_brl || produto.valor_unitario || 0;
+                const valorTotalReais = produto.valor_total_brl || produto.valor_total || 0;
                 
-                // Calcular bases e valores de impostos
-                const bcICMS = this.calculateBaseICMS(adicao, valorTotalReais);
-                const valorICMS = (bcICMS * aliqICMS) / 100;
+                // Usar valores de impostos já calculados POR ITEM
+                const bcICMS = produto.base_icms || 0;
+                const valorICMS = produto.valor_icms || 0;
+                const aliqICMS = produto.aliquota_icms || adicao.aliquota_icms || 0;
                 
-                const bcIPI = this.calculateBaseIPI(adicao, valorTotalReais);
-                const valorIPI = (bcIPI * aliqIPI) / 100;
+                const bcIPI = produto.base_ipi || 0;
+                const valorIPI = produto.valor_ipi || 0;
+                const aliqIPI = produto.aliquota_ipi || adicao.tributos?.ipi_aliquota_ad_valorem || 0;
                 
                 const produtoProcessado = {
                     // Identificação
@@ -239,9 +225,9 @@ class CroquiNFExporter {
                     valor_st: 0,
                     fp: '-',
                     
-                    // PIS/COFINS
-                    valor_pis: adicao.tributos?.pis_valor_devido || 0,
-                    valor_cofins: adicao.tributos?.cofins_valor_devido || 0
+                    // PIS/COFINS (já calculados por item)
+                    valor_pis: produto.valor_pis || 0,
+                    valor_cofins: produto.valor_cofins || 0
                 };
                 
                 produtos.push(produtoProcessado);
@@ -289,94 +275,7 @@ class CroquiNFExporter {
         return totais;
     }
     
-    // ========== MÉTODOS DE CÁLCULO ==========
-    
-    getAliquotaICMS() {
-        const uf = this.di.importador?.endereco_uf || 'DEFAULT';
-        const aliquota = this.aliquotasICMS[uf] || this.aliquotasICMS.DEFAULT;
-        console.log(`📊 Alíquota ICMS para ${uf}: ${aliquota}%`);
-        return aliquota;
-    }
-    
-    getAliquotaIPI(adicao) {
-        // IPI já vem convertido pelo XMLParser (6.50%)
-        const aliquota = adicao.tributos?.ipi_aliquota_ad_valorem || 0;
-        console.log(`📊 Alíquota IPI da adição ${adicao.numero_adicao}: ${aliquota}%`);
-        return aliquota;
-    }
-    
-    calculateBaseICMS(adicao, valorMercadoria) {
-        // ===== FÓRMULA OFICIAL CONFORME LEGISLAÇÃO =====
-        // Base ICMS = (VMLD + II + IPI + PIS + COFINS + Despesas Aduaneiras) / (1 - alíquota ICMS)
-        
-        let baseAntesICMS = valorMercadoria;
-        
-        // Adicionar tributos (já convertidos pelo XMLParser)
-        if (adicao.tributos?.ii_valor_devido) {
-            baseAntesICMS += adicao.tributos.ii_valor_devido;
-        }
-        
-        if (adicao.tributos?.ipi_valor_devido) {
-            baseAntesICMS += adicao.tributos.ipi_valor_devido;
-        }
-        
-        if (adicao.tributos?.pis_valor_devido) {
-            baseAntesICMS += adicao.tributos.pis_valor_devido;
-        }
-        
-        if (adicao.tributos?.cofins_valor_devido) {
-            baseAntesICMS += adicao.tributos.cofins_valor_devido;
-        }
-        
-        // ===== ADICIONAR DESPESAS ADUANEIRAS (CORREÇÃO CRÍTICA) =====
-        if (this.di.despesas_aduaneiras?.total_despesas_aduaneiras) {
-            baseAntesICMS += this.di.despesas_aduaneiras.total_despesas_aduaneiras;
-            console.log(`📊 Despesas aduaneiras adicionadas à base: R$ ${this.di.despesas_aduaneiras.total_despesas_aduaneiras.toFixed(2)}`);
-        }
-        
-        // ===== APLICAR FÓRMULA "POR DENTRO" =====
-        const aliquotaICMS = this.getAliquotaICMS();
-        const fatorDivisao = 1 - (aliquotaICMS / 100);
-        const baseICMS = baseAntesICMS / fatorDivisao;
-        
-        console.log(`📊 Cálculo Base ICMS:
-        - Base antes ICMS: R$ ${baseAntesICMS.toFixed(2)}
-        - Alíquota ICMS: ${aliquotaICMS}%
-        - Fator divisão: ${fatorDivisao.toFixed(4)}
-        - Base ICMS final: R$ ${baseICMS.toFixed(2)}`);
-        
-        return baseICMS;
-    }
-    
-    calculateBaseIPI(adicao, valorMercadoria) {
-        // Base IPI = Valor da Mercadoria + II
-        let base = valorMercadoria;
-        
-        // Adicionar II se houver (já convertido pelo XMLParser)
-        if (adicao.tributos?.ii_valor_devido) {
-            base += adicao.tributos.ii_valor_devido;
-        }
-        
-        return base;
-    }
-    
-    convertToReais(valor, adicao) {
-        // Obter código da moeda e taxa de conversão
-        const codigoMoeda = adicao.moeda_negociacao_codigo || '220'; // 220 = USD
-        
-        // Buscar taxa de conversão
-        let taxa = 5.3928; // Default
-        if (this.di.moedas?.lista) {
-            const moeda = this.di.moedas.lista.find(m => m.codigo === codigoMoeda);
-            if (moeda?.taxa_conversao) {
-                taxa = moeda.taxa_conversao;
-            }
-        }
-        
-        return valor * taxa;
-    }
-    
-    // ========== MÉTODOS AUXILIARES ==========
+    // ========== MÉTODOS AUXILIARES (apenas formatação, sem cálculos) ==========
     
     generateItemCode(counter) {
         return `IC${String(counter).padStart(4, '0')}`;
@@ -718,6 +617,9 @@ class CroquiNFExporter {
             // Configurar fontes
             doc.setFont('helvetica');
             
+            // ADICIONAR CABEÇALHO E RODAPÉ EM TODAS AS PÁGINAS
+            this.addHeaderFooterToAllPages(doc);
+            
             // LOGO E CABEÇALHO EXPERTZY (now async)
             await this.addLogoAndHeader(doc);
             
@@ -732,6 +634,9 @@ class CroquiNFExporter {
             
             // INFORMAÇÕES COMPLEMENTARES
             this.addInformacoesComplementares(doc);
+            
+            // ADICIONAR CABEÇALHO E RODAPÉ FINAL
+            this.addHeaderFooterToAllPages(doc);
             
             // Gerar buffer
             const pdfBuffer = doc.output('arraybuffer');
@@ -753,7 +658,7 @@ class CroquiNFExporter {
         
         // Cabeçalhos
         doc.setFontSize(8);
-        doc.setFillColor(0, 51, 102);
+        doc.setFillColor(9, 26, 48); // Expertzy Navy
         doc.rect(20, y, 257, lineHeight, 'F');
         doc.setTextColor(255, 255, 255);
         doc.text('Adição | Item | Produto | NCM | Peso | Valores...', 22, y + 5);
@@ -773,11 +678,19 @@ class CroquiNFExporter {
     async addLogoAndHeader(doc) {
         // ===== LAYOUT PAISAGEM (297mm x 210mm) =====
         
+        // Add header background with Expertzy colors
+        doc.setFillColor(248, 249, 250); // Light gray background
+        doc.rect(0, 0, 297, 50, 'F');
+        
+        // Add Expertzy Red accent line
+        doc.setFillColor(255, 0, 45); // Expertzy Red
+        doc.rect(0, 0, 297, 3, 'F');
+        
         // Try to add the actual Expertzy logo if available
         try {
             // Check if logo exists and can be loaded
-            // Using the correct path to assets/images
-            const logoPath = 'assets/images/logo-expertzy.png';
+            // Using the official Expertzy logo
+            const logoPath = '../../images/expertzy-it.png';
             const response = await fetch(logoPath);
             if (response.ok) {
                 const blob = await response.blob();
@@ -788,8 +701,8 @@ class CroquiNFExporter {
                     reader.readAsDataURL(blob);
                 });
                 const logoData = reader.result;
-                // Add logo image (adjust dimensions as needed)
-                doc.addImage(logoData, 'PNG', 15, 10, 50, 30);
+                // Add official Expertzy logo (adjusted for better proportions)
+                doc.addImage(logoData, 'PNG', 15, 10, 70, 20);
                 console.log('✅ Logo Expertzy adicionado ao PDF');
             } else {
                 console.warn('Logo not found at path, using text fallback');
@@ -802,41 +715,108 @@ class CroquiNFExporter {
             this.addTextLogo(doc);
         }
         
-        // TÍTULO PRINCIPAL (centro)
-        doc.setTextColor(0, 0, 0);
+        // TÍTULO PRINCIPAL (centro) - Com destaque Expertzy
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
         doc.text('CROQUI NOTA FISCAL DE ENTRADA', 148, 20, { align: 'center' });
         
         // INFORMAÇÕES DA DI (distribuídas horizontalmente)
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.text(`DI: ${this.header.di_numero}`, 80, 45);
         doc.text(`DATA REGISTRO: ${this.header.data_registro}`, 140, 45);
         doc.text(`CÂMBIO USD: ${this.header.taxa_cambio}`, 210, 45);
         
-        // Linha separadora (mais larga para paisagem)
+        // Linha separadora com cor Expertzy
+        doc.setDrawColor(9, 26, 48); // Expertzy Navy
         doc.setLineWidth(0.5);
         doc.line(15, 50, 282, 50);
     }
     
     addTextLogo(doc) {
         // Text-based logo fallback
-        doc.setFillColor(0, 51, 102);
-        doc.rect(15, 10, 50, 30, 'F');
+        // Background com Expertzy Navy
+        doc.setFillColor(9, 26, 48); // Expertzy Navy
+        doc.rect(15, 10, 70, 20, 'F');
+        
+        // Border com Expertzy Red para destaque
+        doc.setDrawColor(255, 0, 45); // Expertzy Red
+        doc.setLineWidth(1);
+        doc.rect(15, 10, 70, 20, 'S');
+        
+        // Texto do logo
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(16);
+        doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.text('EXPERTZY', 40, 20, { align: 'center' });
-        doc.setFontSize(9);
-        doc.text('SISTEMA DE IMPORTAÇÃO', 40, 27, { align: 'center' });
-        doc.text('E PRECIFICAÇÃO', 40, 33, { align: 'center' });
+        doc.text('expertzy', 50, 18, { align: 'center' });
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'normal');
+        doc.text('INTELIGÊNCIA TRIBUTÁRIA', 50, 25, { align: 'center' });
+    }
+
+    addHeaderFooterToAllPages(doc) {
+        const pageCount = doc.getNumberOfPages();
+        
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            
+            // CABEÇALHO
+            if (i > 1) { // Primeira página já tem cabeçalho customizado
+                // Background do cabeçalho
+                doc.setFillColor(248, 249, 250); // Light gray
+                doc.rect(0, 0, 297, 25, 'F');
+                
+                // Linha vermelha superior
+                doc.setFillColor(255, 0, 45); // Expertzy Red
+                doc.rect(0, 0, 297, 2, 'F');
+                
+                // Logo pequeno no cabeçalho
+                doc.setTextColor(9, 26, 48); // Expertzy Navy
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text('EXPERTZY', 15, 15);
+                doc.setFontSize(6);
+                doc.setFont('helvetica', 'normal');
+                doc.text('INTELIGÊNCIA TRIBUTÁRIA', 15, 20);
+                
+                // Título do documento no centro
+                doc.setTextColor(9, 26, 48);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`CROQUI NF - DI ${this.header.di_numero}`, 148, 15, { align: 'center' });
+            }
+            
+            // RODAPÉ
+            const footerY = 200; // Posição Y do rodapé
+            
+            // Background do rodapé
+            doc.setFillColor(9, 26, 48); // Expertzy Navy
+            doc.rect(0, footerY, 297, 10, 'F');
+            
+            // Informações do rodapé
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            
+            // Esquerda: Sistema
+            doc.text('🚀 Sistema Expertzy v2.0', 15, footerY + 6);
+            
+            // Centro: Data/Hora
+            const agora = new Date().toLocaleString('pt-BR');
+            doc.text(`Gerado em: ${agora}`, 148, footerY + 6, { align: 'center' });
+            
+            // Direita: Página
+            doc.text(`Página ${i} de ${pageCount}`, 282, footerY + 6, { align: 'right' });
+        }
     }
     
     addDestinatarioSection(doc) {
         let y = 55;
         
         // SEÇÃO DESTINATÁRIO (IMPORTADOR BRASILEIRO)
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.text('DESTINATÁRIO (IMPORTADOR)', 15, y);
@@ -857,6 +837,7 @@ class CroquiNFExporter {
         doc.text(`CEP: ${this.header.importador.cep}`, 15, y);
         
         // SEÇÃO REMETENTE (FORNECEDOR/EXPORTADOR)
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.text('REMETENTE (EXPORTADOR)', 160, y - 16);
@@ -876,6 +857,7 @@ class CroquiNFExporter {
         const startY = 90;
         
         // DADOS DOS PRODUTOS
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.text('DADOS DOS PRODUTOS / SERVIÇOS', 15, startY);
@@ -931,7 +913,7 @@ class CroquiNFExporter {
                 body: tableDataCorrected,
                 theme: 'grid',
                 headStyles: {
-                    fillColor: [0, 51, 102],
+                    fillColor: [9, 26, 48], // Expertzy Navy
                     textColor: 255,
                     fontSize: 8,
                     halign: 'center',
@@ -966,6 +948,7 @@ class CroquiNFExporter {
         const startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 140;
         
         // CÁLCULO DO IMPOSTO
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.text('CÁLCULO DO IMPOSTO', 15, startY);
@@ -1025,6 +1008,7 @@ class CroquiNFExporter {
         const startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 180;
         
         // INFORMAÇÕES COMPLEMENTARES
+        doc.setTextColor(9, 26, 48); // Expertzy Navy
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.text('INFORMAÇÕES COMPLEMENTARES', 15, startY);
@@ -1042,7 +1026,7 @@ class CroquiNFExporter {
             `REF.IMPORTADOR: ${this.header.referencia_importador || 'N/A'}`,
             `NOTA FISCAL DE IMPORTAÇÃO DE ACORDO COM A DI ${this.header.di_numero}`,
             `DESCRIÇÃO DA MERCADORIA CONFORME DI ${this.header.di_numero}`,
-            'GERADO PELO SISTEMA EXPERTZY - www.expertzy.com.br'
+            '🚀 GERADO PELO SISTEMA EXPERTZY - www.expertzy.com.br'
         ];
         
         infoLines.forEach(line => {

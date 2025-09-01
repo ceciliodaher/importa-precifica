@@ -9,9 +9,30 @@
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
       "Bash(pip install:*)",
-      "Bash(uvx:*)"
+      "Bash(uvx:*)",
+      "Bash(git remote add:*)",
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
+  },
+  "mcp": {
+    "servers": {
+      "serena": {
+        "command": "uvx",
+        "args": [
+          "--python",
+          "3.11",
+          "--from",
+          "git+https://github.com/oraios/serena.git",
+          "serena",
+          "start-mcp-server",
+          "--project",
+          "/Users/ceciliodaher/Documents/git/importa-precifica"
+        ]
+      }
+    }
   }
 }

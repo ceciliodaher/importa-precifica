@@ -656,15 +656,13 @@
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
 
-    <!-- Custom Scripts -->
-    <script src="js/storage.js"></script>
-    <script src="js/xmlParser.js"></script>
-    <script src="js/calculator.js"></script>
-    <script src="js/calculationMemory.js"></script>
-    <script src="js/pricing.js"></script>
-    <script src="js/exportNF.js"></script>
-    <script src="js/exportCroquiNF.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/globals.js"></script>
+    <!-- Custom Scripts - Refatorados para arquitetura única -->
+    <script src="shared/js/storage.js"></script>
+    <script src="di-processing/js/DIProcessor.js"></script>
+    <script src="di-processing/js/ComplianceCalculator.js"></script>
+    <script src="shared/js/calculationMemory.js"></script>
+    <script src="shared/js/exportCroquiNF.js"></script>
+    <script src="di-processing/js/di-interface.js"></script>
+    <script src="shared/js/globals.js"></script>
 </body>
 </html>

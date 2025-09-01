@@ -59,7 +59,7 @@ const server = http.createServer((req, res) => {
   // Rota padrão para index.html
   let filePath = '.' + req.url;
   if (filePath === './') {
-    filePath = './sistema-importacao.html';
+    filePath = './index.html'; // Landing page oficial
   }
 
   // Prevenir acesso a arquivos fora do diretório
