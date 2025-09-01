@@ -16,7 +16,8 @@
       "Bash(find:*)",
       "Bash(rm:*)",
       "Bash(pkill:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

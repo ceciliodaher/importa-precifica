@@ -31,6 +31,9 @@ class ComplianceCalculator {
             throw new Error('DI sem adições válidas para cálculo');
         }
         
+        // Configurar DI data para ItemCalculator usar em rateios
+        this.itemCalculator.setDIData(di);
+        
         const totalAdicoes = di.adicoes.length;
         console.log(`  Total de adições a processar: ${totalAdicoes}`);
         
@@ -40,7 +43,12 @@ class ComplianceCalculator {
         const produtosIndividuais = []; // Array para produtos com impostos individuais
         
         // Calcular valor total da DI para rateio proporcional
-        const valorTotalDI = di.adicoes.reduce((sum, ad) => sum + (ad.valor_reais || 0), 0);
+        const valorTotalDI = di.adicoes.reduce((sum, ad) => {
+            if (!ad.valor_reais) {
+                throw new Error(`Valor em reais ausente na adição ${ad.numero_adicao}`);
+            }
+            return sum + ad.valor_reais;
+        }, 0);
         
         // Processar cada adição E seus produtos individuais
         for (let i = 0; i < di.adicoes.length; i++) {
@@ -50,13 +58,21 @@ class ComplianceCalculator {
             // Calcular despesas proporcionais para esta adição
             let despesasAdicao = null;
             if (despesasConsolidadas && valorTotalDI > 0) {
-                const proporcao = (adicao.valor_reais || 0) / valorTotalDI;
+                const proporcao = adicao.valor_reais / valorTotalDI;
                 despesasAdicao = {
-                    automaticas: (despesasConsolidadas.automaticas || 0) * proporcao,
-                    extras_tributaveis: (despesasConsolidadas.extras_tributaveis || 0) * proporcao,
-                    extras_custos: (despesasConsolidadas.extras_custos || 0) * proporcao,
-                    total_base_icms: (despesasConsolidadas.total_base_icms || 0) * proporcao,
-                    total: (despesasConsolidadas.total || 0) * proporcao
+                    automaticas: {
+                        siscomex: despesasConsolidadas.automaticas.siscomex * proporcao,
+                        afrmm: despesasConsolidadas.automaticas.afrmm * proporcao,
+                        capatazia: despesasConsolidadas.automaticas.capatazia * proporcao,
+                        total: despesasConsolidadas.automaticas.total * proporcao
+                    },
+                    extras: {
+                        total_icms: despesasConsolidadas.extras?.total_icms ? despesasConsolidadas.extras.total_icms * proporcao : 0,
+                        total: despesasConsolidadas.extras?.total ? despesasConsolidadas.extras.total * proporcao : 0
+                    },
+                    totais: {
+                        tributavel_icms: despesasConsolidadas.totais.tributavel_icms * proporcao
+                    }
                 };
             }
             
@@ -66,10 +82,15 @@ class ComplianceCalculator {
             
             // NOVO: Calcular impostos para cada produto individual usando ItemCalculator
             if (adicao.produtos && adicao.produtos.length > 0) {
+                // Passar despesas totais da DI - ItemCalculator fará o rateio correto
+                const despesasTotaisDI = despesasConsolidadas ? {
+                    total_despesas_aduaneiras: despesasConsolidadas.totais?.tributavel_icms || despesasConsolidadas.automaticas?.total
+                } : null;
+                
                 const resultadoItens = this.itemCalculator.processarItensAdicao(
                     adicao, 
-                    despesasAdicao?.automaticas || 0,
-                    despesasAdicao?.extras_tributaveis || 0
+                    despesasTotaisDI,
+                    null
                 );
                 
                 // Adicionar produtos calculados ao array global
@@ -98,14 +119,14 @@ class ComplianceCalculator {
             resumoPorAdicao.push({
                 numero: adicao.numero_adicao,
                 ncm: adicao.ncm,
-                valor: adicao.valor_reais || 0,
-                peso: adicao.peso_liquido || 0,
+                valor: adicao.valor_reais,
+                peso: adicao.peso_liquido,
                 impostos: {
-                    ii: calculoAdicao.impostos.ii.valor_devido || 0,
-                    ipi: calculoAdicao.impostos.ipi.valor_devido || 0,
-                    pis: calculoAdicao.impostos.pis.valor_devido || 0,
-                    cofins: calculoAdicao.impostos.cofins.valor_devido || 0,
-                    icms: calculoAdicao.impostos.icms?.valor_devido || 0
+                    ii: calculoAdicao.impostos.ii.valor_devido,
+                    ipi: calculoAdicao.impostos.ipi.valor_devido,
+                    pis: calculoAdicao.impostos.pis.valor_devido,
+                    cofins: calculoAdicao.impostos.cofins.valor_devido,
+                    icms: calculoAdicao.impostos.icms?.valor_devido
                 }
             });
         }
@@ -146,14 +167,14 @@ class ComplianceCalculator {
         };
         
         calculosIndividuais.forEach(calc => {
-            totais.ii += calc.impostos.ii?.valor_devido || 0;
-            totais.ipi += calc.impostos.ipi?.valor_devido || 0;
-            totais.pis += calc.impostos.pis?.valor_devido || 0;
-            totais.cofins += calc.impostos.cofins?.valor_devido || 0;
-            totais.icms += calc.impostos.icms?.valor_devido || 0;
-            totais.valor_aduaneiro += calc.valores_base?.cif_brl || 0;
-            totais.despesas += calc.despesas?.total || 0;
-            totais.peso_total += calc.valores_base?.peso_liquido || 0;
+            totais.ii += calc.impostos.ii?.valor_devido;
+            totais.ipi += calc.impostos.ipi?.valor_devido;
+            totais.pis += calc.impostos.pis?.valor_devido;
+            totais.cofins += calc.impostos.cofins?.valor_devido;
+            totais.icms += calc.impostos.icms?.valor_devido;
+            totais.valor_aduaneiro += calc.valores_base?.cif_brl;
+            totais.despesas += calc.despesas?.total;
+            totais.peso_total += calc.valores_base?.peso_liquido;
         });
         
         const totalImpostos = totais.ii + totais.ipi + totais.pis + totais.cofins + totais.icms;
@@ -169,7 +190,7 @@ class ComplianceCalculator {
                 valor_aduaneiro_total: totais.valor_aduaneiro,
                 despesas_totais: totais.despesas,
                 peso_liquido: totais.peso_total,
-                taxa_cambio: calculosIndividuais[0]?.valores_base?.taxa_cambio || 5.39
+                taxa_cambio: calculosIndividuais[0]?.valores_base?.taxa_cambio
             },
             
             impostos: {
@@ -238,10 +259,10 @@ class ComplianceCalculator {
         };
         
         const extraidos = {
-            ii: totaisXML.ii_total || 0,
-            ipi: totaisXML.ipi_total || 0,
-            pis: totaisXML.pis_total || 0,
-            cofins: totaisXML.cofins_total || 0
+            ii: totaisXML.ii_total,
+            ipi: totaisXML.ipi_total,
+            pis: totaisXML.pis_total,
+            cofins: totaisXML.cofins_total
         };
         
         console.log('🔍 VALIDAÇÃO AUTOMÁTICA - Calculados vs XML:');
@@ -251,8 +272,8 @@ class ComplianceCalculator {
         const tolerancia = 0.10; // 10 centavos de tolerância
         
         Object.keys(calculados).forEach(imposto => {
-            const calculado = calculados[imposto] || 0;
-            const extraido = extraidos[imposto] || 0;
+            const calculado = calculados[imposto];
+            const extraido = extraidos[imposto];
             const diferenca = Math.abs(extraido - calculado);
             
             if (diferenca > tolerancia) {
@@ -338,10 +359,10 @@ class ComplianceCalculator {
                 
                 // Valores base
                 valores_base: {
-                    cif_usd: adicao.valor_moeda_negociacao || 0,
-                    cif_brl: adicao.valor_reais || 0,
-                    taxa_cambio: adicao.taxa_cambio || 0,
-                    peso_liquido: adicao.peso_liquido || 0
+                    cif_usd: adicao.valor_moeda_negociacao,
+                    cif_brl: adicao.valor_reais,
+                    taxa_cambio: adicao.taxa_cambio,
+                    peso_liquido: adicao.peso_liquido
                 },
 
                 // Despesas
@@ -407,6 +428,7 @@ class ComplianceCalculator {
      */
     processarDespesas(despesasConsolidadas) {
         if (!despesasConsolidadas) {
+            console.warn('⚠️ Despesas consolidadas não fornecidas - usando zero para cálculo');
             return {
                 automaticas: 0,
                 extras_tributaveis: 0,
@@ -416,11 +438,16 @@ class ComplianceCalculator {
             };
         }
 
+        // Validar estrutura de despesas
+        if (!despesasConsolidadas.automaticas || typeof despesasConsolidadas.automaticas.total === 'undefined') {
+            throw new Error('Estrutura de despesas automáticas inválida ou ausente');
+        }
+
         const despesas = {
             // Despesas automáticas da DI (sempre na base ICMS)
-            automaticas: despesasConsolidadas.automaticas?.total || 0,
+            automaticas: despesasConsolidadas.automaticas.total,
             
-            // Despesas extras classificadas pelo usuário
+            // Despesas extras classificadas pelo usuário (podem ser zero)
             extras_tributaveis: despesasConsolidadas.extras?.total_icms || 0,
             extras_custos: (despesasConsolidadas.extras?.total || 0) - (despesasConsolidadas.extras?.total_icms || 0),
             
@@ -449,7 +476,7 @@ class ComplianceCalculator {
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.ii_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.ii_valor_devido || 0;
+        const valorDevido = adicao.tributos.ii_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
         
         return {
@@ -471,7 +498,7 @@ class ComplianceCalculator {
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.ipi_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.ipi_valor_devido || 0;
+        const valorDevido = adicao.tributos.ipi_valor_devido;
         const baseCalculo = valoresBase.cif_brl + ii.valor_devido;
         
         return {
@@ -493,7 +520,7 @@ class ComplianceCalculator {
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.pis_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.pis_valor_devido || 0;
+        const valorDevido = adicao.tributos.pis_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
         
         return {
@@ -514,7 +541,7 @@ class ComplianceCalculator {
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
         const aliquota = adicao.tributos.cofins_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.cofins_valor_devido || 0;
+        const valorDevido = adicao.tributos.cofins_valor_devido;
         const baseCalculo = valoresBase.cif_brl;
         
         return {

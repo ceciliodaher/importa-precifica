@@ -132,13 +132,13 @@ class CroquiNFExporter {
             importador: {
                 nome: importador.nome,
                 cnpj: this.formatCNPJ(importador.cnpj),
-                endereco: importador.endereco_completo || `${importador.endereco_logradouro || ''}, ${importador.endereco_numero || ''}`.trim(),
-                complemento: importador.endereco_complemento || '',
-                bairro: importador.endereco_bairro || '',
+                endereco: importador.endereco_completo || `${importador.endereco_logradouro}, ${importador.endereco_numero}`.trim(),
+                complemento: importador.endereco_complemento,
+                bairro: importador.endereco_bairro,
                 municipio: importador.endereco_municipio,
-                uf: importador.endereco_uf || '',
+                uf: importador.endereco_uf,
                 cep: this.formatCEP(importador.endereco_cep),
-                ie: importador.inscricao_estadual || ''
+                ie: importador.inscricao_estadual
             },
             
             fornecedor: fornecedor,
@@ -164,10 +164,10 @@ class CroquiNFExporter {
             this.calculos.produtos_individuais.forEach(produto => {
                 const produtoProcessado = {
                     // Identificação
-                    adicao: produto.adicao_numero || '001',
+                    adicao: produto.adicao_numero,
                     item: this.generateItemCode(itemCounter),
-                    descricao: this.formatDescription(produto.descricao || 'MERCADORIA'),
-                    ncm: produto.ncm || '',
+                    descricao: this.formatDescription(produto.descricao),
+                    ncm: produto.ncm,
                     
                     // Quantidades 
                     peso_kg: 0, // Será calculado proporcionalmente
@@ -177,22 +177,22 @@ class CroquiNFExporter {
                     
                     // Valores monetários (já em BRL)
                     valor_unitario_usd: 0, // Não usado no croqui
-                    valor_unitario: produto.valor_unitario_brl || 0,
-                    valor_total: produto.valor_total_brl || 0,
+                    valor_unitario: produto.valor_unitario_brl,
+                    valor_total: produto.valor_total_brl,
                     
                     // IMPOSTOS JÁ CALCULADOS POR ITEM (ItemCalculator)
-                    bc_icms: produto.base_icms_item || 0,
-                    valor_icms: produto.icms_item || 0,
+                    bc_icms: produto.base_icms_item,
+                    valor_icms: produto.icms_item,
                     aliq_icms: this.getAliquotaICMSPorNCM(produto.ncm),
                     
-                    bc_ipi: produto.valor_total_brl + produto.ii_item || 0,
-                    valor_ipi: produto.ipi_item || 0,
+                    bc_ipi: produto.valor_total_brl + produto.ii_item,
+                    valor_ipi: produto.ipi_item,
                     aliq_ipi: this.getAliquotaIPIPorNCM(produto.ncm),
                     
                     // Outros impostos por item
-                    valor_ii: produto.ii_item || 0,
-                    valor_pis: produto.pis_item || 0,
-                    valor_cofins: produto.cofins_item || 0
+                    valor_ii: produto.ii_item,
+                    valor_pis: produto.pis_item,
+                    valor_cofins: produto.cofins_item
                 };
                 
                 produtos.push(produtoProcessado);
@@ -215,14 +215,14 @@ class CroquiNFExporter {
             base_calculo_icms_st: 0,
             valor_icms_st: 0,
             valor_total_produtos: 0,
-            valor_frete: this.di.totais?.valor_frete || 0,
-            valor_seguro: this.di.totais?.valor_seguro || 0,
+            valor_frete: this.di.totais?.valor_frete,
+            valor_seguro: this.di.totais?.valor_seguro,
             valor_desconto: 0,
-            outras_despesas: this.di.totais?.despesas_aduaneiras || 0,
-            valor_ii: this.di.totais?.valor_total_ii || 0,
-            valor_ipi: 0,
-            valor_pis: 0,
-            valor_cofins: 0,
+            outras_despesas: this.calculos?.despesas?.totais?.geral,
+            valor_ii: this.calculos?.impostos?.ii?.valor_devido,
+            valor_ipi: this.calculos?.impostos?.ipi?.valor_devido,
+            valor_pis: this.calculos?.impostos?.pis?.valor_devido,
+            valor_cofins: this.calculos?.impostos?.cofins?.valor_devido,
             valor_total_nota: 0
         };
         
@@ -306,9 +306,9 @@ class CroquiNFExporter {
             const primeiraAdicao = this.di.adicoes[0];
             const fornecedor = primeiraAdicao.fornecedor;
             return {
-                nome: fornecedor?.nome || '',
-                endereco: `${fornecedor?.logradouro || ''}, ${fornecedor?.cidade || ''}`.trim(),
-                pais: primeiraAdicao.pais_aquisicao_nome || '',
+                nome: fornecedor?.nome,
+                endereco: `${fornecedor?.logradouro}, ${fornecedor?.cidade}`.trim(),
+                pais: primeiraAdicao.pais_aquisicao_nome,
                 cnpj: ''
             };
         }
@@ -990,7 +990,7 @@ class CroquiNFExporter {
         // Informações dos tributos e despesas aduaneiras
         const infoLines = [
             `II R$ ${this.totais.valor_ii.toFixed(2)} IPI R$ ${this.totais.valor_ipi.toFixed(2)} PIS R$ ${this.totais.valor_pis.toFixed(2)} COFINS R$ ${this.totais.valor_cofins.toFixed(2)}`,
-            `SISCOMEX R$ ${this.getDespesaAduaneira('siscomex')} CAPATAZIA R$ ${this.getDespesaAduaneira('capatazia')} AFRMM R$ ${this.getDespesaAduaneira('afrmm')}`,
+            `SISCOMEX ${this.formatCurrency(this.calculos?.despesas?.automaticas?.siscomex)} CAPATAZIA ${this.formatCurrency(this.calculos?.despesas?.automaticas?.capatazia)} AFRMM ${this.formatCurrency(this.calculos?.despesas?.automaticas?.afrmm)}`,
             `Nossa Referência: ${this.header.referencia_twa || 'N/A'}`,
             `REF.IMPORTADOR: ${this.header.referencia_importador || 'N/A'}`,
             `NOTA FISCAL DE IMPORTAÇÃO DE ACORDO COM A DI ${this.header.di_numero}`,

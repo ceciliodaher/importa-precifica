@@ -38,7 +38,32 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
-## Recent Critical Fixes (2025-08-29)
+## Recent Critical Fixes (2025-09-01)
+
+### **🔧 TypeError Fixes: Complete Data Structure Standardization**
+**Latest Fix (2025-09-01)**: Complete resolution of TypeError issues in calculation objects and export functions
+
+**Problems Solved**:
+- ❌ **TypeError: calculation.despesas is undefined** → ✅ **Despesas structure** correctly passed to export functions
+- ❌ **TypeError: p.valor_unitario is undefined** → ✅ **Property names standardized** across all modules
+- ❌ **Error: Alíquota ICMS não encontrada para NCM** → ✅ **State-based ICMS rates** from DI importer address
+- ❌ **Missing consolidated fields** → ✅ **Complete calculation object** with peso_liquido, taxa_cambio, ncm, custo_por_kg
+
+**Technical Implementation**:
+- **State Extraction**: Estado obtained from `di.importador.endereco_uf` instead of hardcoded 'GO'
+- **Data Flow**: `despesasConsolidadas` properly passed through `consolidarTotaisDI()` method
+- **Property Standardization**: `valor_unitario_reais` → `valor_unitario` for consistency
+- **Field Completeness**: Added missing fields to consolidated calculation object
+- **Fallback Removal**: Eliminated unnecessary fallback for products (all DIs have products)
+
+**Files Updated**:
+- `di-processing/js/di-interface.js` → State extraction and proper data passing
+- `di-processing/js/ComplianceCalculator.js` → Complete consolidated object structure
+- `shared/js/exportCroquiNF.js` → Property name standardization and robust error handling
+
+**Commit**: `f4dfb2d` - Complete TypeError resolution with standardized data structures
+
+## Previous Critical Fixes (2025-08-29)
 
 ### **🎨 Visual Interface Standardization: Complete Expertzy Brand Implementation**
 **Latest Fix (2025-08-29)**: Complete visual standardization across all interfaces using Expertzy brand identity
@@ -440,13 +465,78 @@ produto = {
 - Reprocessing of XML elements
 - Custom parsing or data extraction
 - Recalculation of values already processed by XMLParser
-=======
+
+## CRITICAL: Zero Fallbacks Policy (KISS Enforcement)
+
+### **NO FALLBACKS RULE - Effective 2025-09-01**
+
+**MANDATORY: All fiscal/tax calculation modules MUST fail fast when data is missing**
+
+**Prohibited Patterns:**
+```javascript
+// ❌ NEVER DO THIS IN FISCAL MODULES:
+const aliquota = adicao.tributos?.ii_aliquota || 0;           // Masks missing data
+const valor = produto.valor_unitario_brl || 5.39;            // Creates fake values  
+const despesas = calculation.despesas?.total || 112505.09;   // Invented amounts
+const taxa = adicao.taxa_cambio || 5.392800;                 // Hardcoded rates
+const automaticas = despesasConsolidadas.automaticas?.total || 0; // Hides structure errors
+```
+
+**Required Pattern:**
+```javascript
+// ✅ ALWAYS DO THIS IN FISCAL MODULES:
+const aliquota = adicao.tributos?.ii_aliquota;
+if (aliquota === undefined) {
+    throw new Error(`Alíquota II ausente na adição ${adicao.numero}`);
+}
+
+// ✅ VALIDATE DATA STRUCTURES:
+if (!despesasConsolidadas.automaticas || typeof despesasConsolidadas.automaticas.total === 'undefined') {
+    throw new Error('Estrutura de despesas automáticas inválida ou ausente');
+}
+```
+
+**Scope:**
+- ✅ **Apply to**: DIProcessor, ComplianceCalculator, ItemCalculator, exportCroquiNF
+- ❌ **Exempt**: UX display modules (quantities can default to 1), localStorage, logs
+
+**Expense Distribution Workflow (Bottom-Up):**
+1. DIProcessor extracts total expenses from DI (e.g., SISCOMEX R$ 493.56)
+2. ItemCalculator distributes expenses proportionally to EACH item
+3. Each item's taxes are calculated INCLUDING its expense share
+4. Items with expenses → Addition totals → DI totals (validation)
+5. NO recalculation, NO fallbacks masking missing data
+
+**Rationale**: Fallbacks in fiscal calculations create phantom values (like R$ 112.505,09) that don't exist in the source DI, violating fiscal compliance. The system must use ONLY real data from the DI.
+
+## CRITICAL: Variable Naming Standards (Data Flow)
+
+### **MANDATORY: Consistent Naming Across Modules**
+
+**Variable Naming Table (Workflow Order):**
+
+| **Module** | **Data Type** | **Variable Name** | **Access Pattern** | **Flow Order** |
+|------------|---------------|-------------------|-------------------|----------------|
+| **DIProcessor.js** | DI Data | `this.diData` | `diData.numero_di` | 1 |
+| **di-interface.js** | DI Global | `currentDI` | `currentDI.numero_di` | 2 |
+| **ComplianceCalculator.js** | Calculation | `this.lastCalculation` | `calculo.impostos.ii` | 3 |
+| **di-interface.js** | Calculation Global | `window.currentCalculation` | `currentCalculation.despesas` | 4 |
+| **exportCroquiNF.js** | Calculation Export | `this.calculos` | `this.calculos.despesas.automaticas` | 5 |
+| **DIProcessor.js** | Expenses | `despesasConsolidadas` | `despesas.automaticas.total` | 3 |
+| **ComplianceCalculator.js** | Expenses Proportional | `despesasAdicao` | `despesas.automaticas.total` | 3 |
+| **ItemCalculator.js** | Expenses Per Item | `despesasAduaneiras` | `despesas.total_despesas_aduaneiras` | 4 |
+
+**NEVER MIX NAMES:**
+- ❌ `this.calculation` vs `this.calculos` 
+- ❌ `automaticas` vs `automaticas.total`
+- ❌ Different property names for same data across modules
+
+**First Module Defines Name**: The first module in workflow order that creates a data object defines its naming standard for all subsequent modules.
 
 ## Development Notes
 
-- No version control initialized yet (consider `git init`)
-- No dependency management files exist (create `requirements.txt` for Python)
-- Tax rates and incentives are hardcoded in the prototype
-- The project is transitioning from Python prototype to PHP web application
+- Git repository initialized and active
+- JavaScript-based web application currently in development  
+- Tax rates and incentives loaded from JSON configuration files
+- XMLParser.js serves as single source of truth for DI data processing
 - Extensive documentation exists in `documentos/` directory for implementation guidance
->>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b

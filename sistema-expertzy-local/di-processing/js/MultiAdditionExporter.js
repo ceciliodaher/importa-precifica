@@ -124,8 +124,7 @@ class MultiAdditionExporter {
         
         this.di.adicoes.forEach(adicao => {
             const taxaCambio = adicao.taxa_cambio || 
-                              (adicao.valor_reais / adicao.valor_moeda_negociacao) || 
-                              5.392800;
+                              (adicao.valor_reais / adicao.valor_moeda_negociacao);
             
             const totalFederal = (adicao.tributos?.ii_valor_devido || 0) +
                                (adicao.tributos?.ipi_valor_devido || 0) +

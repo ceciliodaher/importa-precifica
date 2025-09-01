@@ -68,10 +68,14 @@ class ItemCalculator {
         };
         
         // Obter alíquotas da adição (extraídas da DI)
-        const aliqII = adicao.tributos?.ii_aliquota_ad_valorem || 0;
-        const aliqIPI = adicao.tributos?.ipi_aliquota_ad_valorem || 0;
-        const aliqPIS = adicao.tributos?.pis_aliquota_ad_valorem || 0;
-        const aliqCOFINS = adicao.tributos?.cofins_aliquota_ad_valorem || 0;
+        const aliqII = adicao.tributos?.ii_aliquota_ad_valorem;
+        const aliqIPI = adicao.tributos?.ipi_aliquota_ad_valorem;
+        const aliqPIS = adicao.tributos?.pis_aliquota_ad_valorem;
+        const aliqCOFINS = adicao.tributos?.cofins_aliquota_ad_valorem;
+        
+        if (aliqII === undefined || aliqIPI === undefined || aliqPIS === undefined || aliqCOFINS === undefined) {
+            throw new Error(`Alíquotas tributárias ausentes na adição ${adicao.numero_adicao}: II=${aliqII}, IPI=${aliqIPI}, PIS=${aliqPIS}, COFINS=${aliqCOFINS}`);
+        }
         
         // === CÁLCULO INDIVIDUAL DOS TRIBUTOS ===
         
@@ -117,8 +121,10 @@ class ItemCalculator {
         };
         
         // Calcular proporção do item dentro da adição
-        const valorTotalAdicao = adicao.valor_reais || 0;
-        if (valorTotalAdicao === 0) return rateio;
+        const valorTotalAdicao = adicao.valor_reais;
+        if (!valorTotalAdicao || valorTotalAdicao === 0) {
+            throw new Error(`Valor total da adição ${adicao.numero_adicao} é zero ou ausente: ${valorTotalAdicao}`);
+        }
         
         const proporcaoItem = valorItem / valorTotalAdicao;
         
@@ -185,7 +191,7 @@ class ItemCalculator {
         
         if (diData && diData.adicoes) {
             const total = diData.adicoes.reduce((total, adicao) => {
-                return total + (adicao.valor_reais || 0);
+                return total + adicao.valor_reais;
             }, 0);
             console.log(`💰 ItemCalculator: Valor total da DI calculado: R$ ${total.toFixed(2)}`);
             return total;
@@ -264,10 +270,10 @@ class ItemCalculator {
         };
         
         const totaisAdicao = {
-            ii: adicao.tributos?.ii_valor_devido || 0,
-            ipi: adicao.tributos?.ipi_valor_devido || 0,
-            pis: adicao.tributos?.pis_valor_devido || 0,
-            cofins: adicao.tributos?.cofins_valor_devido || 0
+            ii: adicao.tributos?.ii_valor_devido,
+            ipi: adicao.tributos?.ipi_valor_devido,
+            pis: adicao.tributos?.pis_valor_devido,
+            cofins: adicao.tributos?.cofins_valor_devido
         };
         
         const validacao = {
@@ -314,16 +320,16 @@ class ItemCalculator {
         if (produtosList.length === 0) {
             // Se não há lista de produtos, criar um item único da adição
             produtosList.push({
-                descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
-                quantidade: adicao.quantidade_estatistica || 1,
-                valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || 0,
-                valor_total: adicao.valor_reais || 0
+                descricao_mercadoria: adicao.descricao_mercadoria,
+                quantidade: adicao.quantidade_estatistica,
+                valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario,
+                valor_total: adicao.valor_reais
             });
         }
         
         produtosList.forEach((produto, index) => {
             const valorItem = produto.valor_total_brl || produto.valor_total || 
-                             (produto.valor_unitario_brl || produto.valor_unitario || 0) * (produto.quantidade || 1);
+                             (produto.valor_unitario_brl || produto.valor_unitario) * produto.quantidade;
             
             const calculoCompleto = this.calcularBaseICMSItem(
                 valorItem, 
@@ -336,11 +342,11 @@ class ItemCalculator {
             // Adicionar dados do produto
             calculoCompleto.produto = {
                 indice: index + 1,
-                descricao: produto.descricao_mercadoria || adicao.descricao_mercadoria || 'MERCADORIA',
-                quantidade: produto.quantidade || adicao.quantidade_estatistica || 1,
-                valor_unitario: produto.valor_unitario_brl || produto.valor_unitario || 0,
+                descricao: produto.descricao_mercadoria || adicao.descricao_mercadoria,
+                quantidade: produto.quantidade || adicao.quantidade_estatistica,
+                valor_unitario: produto.valor_unitario_brl || produto.valor_unitario,
                 ncm: adicao.ncm,
-                peso_kg: adicao.peso_liquido || 0 // Peso total da adição (não temos peso individual)
+                peso_kg: adicao.peso_liquido // Peso total da adição (não temos peso individual)
             };
             
             itensCalculados.push(calculoCompleto);
@@ -381,10 +387,10 @@ class ItemCalculator {
             if (ncm && !ncmsMap.has(ncm)) {
                 ncmsMap.set(ncm, {
                     ncm: ncm,
-                    descricao: adicao.descricao_mercadoria || adicao.nome_ncm || 'Descrição não disponível',
-                    valor: adicao.valor_reais || 0,
-                    aliquotaII: adicao.tributos?.ii_aliquota_ad_valorem || 0,
-                    aliquotaIPI: adicao.tributos?.ipi_aliquota_ad_valorem || 0
+                    descricao: adicao.descricao_mercadoria || adicao.nome_ncm,
+                    valor: adicao.valor_reais,
+                    aliquotaII: adicao.tributos?.ii_aliquota_ad_valorem,
+                    aliquotaIPI: adicao.tributos?.ipi_aliquota_ad_valorem
                 });
             }
         });

@@ -417,6 +417,28 @@
     box-shadow: 0 6px 30px rgba(255, 0, 45, 0.2);
 }
 
+.upload-area.file-loaded {
+    border-color: #20c997;
+    background: linear-gradient(135deg, #d1ecf1, #f0fbfc);
+    box-shadow: 0 4px 20px rgba(32, 201, 151, 0.15);
+}
+
+.upload-area.file-loaded:hover {
+    background: linear-gradient(135deg, #b8e6cc, #e8f8f0);
+    box-shadow: 0 6px 25px rgba(32, 201, 151, 0.2);
+}
+
+.upload-area.success {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #d4edda, #f8fff9);
+    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.15);
+}
+
+.upload-area.success:hover {
+    background: linear-gradient(135deg, #c3e6cb, #f1f8f3);
+    box-shadow: 0 6px 25px rgba(40, 167, 69, 0.2);
+}
+
 .form-control[type="file"] {
     border: 2px dashed var(--compliance-accent);
     padding: 1rem;

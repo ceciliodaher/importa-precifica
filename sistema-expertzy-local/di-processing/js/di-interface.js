@@ -123,9 +123,21 @@ function setupExpenseTableEvents() {
  * Handle file selection
  */
 function handleFileSelection(event) {
+    // Reset all states when new file is selected
+    const uploadArea = document.querySelector('.upload-area');
+    if (uploadArea) {
+        uploadArea.classList.remove('success', 'file-loaded');
+    }
+    
     const file = event.target.files[0];
     if (file && file.type === 'text/xml') {
         console.log(`📁 Arquivo selecionado: ${file.name}`);
+        
+        // Visual feedback: arquivo XML importado com sucesso
+        if (uploadArea) {
+            uploadArea.classList.add('file-loaded');
+        }
+        
         showFileInfo(file);
     } else if (file) {
         showAlert('Por favor, selecione um arquivo XML válido.', 'warning');
@@ -195,6 +207,13 @@ async function processarDI() {
         // Move to step 2
         hideLoading();
         avancarStep(2);
+        
+        // Mark upload area as successfully processed (transition from file-loaded to success)
+        const uploadArea = document.querySelector('.upload-area');
+        if (uploadArea) {
+            uploadArea.classList.remove('file-loaded');
+            uploadArea.classList.add('success');
+        }
         
         showAlert('DI processada com sucesso! Configure as despesas extras.', 'success');
         
@@ -752,6 +771,12 @@ async function calcularImpostos() {
  * Populate step 3 with tax calculation results
  */
 function populateStep3Results(calculation) {
+    // Debug: Log actual calculation structure
+    console.log('🔍 DEBUG populateStep3Results - Estrutura recebida:', calculation);
+    console.log('🔍 DEBUG valores_base:', calculation.valores_base);
+    console.log('🔍 DEBUG despesas:', calculation.despesas);
+    console.log('🔍 DEBUG impostos.icms:', calculation.impostos?.icms);
+    
     // Tax summary cards
     const resultsContainer = document.getElementById('taxResults');
     resultsContainer.innerHTML = `
@@ -808,7 +833,7 @@ function populateStep3Results(calculation) {
                 <table class="table table-sm">
                     <tr>
                         <td>CIF (R$)</td>
-                        <td class="text-end">${formatCurrency(calculation.valores_base.cif_brl)}</td>
+                        <td class="text-end">${formatCurrency(calculation.valores_base.valor_aduaneiro_total)}</td>
                     </tr>
                     <tr>
                         <td>II</td>
@@ -828,11 +853,18 @@ function populateStep3Results(calculation) {
                     </tr>
                     <tr class="table-primary">
                         <td><strong>Despesas Aduaneiras</strong></td>
-                        <td class="text-end"><strong>${formatCurrency(calculation.despesas.total_base_icms)}</strong></td>
+                        <td class="text-end"><strong>${formatCurrency(calculation.despesas?.totais?.tributavel_icms)}</strong></td>
                     </tr>
                     <tr class="table-info">
                         <td><strong>Base ICMS Final</strong></td>
-                        <td class="text-end"><strong>${formatCurrency(calculation.impostos.icms.base_calculo_final)}</strong></td>
+                        <td class="text-end"><strong>${formatCurrency(
+                            calculation.valores_base.valor_aduaneiro_total + 
+                            calculation.impostos.ii.valor_devido + 
+                            calculation.impostos.ipi.valor_devido + 
+                            calculation.impostos.pis.valor_devido + 
+                            calculation.impostos.cofins.valor_devido + 
+                            calculation.despesas?.totais?.tributavel_icms
+                        )}</strong></td>
                     </tr>
                 </table>
             </div>
@@ -945,6 +977,11 @@ function exportarRelatórioImpostos() {
 function exportarCroquiNF() {
     if (!currentDI) {
         showAlert('Nenhuma DI carregada para gerar croqui.', 'warning');
+        return;
+    }
+    
+    if (!window.currentCalculation) {
+        showAlert('Nenhum cálculo disponível. Execute o cálculo de impostos primeiro.', 'warning');
         return;
     }
     
@@ -1275,6 +1312,9 @@ function handleFileDrop(event) {
     event.stopPropagation();
     event.currentTarget.classList.remove('dragover');
     
+    // Reset all states when new file is uploaded  
+    event.currentTarget.classList.remove('success', 'file-loaded');
+    
     const files = event.dataTransfer.files;
     if (files.length > 0) {
         const file = files[0];
@@ -1286,6 +1326,9 @@ function handleFileDrop(event) {
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             fileInput.files = dataTransfer.files;
+            
+            // Visual feedback: arquivo XML importado com sucesso
+            event.currentTarget.classList.add('file-loaded');
             
             console.log(`📁 Arquivo arrastado: ${file.name}`);
             showFileInfo(file);
@@ -1332,7 +1375,7 @@ function viewCalculationMemory(numeroAdicao) {
     }
 
     const modalContent = document.getElementById('calculationMemoryContent');
-    const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao) || 5.392800;
+    const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
     
     // Perform validation
     const validation = validator.validateCalculation(currentDI, currentCalculation, numeroAdicao);
@@ -1587,7 +1630,7 @@ function exportCalculationMemory() {
 
     try {
         const workbook = XLSX.utils.book_new();
-        const taxaCambio = currentCalculation.valores_base.taxa_cambio || 5.392800;
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
         
         // Sheet 1: Resumo Geral
         const resumoData = [
@@ -1696,7 +1739,7 @@ function exportCalculationMemoryPDF() {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const taxaCambio = currentCalculation.valores_base.taxa_cambio || 5.392800;
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
         
         // Header
         doc.setFontSize(16);
@@ -1833,7 +1876,7 @@ function viewMultiAdditionSummary() {
     let totalFederalTaxes = 0;
     
     const additionsSummary = currentDI.adicoes.map(adicao => {
-        const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao) || 5.392800;
+        const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
         const federalTaxes = (adicao.tributos.ii_valor_devido || 0) +
                            (adicao.tributos.ipi_valor_devido || 0) +
                            (adicao.tributos.pis_valor_devido || 0) +

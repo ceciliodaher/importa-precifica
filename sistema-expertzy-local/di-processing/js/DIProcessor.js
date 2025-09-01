@@ -408,9 +408,14 @@ class DIProcessor {
         const produtos = [];
 
         // Calcular taxa de câmbio da adição atual
-        const valorMoedaNegociacao = adicaoData.valor_moeda_negociacao || 0;
-        const valorReais = adicaoData.valor_reais || 0;
-        const taxaCambio = valorMoedaNegociacao > 0 ? valorReais / valorMoedaNegociacao : 5.392800;
+        const valorMoedaNegociacao = adicaoData.valor_moeda_negociacao;
+        const valorReais = adicaoData.valor_reais;
+        
+        if (!valorMoedaNegociacao || !valorReais || valorMoedaNegociacao <= 0) {
+            throw new Error(`Taxa de câmbio não pode ser calculada para adição ${numeroAdicao}: valorMoedaNegociacao=${valorMoedaNegociacao}, valorReais=${valorReais}`);
+        }
+        
+        const taxaCambio = valorReais / valorMoedaNegociacao;
         
         // Adicionar taxa de câmbio aos dados da adição
         adicaoData.taxa_cambio = taxaCambio;
@@ -879,9 +884,6 @@ class DIProcessor {
         // ===== 3. CALCULAR DESPESAS AUTOMÁTICAS =====
         this.calcularDespesasAutomaticas(xmlDoc, despesas);
         
-        // ===== 4. FALLBACK: EXTRAIR DE informacaoComplementar =====
-        this.extractDespesasFromInfoComplementar(xmlDoc, despesas);
-        
         // ===== 5. TOTALIZAR DESPESAS =====
         this.totalizarDespesasAduaneiras(despesas);
         
@@ -919,22 +921,22 @@ class DIProcessor {
                 
                 despesas.pagamentos.push(pagamentoData);
                 
-                // Mapear para despesas calculadas
-                // IMPORTANTE: PIS e COFINS são IMPOSTOS, não despesas aduaneiras!
+                // Mapear para despesas calculadas ou classificar como imposto
                 if (tipoDespesa === 'SISCOMEX') {
                     despesas.calculadas.siscomex = valorReceita;
-                } else if (tipoDespesa === 'PIS') {
-                    // PIS é imposto, não deve ser somado às despesas
-                    console.log(`  ⚠️ PIS é imposto, não despesa: R$ ${valorReceita.toFixed(2)}`);
-                } else if (tipoDespesa === 'COFINS') {
-                    // COFINS é imposto, não deve ser somado às despesas
-                    console.log(`  ⚠️ COFINS é imposto, não despesa: R$ ${valorReceita.toFixed(2)}`);
                 } else if (tipoDespesa === 'ANTI_DUMPING') {
                     despesas.calculadas.anti_dumping = valorReceita;
+                } else if (tipoDespesa === 'MEDIDA_COMPENSATORIA') {
+                    despesas.calculadas.medida_compensatoria = valorReceita;
+                } else if (tipoDespesa === 'MEDIDA_SALVAGUARDA') {
+                    despesas.calculadas.medida_salvaguarda = valorReceita;
+                } else if (tipoDespesa.startsWith('II_') || tipoDespesa.startsWith('IPI_') || 
+                          tipoDespesa === 'PIS' || tipoDespesa === 'COFINS') {
+                    // Impostos federais - registrar mas NÃO somar como despesas
+                    console.log(`  ⚠️ ${tipoDespesa} é imposto, não despesa: R$ ${valorReceita.toFixed(2)}`);
                 } else {
-                    // Outras despesas aduaneiras genuínas
-                    if (!despesas.calculadas.outras) despesas.calculadas.outras = 0;
-                    despesas.calculadas.outras += valorReceita;
+                    // Códigos não mapeados - tratamento conservador
+                    console.log(`  ⚠️ Código não mapeado ${codigo} (${tipoDespesa}): R$ ${valorReceita.toFixed(2)} - verificar se é despesa ou imposto`);
                 }
                 
                 console.log(`📋 Pagamento extraído: ${tipoDespesa} (${codigoReceita}) = R$ ${valorReceita.toFixed(2)}`);
@@ -999,43 +1001,6 @@ class DIProcessor {
         }
     }
 
-    /**
-     * Extrai despesas do campo informacaoComplementar como fallback
-     */
-    extractDespesasFromInfoComplementar(xmlDoc, despesas) {
-        const infoComplementar = this.getTextContent(xmlDoc, 'informacaoComplementar');
-        
-        if (!infoComplementar) return;
-        
-        // Extrair Taxa Siscomex se não foi encontrada nos pagamentos
-        if (!despesas.calculadas.siscomex) {
-            const matchSiscomex = infoComplementar.match(/Taxa\s+Siscomex[^:]*:\s*(\d+[,.]?\d*)/i);
-            if (matchSiscomex) {
-                const valor = parseFloat(matchSiscomex[1].replace(',', '.'));
-                despesas.calculadas.siscomex = valor;
-                console.log(`📋 SISCOMEX extraído de informacaoComplementar: R$ ${valor.toFixed(2)}`);
-            }
-        }
-        
-        // Extrair outras despesas mencionadas no texto
-        const padroesDespesas = [
-            { padrao: /AFRMM[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'afrmm' },
-            { padrao: /Capatazia[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'capatazia' },
-            { padrao: /Taxa\s+CE[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'taxa_ce' },
-            { padrao: /Multa[^:]*:\s*(\d+[,.]?\d*)/i, campo: 'multas' }
-        ];
-        
-        padroesDespesas.forEach(({ padrao, campo }) => {
-            if (!despesas.calculadas[campo]) {
-                const match = infoComplementar.match(padrao);
-                if (match) {
-                    const valor = parseFloat(match[1].replace(',', '.'));
-                    despesas.calculadas[campo] = valor;
-                    console.log(`📋 ${campo.toUpperCase()} extraído de informacaoComplementar: R$ ${valor.toFixed(2)}`);
-                }
-            }
-        });
-    }
 
     /**
      * Totaliza todas as despesas aduaneiras
@@ -1043,11 +1008,11 @@ class DIProcessor {
     totalizarDespesasAduaneiras(despesas) {
         let total = 0;
         
-        // Somar APENAS despesas aduaneiras reais (excluir PIS/COFINS que são impostos)
+        // Somar APENAS despesas aduaneiras legítimas (excluir impostos)
         const despesasParaBaseICMS = [
             'siscomex', 'afrmm', 'capatazia', 'taxa_ce', 
-            'anti_dumping', 'multas', 'outras'
-            // NÃO incluir 'pis' e 'cofins' - são impostos!
+            'anti_dumping', 'medida_compensatoria', 'medida_salvaguarda'
+            // NÃO incluir: II, IPI, PIS, COFINS - são impostos federais!
         ];
         
         despesasParaBaseICMS.forEach(campo => {
@@ -1066,12 +1031,22 @@ class DIProcessor {
      */
     mapearCodigoReceita(codigo) {
         const mapeamento = {
-            '7811': 'SISCOMEX',           // Taxa Siscomex
+            // === DESPESAS ADUANEIRAS LEGÍTIMAS ===
+            '7811': 'SISCOMEX',           // Taxa de Utilização do SISCOMEX
+            '5529': 'ANTI_DUMPING',       // Direito Antidumping (despesa aduaneira)
+            '5622': 'MEDIDA_COMPENSATORIA', // Medida Compensatória
+            '5651': 'MEDIDA_SALVAGUARDA', // Medida de Salvaguarda
+            
+            // === IMPOSTOS FEDERAIS (NÃO são despesas aduaneiras) ===
+            '0086': 'II_OUTROS',          // Imposto de Importação - Outros
+            '1038': 'IPI_VINCULADO',      // IPI - Vinculado Importação
             '5602': 'PIS',                // PIS Importação
             '5629': 'COFINS',             // COFINS Importação
-            '5529': 'ANTI_DUMPING',       // Taxa Anti-Dumping
             '1394': 'II_BAGAGEM',         // II Bagagem
-            '1402': 'II_BAGAGEM_2'        // II Bagagem alternativo
+            '1402': 'II_BAGAGEM_2',       // II Bagagem alternativo
+            '5503': 'IPI_VEICULOS',       // IPI Vinculado - Importação de Veículos
+            '5516': 'II_VEICULOS',        // Imposto de Importação - Veículos
+            '9064': 'II_ADICIONAL'        // Imposto de Importação - Adicional
         };
         
         return mapeamento[codigo] || `RECEITA_${codigo}`;
@@ -1126,9 +1101,9 @@ class DIProcessor {
                 siscomex: despesasAutomaticas.calculadas?.siscomex || 0,
                 afrmm: despesasAutomaticas.calculadas?.afrmm || 0,
                 capatazia: despesasAutomaticas.calculadas?.capatazia || 0,
-                armazenagem_di: despesasAutomaticas.calculadas?.armazenagem || 0,
-                outros_di: despesasAutomaticas.calculadas?.outras || 0,
-                total: despesasAutomaticas.total_despesas_aduaneiras || 0
+                total: (despesasAutomaticas.calculadas?.siscomex || 0) + 
+                       (despesasAutomaticas.calculadas?.afrmm || 0) + 
+                       (despesasAutomaticas.calculadas?.capatazia || 0)
             },
             
             // Despesas extras informadas pelo usuário

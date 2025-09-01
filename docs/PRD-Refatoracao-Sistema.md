@@ -1,22 +1,28 @@
 # PRD - Sistema de Importação Expertzy: Refatoração Arquitetural Completa
 
 **Data**: 2025-09-01  
-**Versão**: 1.0  
-**Status**: 🚨 **CRÍTICO** - Sistema com valores zerados no croqui NF
+**Versão**: 1.1  
+**Status**: ✅ **RESOLVIDO** - TypeErrors corrigidos, sistema funcional
 
 ---
 
 ## 📋 OBJETIVO E ESCOPO
 
-### **PROBLEMA PRINCIPAL**
-O croqui de Nota Fiscal está apresentando **valores zerados** (Base ICMS: R$ 0,00, Valor ICMS: R$ 0,00) devido a:
-1. **Arquitetura fragmentada** com 31 arquivos JS, sendo 15 duplicados
-2. **Quebra no fluxo de dados** entre Calculator → Interface → Exporter
-3. **ICMS/IPI não calculados por item individual** (apenas por adição)
-4. **Conflitos entre módulos** disputando responsabilidades
+### ✅ **PROBLEMAS RESOLVIDOS** (v1.1 - 2025-09-01)
+~~O croqui de Nota Fiscal está apresentando **valores zerados**~~ → **CORRIGIDO**
+1. ~~**Arquitetura fragmentada** com 31 arquivos JS~~ → ✅ **Arquivos duplicados removidos**
+2. ~~**Quebra no fluxo de dados** entre Calculator → Interface → Exporter~~ → ✅ **Fluxo de dados corrigido**
+3. ~~**ICMS/IPI não calculados por item individual**~~ → ✅ **Cálculo por item implementado**
+4. ~~**Conflitos entre módulos**~~ → ✅ **Responsabilidades clarificadas**
 
-### **OBJETIVO**
-Refatorar completamente o sistema aplicando princípio **KISS**, eliminando duplicações e garantindo que o croqui NF apresente corretamente ICMS e IPI por item individual.
+### **NOVAS CORREÇÕES IMPLEMENTADAS (v1.1)**
+1. **TypeError: calculation.despesas is undefined** → ✅ **Estrutura de despesas consolidadas**
+2. **TypeError: p.valor_unitario is undefined** → ✅ **Padronização de propriedades**
+3. **Error: Alíquota ICMS não encontrada** → ✅ **Estado extraído da DI automaticamente**
+4. **Campos faltantes no objeto consolidado** → ✅ **Estrutura completa com todos os campos**
+
+### **OBJETIVO ALCANÇADO**
+Sistema totalmente funcional com princípio **KISS** aplicado, ICMS e IPI calculados corretamente por item individual.
 
 ---
 
@@ -303,11 +309,113 @@ XML → Parsing → Cálculo Total → Cálculo Item → Interface → Export �
 - **Duplicações**: 100% eliminadas
 - **Estrutura**: Modular distribuída (SUPERIOR ao planejado)
 
-### **🔄 PRÓXIMA ETAPA: FASE 2**
-**Objetivo**: Corrigir fluxo de dados para resolver valores zerados no croqui  
-**Foco**: ComplianceCalculator + ItemCalculator + exportCroquiNF  
-**Critério**: Croqui NF mostrando ICMS/IPI por item ≠ R$ 0,00
+### **✅ FASE 2: CORREÇÃO DE DADOS - CONCLUÍDA**
+**Objetivo**: ~~Corrigir fluxo de dados para resolver valores zerados no croqui~~ → **CONCLUÍDO**  
+**Foco**: ComplianceCalculator + ItemCalculator + exportCroquiNF → **CORRIGIDO**  
+**Critério**: ~~Croqui NF mostrando ICMS/IPI por item ≠ R$ 0,00~~ → **ALCANÇADO**
+
+### **✅ FASE 3: INTEGRAÇÃO MODULAR - CONCLUÍDA**
+**Resultado**: Fluxo completo XML → DI → Calculator → Export funcional
+**Validação**: TypeError eliminados, estrutura de dados consistente
+
+### **✅ FASE 4: VALIDAÇÃO - CONCLUÍDA**
+**Testes**: Sistema testado com DI real (2300120746.xml)
+**Status**: Exportação de croqui NF funcional sem erros
 
 ---
 
-**🚀 FASE 1 EXECUTADA - APLICAÇÃO DO PRINCÍPIO KISS CONFIRMADA**
+## 🎯 **RESULTADO FINAL - TODAS AS FASES CONCLUÍDAS**
+
+### **✅ PROBLEMAS ELIMINADOS**
+1. **TypeError: calculation.despesas is undefined** → Campo incluído no objeto consolidado
+2. **TypeError: p.valor_unitario is undefined** → Propriedades padronizadas
+3. **Error: Alíquota ICMS não encontrada** → Estado obtido automaticamente da DI
+4. **Campos faltantes** → Estrutura completa implementada
+
+### **✅ FLUXO DE DADOS FUNCIONAL**
+```
+XML → DIProcessor → ComplianceCalculator + ItemCalculator → Export → Croqui NF ✅
+```
+
+### **✅ COMMITS DE RESOLUÇÃO**
+- `c37d50e` - Limpeza arquitetural (Fase 1)
+- `727fdee` - Implementação por item individual (Fase 2-3)  
+- `f4dfb2d` - Correção de TypeErrors (Fase 4)
+
+**🚀 PRD CONCLUÍDO COM SUCESSO - SISTEMA TOTALMENTE FUNCIONAL**
+
+---
+
+## 🚨 **ATUALIZAÇÃO CRÍTICA: ZERO FALLBACKS POLICY** (2025-09-01)
+
+### **NOVA REGRA OBRIGATÓRIA: KISS + FAIL FAST**
+
+**PROBLEMA RESOLVIDO**: Fallbacks geravam valores fantasma (R$ 112.505,09) que não existiam na DI
+
+**REGRA IMPLEMENTADA**: Módulos fiscais DEVEM falhar imediatamente se dados ausentes
+
+#### **PADRÕES PROIBIDOS EM MÓDULOS FISCAIS:**
+```javascript
+// ❌ NUNCA FAZER:
+const aliquota = adicao.tributos?.ii_aliquota || 0;           // Mascara dados ausentes
+const valor = produto.valor_unitario_brl || 5.39;            // Cria valores fake
+const despesas = calculation.despesas?.total || 112505.09;   // Valores inventados
+const taxa = adicao.taxa_cambio || 5.392800;                 // Taxa hardcoded
+```
+
+#### **PADRÃO OBRIGATÓRIO:**
+```javascript
+// ✅ SEMPRE FAZER:
+const aliquota = adicao.tributos?.ii_aliquota;
+if (aliquota === undefined) {
+    throw new Error(`Alíquota II ausente na adição ${adicao.numero}`);
+}
+```
+
+#### **ESCOPO DE APLICAÇÃO:**
+- **✅ ZERO FALLBACKS**: DIProcessor, ComplianceCalculator, ItemCalculator, exportCroquiNF
+- **❌ EXCEÇÕES**: Módulos UX (pricing-strategy), localStorage, logs
+
+#### **BENEFÍCIOS ALCANÇADOS:**
+- ✅ Eliminou R$ 112.505,09 (valor fantasma)
+- ✅ Sistema força uso de dados reais da DI
+- ✅ Falha rápida expõe problemas na fonte
+- ✅ Compliance fiscal garantido
+
+#### **COMMITS DE IMPLEMENTAÇÃO:**
+- Fallbacks eliminados em todos os módulos críticos
+- Validação obrigatória implementada
+- Documentação atualizada (CLAUDE.md + PRD)
+
+**RESULTADO**: Sistema agora usa exclusivamente dados que **EXISTEM** na DI, sem inventar valores.
+
+---
+
+## 📋 **TABELA DE NOMENCLATURA PADRONIZADA** (2025-09-01)
+
+### **PROBLEMA RESOLVIDO: Inconsistência de Nomes de Variáveis**
+
+**Erro Crítico**: `TypeError: this.calculation is undefined` causado por inconsistência de nomenclatura
+
+| **Módulo** | **Tipo de Dados** | **Nome da Variável** | **Padrão de Acesso** | **Ordem no Workflow** |
+|------------|------------------|---------------------|---------------------|---------------------|
+| **DIProcessor.js** | DI Principal | `this.diData` | `diData.numero_di` | 1 |
+| **di-interface.js** | DI Global | `currentDI` | `currentDI.numero_di` | 2 |
+| **ComplianceCalculator.js** | Cálculo Principal | `this.lastCalculation` | `calculo.impostos.ii` | 3 |
+| **di-interface.js** | Cálculo Global | `window.currentCalculation` | `currentCalculation.despesas` | 4 |
+| **exportCroquiNF.js** | Cálculo na Export | `this.calculos` | `this.calculos.despesas.automaticas` | 5 |
+| **DIProcessor.js** | Despesas | `despesasConsolidadas` | `despesas.automaticas.total` | 3 |
+| **ComplianceCalculator.js** | Despesas Proporcionais | `despesasAdicao` | `despesas.automaticas.total` | 3 |
+| **ItemCalculator.js** | Despesas por Item | `despesasAduaneiras` | `despesas.total_despesas_aduaneiras` | 4 |
+
+### **REGRAS DE NOMENCLATURA OBRIGATÓRIAS:**
+
+1. **DI Data**: `diData` → `currentDI` → `this.di` (export)
+2. **Calculation Data**: `calculo` → `currentCalculation` → `this.calculos` (export)
+3. **Expenses**: `despesasConsolidadas` → `despesasAdicao` → `despesasAduaneiras`
+4. **NEVER mix**: `this.calculation` vs `this.calculos` (FIXED)
+
+### **COMMITS DE CORREÇÃO:**
+- Nomenclatura padronizada entre módulos
+- Validação de estruturas implementada 
+- Erros de propriedade indefinida eliminados
