@@ -110,8 +110,8 @@ class ComplianceCalculator {
             });
         }
         
-        // Consolidar totais incluindo produtos individuais
-        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais);
+        // Consolidar totais incluindo produtos individuais e despesas originais
+        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais, despesasConsolidadas);
         
         console.log('✅ DI processada com sucesso:', {
             adicoes: totalAdicoes,
@@ -132,7 +132,7 @@ class ComplianceCalculator {
      * Consolidar totais de todas as adições incluindo produtos individuais
      * @private
      */
-    consolidarTotaisDI(calculosIndividuais, resumos, produtosIndividuais = []) {
+    consolidarTotaisDI(calculosIndividuais, resumos, produtosIndividuais = [], despesasConsolidadas = null) {
         // Somar todos os impostos
         const totais = {
             ii: 0,
@@ -141,7 +141,8 @@ class ComplianceCalculator {
             cofins: 0,
             icms: 0,
             valor_aduaneiro: 0,
-            despesas: 0
+            despesas: 0,
+            peso_total: 0
         };
         
         calculosIndividuais.forEach(calc => {
@@ -152,6 +153,7 @@ class ComplianceCalculator {
             totais.icms += calc.impostos.icms?.valor_devido || 0;
             totais.valor_aduaneiro += calc.valores_base?.cif_brl || 0;
             totais.despesas += calc.despesas?.total || 0;
+            totais.peso_total += calc.valores_base?.peso_liquido || 0;
         });
         
         const totalImpostos = totais.ii + totais.ipi + totais.pis + totais.cofins + totais.icms;
@@ -160,10 +162,14 @@ class ComplianceCalculator {
             tipo: 'DI_COMPLETA',
             numero_adicoes: calculosIndividuais.length,
             timestamp: new Date().toISOString(),
+            estado: this.estadoDestino, // Estado do importador da DI
+            ncm: resumos.map(r => r.ncm).join(', '), // Lista de NCMs
             
             valores_base: {
                 valor_aduaneiro_total: totais.valor_aduaneiro,
-                despesas_totais: totais.despesas
+                despesas_totais: totais.despesas,
+                peso_liquido: totais.peso_total,
+                taxa_cambio: calculosIndividuais[0]?.valores_base?.taxa_cambio || 5.39
             },
             
             impostos: {
@@ -185,14 +191,24 @@ class ComplianceCalculator {
                 },
                 icms: { 
                     valor_devido: totais.icms,
-                    aliquota: 19,
+                    aliquota: this.obterAliquotaICMS(this.estadoDestino),
                     detalhamento: 'Soma de todas as adições'
                 }
             },
             
+            despesas: despesasConsolidadas || {
+                automaticas: totais.despesas,
+                extras_tributaveis: 0,
+                extras_custos: 0,
+                total_base_icms: totais.despesas,
+                total_custos: totais.despesas
+            },
+            
             totais: {
                 total_impostos: totalImpostos,
-                custo_total: totais.valor_aduaneiro + totais.despesas + totalImpostos
+                custo_total: totais.valor_aduaneiro + totais.despesas + totalImpostos,
+                custo_por_kg: totais.peso_total > 0 ? 
+                    (totais.valor_aduaneiro + totais.despesas + totalImpostos) / totais.peso_total : 0
             },
             
             adicoes_detalhes: resumos,

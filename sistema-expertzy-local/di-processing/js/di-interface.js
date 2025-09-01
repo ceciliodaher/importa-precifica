@@ -718,6 +718,10 @@ async function calcularImpostos() {
             despesasConsolidadas.total_base_icms += totalOutrasICMS;
         }
         
+        // Obter estado do importador da DI
+        const estadoImportador = currentDI.importador?.endereco_uf || 'GO';
+        complianceCalculator.setEstadoDestino(estadoImportador);
+        
         // Use the modular method to calculate taxes for ALL additions
         const taxCalculation = complianceCalculator.calcularTodasAdicoes(currentDI, despesasConsolidadas);
         

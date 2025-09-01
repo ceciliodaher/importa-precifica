@@ -177,8 +177,8 @@ class CroquiNFExporter {
                     
                     // Valores monetários (já em BRL)
                     valor_unitario_usd: 0, // Não usado no croqui
-                    valor_unitario_reais: produto.valor_unitario_brl || 0,
-                    valor_total_reais: produto.valor_total_brl || 0,
+                    valor_unitario: produto.valor_unitario_brl || 0,
+                    valor_total: produto.valor_total_brl || 0,
                     
                     // IMPOSTOS JÁ CALCULADOS POR ITEM (ItemCalculator)
                     bc_icms: produto.base_icms_item || 0,
@@ -200,34 +200,8 @@ class CroquiNFExporter {
             });
             
         } else {
-            // FALLBACK: Sistema original por adição (quando não há produtos individuais)
-            console.log('⚠️ Produtos individuais não encontrados, usando fallback por adição');
-            
-            this.di.adicoes.forEach(adicao => {
-                const produtoProcessado = {
-                    adicao: adicao.numero_adicao || '001',
-                    item: this.generateItemCode(itemCounter),
-                    descricao: this.formatDescription(adicao.descricao_mercadoria || 'MERCADORIA'),
-                    ncm: adicao.ncm || '',
-                    peso_kg: adicao.peso_liquido || 0,
-                    quant_cx: 1,
-                    quant_por_cx: adicao.quantidade_estatistica || 1,
-                    total_un: adicao.quantidade_estatistica || 1,
-                    valor_unitario_reais: adicao.valor_unitario_brl || 0,
-                    valor_total_reais: adicao.valor_reais || 0,
-                    
-                    // Valores de impostos da adição
-                    bc_icms: 0,
-                    valor_icms: 0,
-                    aliq_icms: this.getAliquotaICMSPorNCM(adicao.ncm),
-                    bc_ipi: 0,
-                    valor_ipi: adicao.tributos?.ipi_valor_devido || 0,
-                    aliq_ipi: adicao.tributos?.ipi_aliquota_ad_valorem || 0
-                };
-                
-                produtos.push(produtoProcessado);
-                itemCounter++;
-            });
+            // Não há DI sem produtos - se não houver produtos individuais, erro
+            throw new Error('Produtos individuais não encontrados. Execute o cálculo de impostos primeiro.');
         }
         
         return produtos;
@@ -1113,10 +1087,16 @@ class CroquiNFExporter {
      * Obter alíquota ICMS por NCM - USA DADOS JÁ CALCULADOS
      */
     getAliquotaICMSPorNCM(ncm) {
-        if (this.calculos && this.calculos.impostos && this.calculos.impostos.icms) {
+        if (!this.calculos) {
+            throw new Error('Dados de cálculo não disponíveis. Execute o cálculo de impostos primeiro.');
+        }
+        
+        if (this.calculos.impostos?.icms?.aliquota) {
             return this.calculos.impostos.icms.aliquota;
         }
-        throw new Error(`Alíquota ICMS não encontrada para NCM ${ncm}`);
+        
+        const estado = this.calculos.estado || 'não definido';
+        throw new Error(`Alíquota ICMS não encontrada. Estado: ${estado}, NCM: ${ncm}`);
     }
     
     /**
@@ -1149,7 +1129,7 @@ window.gerarCroquiPDFNovo = async function(diData) {
             }
         }
         
-        const exporter = new CroquiNFExporter(diData);
+        const exporter = new CroquiNFExporter(diData, window.currentCalculation);
         const buffer = await exporter.generatePDF();
         
         // Download do arquivo
