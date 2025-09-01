@@ -1185,3 +1185,8 @@ class DIProcessor {
         return this.diData.despesas_aduaneiras || {};
     }
 }
+
+// Export para uso em outros módulos
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DIProcessor;
+}

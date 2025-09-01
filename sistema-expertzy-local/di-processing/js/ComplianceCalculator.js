@@ -15,6 +15,7 @@ class ComplianceCalculator {
         this.estadoDestino = 'GO'; // Default Goiás
         this.calculationMemory = [];
         this.lastCalculation = null;
+        this.itemCalculator = new ItemCalculator(); // NOVO: Integração para cálculos por item
     }
 
     /**
@@ -36,11 +37,12 @@ class ComplianceCalculator {
         // Arrays para armazenar cálculos individuais
         const calculosIndividuais = [];
         const resumoPorAdicao = [];
+        const produtosIndividuais = []; // Array para produtos com impostos individuais
         
         // Calcular valor total da DI para rateio proporcional
         const valorTotalDI = di.adicoes.reduce((sum, ad) => sum + (ad.valor_reais || 0), 0);
         
-        // Processar cada adição
+        // Processar cada adição E seus produtos individuais
         for (let i = 0; i < di.adicoes.length; i++) {
             const adicao = di.adicoes[i];
             console.log(`  Processando adição ${i + 1}/${totalAdicoes}: NCM ${adicao.ncm}`);
@@ -62,6 +64,36 @@ class ComplianceCalculator {
             const calculoAdicao = this.calcularImpostosImportacao(adicao, despesasAdicao);
             calculosIndividuais.push(calculoAdicao);
             
+            // NOVO: Calcular impostos para cada produto individual usando ItemCalculator
+            if (adicao.produtos && adicao.produtos.length > 0) {
+                const resultadoItens = this.itemCalculator.processarItensAdicao(
+                    adicao, 
+                    despesasAdicao?.automaticas || 0,
+                    despesasAdicao?.extras_tributaveis || 0
+                );
+                
+                // Adicionar produtos calculados ao array global
+                resultadoItens.itens.forEach((item, index) => {
+                    produtosIndividuais.push({
+                        adicao_numero: adicao.numero_adicao,
+                        produto_index: index + 1,
+                        ncm: adicao.ncm,
+                        descricao: item.produto.descricao,
+                        valor_unitario_brl: item.produto.valor_unitario,
+                        valor_total_brl: item.valorItem,
+                        quantidade: item.produto.quantidade,
+                        ii_item: item.tributos.ii.valor,
+                        ipi_item: item.tributos.ipi.valor, 
+                        pis_item: item.tributos.pis.valor,
+                        cofins_item: item.tributos.cofins.valor,
+                        icms_item: item.valorICMS,
+                        base_icms_item: item.baseICMS
+                    });
+                });
+                
+                console.log(`    ✅ ${resultadoItens.itens.length} produtos processados individualmente`);
+            }
+            
             // Guardar resumo
             resumoPorAdicao.push({
                 numero: adicao.numero_adicao,
@@ -78,11 +110,12 @@ class ComplianceCalculator {
             });
         }
         
-        // Consolidar totais
-        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao);
+        // Consolidar totais incluindo produtos individuais
+        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais);
         
         console.log('✅ DI processada com sucesso:', {
             adicoes: totalAdicoes,
+            produtos: produtosIndividuais.length,
             'II Total': `R$ ${totaisConsolidados.impostos.ii.valor_devido.toFixed(2)}`,
             'IPI Total': `R$ ${totaisConsolidados.impostos.ipi.valor_devido.toFixed(2)}`,
             'PIS Total': `R$ ${totaisConsolidados.impostos.pis.valor_devido.toFixed(2)}`,
@@ -96,10 +129,10 @@ class ComplianceCalculator {
     }
     
     /**
-     * Consolidar totais de todas as adições
+     * Consolidar totais de todas as adições incluindo produtos individuais
      * @private
      */
-    consolidarTotaisDI(calculosIndividuais, resumos) {
+    consolidarTotaisDI(calculosIndividuais, resumos, produtosIndividuais = []) {
         // Somar todos os impostos
         const totais = {
             ii: 0,
@@ -163,7 +196,8 @@ class ComplianceCalculator {
             },
             
             adicoes_detalhes: resumos,
-            calculos_individuais: calculosIndividuais
+            calculos_individuais: calculosIndividuais,
+            produtos_individuais: produtosIndividuais // NOVO: Produtos com tributos por item
         };
     }
     

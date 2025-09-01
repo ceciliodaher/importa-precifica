@@ -13,7 +13,10 @@
       "Bash(git remote add:*)",
       "Bash(grep:*)",
       "Bash(git add:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(pkill:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []

@@ -157,83 +157,78 @@ class CroquiNFExporter {
         const produtos = [];
         let itemCounter = 1;
         
-        this.di.adicoes.forEach(adicao => {
-            // Para cada produto na adição
-            const produtosList = adicao.produtos || [];
-            if (produtosList.length === 0) {
-                // Se não há lista de produtos, criar um item único da adição
-                produtosList.push({
-                    descricao_mercadoria: adicao.descricao_mercadoria || 'MERCADORIA',
-                    quantidade: adicao.quantidade_estatistica || 1,
-                    valor_unitario_brl: adicao.valor_unitario_brl || adicao.valor_unitario || 0,
-                    // Usar valores totais da adição quando há apenas 1 produto
-                    base_icms: adicao.base_icms || 0,
-                    valor_icms: adicao.valor_icms || 0,
-                    aliquota_icms: adicao.aliquota_icms || 0,
-                    base_ipi: adicao.base_ipi || 0,
-                    valor_ipi: adicao.tributos?.ipi_valor_devido || 0,
-                    aliquota_ipi: adicao.tributos?.ipi_aliquota_ad_valorem || 0
-                });
-            }
+        // NOVO: Usar produtos_individuais já calculados pelo ComplianceCalculator + ItemCalculator
+        if (this.calculos && this.calculos.produtos_individuais && this.calculos.produtos_individuais.length > 0) {
+            console.log('📦 Usando produtos individuais já calculados:', this.calculos.produtos_individuais.length);
             
-            produtosList.forEach(produto => {
-                // Usar valores já calculados por item (vindos do módulo de cálculo)
-                const valorUnitarioReais = produto.valor_unitario_brl || produto.valor_unitario || 0;
-                const valorTotalReais = produto.valor_total_brl || produto.valor_total || 0;
-                
-                // Usar valores de impostos já calculados POR ITEM
-                const bcICMS = produto.base_icms || 0;
-                const valorICMS = produto.valor_icms || 0;
-                const aliqICMS = produto.aliquota_icms || adicao.aliquota_icms || 0;
-                
-                const bcIPI = produto.base_ipi || 0;
-                const valorIPI = produto.valor_ipi || 0;
-                const aliqIPI = produto.aliquota_ipi || adicao.tributos?.ipi_aliquota_ad_valorem || 0;
-                
+            this.calculos.produtos_individuais.forEach(produto => {
                 const produtoProcessado = {
                     // Identificação
-                    adicao: adicao.numero_adicao || '001',
+                    adicao: produto.adicao_numero || '001',
                     item: this.generateItemCode(itemCounter),
-                    descricao: this.formatDescription(
-                        produto.descricao_mercadoria || adicao.descricao_mercadoria || ''
-                    ),
-                    ncm: adicao.ncm || '',
+                    descricao: this.formatDescription(produto.descricao || 'MERCADORIA'),
+                    ncm: produto.ncm || '',
                     
-                    // Quantidades (peso já vem convertido do XMLParser)
-                    peso_kg: adicao.peso_liquido || 0,
-                    quant_cx: 1, // Default
-                    quant_por_cx: produto.quantidade || adicao.quantidade_estatistica || 1,
-                    total_un: produto.quantidade || adicao.quantidade_estatistica || 1,
+                    // Quantidades 
+                    peso_kg: 0, // Será calculado proporcionalmente
+                    quant_cx: 1,
+                    quant_por_cx: produto.quantidade || 1,
+                    total_un: produto.quantidade || 1,
                     
-                    // Valores em R$
-                    valor_unitario: valorUnitarioReais,
-                    valor_total: valorTotalReais,
+                    // Valores monetários (já em BRL)
+                    valor_unitario_usd: 0, // Não usado no croqui
+                    valor_unitario_reais: produto.valor_unitario_brl || 0,
+                    valor_total_reais: produto.valor_total_brl || 0,
                     
-                    // Base de Cálculo e Impostos
-                    bc_icms: bcICMS,
-                    valor_icms: valorICMS,
-                    bc_ipi: bcIPI,
-                    valor_ipi: valorIPI,
+                    // IMPOSTOS JÁ CALCULADOS POR ITEM (ItemCalculator)
+                    bc_icms: produto.base_icms_item || 0,
+                    valor_icms: produto.icms_item || 0,
+                    aliq_icms: this.getAliquotaICMSPorNCM(produto.ncm),
                     
-                    // ALÍQUOTAS (CAMPOS CRÍTICOS)
-                    aliq_icms: aliqICMS,
-                    aliq_ipi: aliqIPI,
+                    bc_ipi: produto.valor_total_brl + produto.ii_item || 0,
+                    valor_ipi: produto.ipi_item || 0,
+                    aliq_ipi: this.getAliquotaIPIPorNCM(produto.ncm),
                     
-                    // Substituição Tributária (geralmente não aplicável em importação)
-                    mva: '-',
-                    bc_st: 0,
-                    valor_st: 0,
-                    fp: '-',
-                    
-                    // PIS/COFINS (já calculados por item)
-                    valor_pis: produto.valor_pis || 0,
-                    valor_cofins: produto.valor_cofins || 0
+                    // Outros impostos por item
+                    valor_ii: produto.ii_item || 0,
+                    valor_pis: produto.pis_item || 0,
+                    valor_cofins: produto.cofins_item || 0
                 };
                 
                 produtos.push(produtoProcessado);
                 itemCounter++;
             });
-        });
+            
+        } else {
+            // FALLBACK: Sistema original por adição (quando não há produtos individuais)
+            console.log('⚠️ Produtos individuais não encontrados, usando fallback por adição');
+            
+            this.di.adicoes.forEach(adicao => {
+                const produtoProcessado = {
+                    adicao: adicao.numero_adicao || '001',
+                    item: this.generateItemCode(itemCounter),
+                    descricao: this.formatDescription(adicao.descricao_mercadoria || 'MERCADORIA'),
+                    ncm: adicao.ncm || '',
+                    peso_kg: adicao.peso_liquido || 0,
+                    quant_cx: 1,
+                    quant_por_cx: adicao.quantidade_estatistica || 1,
+                    total_un: adicao.quantidade_estatistica || 1,
+                    valor_unitario_reais: adicao.valor_unitario_brl || 0,
+                    valor_total_reais: adicao.valor_reais || 0,
+                    
+                    // Valores de impostos da adição
+                    bc_icms: 0,
+                    valor_icms: 0,
+                    aliq_icms: this.getAliquotaICMSPorNCM(adicao.ncm),
+                    bc_ipi: 0,
+                    valor_ipi: adicao.tributos?.ipi_valor_devido || 0,
+                    aliq_ipi: adicao.tributos?.ipi_aliquota_ad_valorem || 0
+                };
+                
+                produtos.push(produtoProcessado);
+                itemCounter++;
+            });
+        }
         
         return produtos;
     }
@@ -1110,6 +1105,31 @@ class CroquiNFExporter {
         ];
         
         ws['!cols'] = widths.map(width => ({ wch: width }));
+    }
+    
+    // ========== MÉTODOS HELPER PARA ALÍQUOTAS ==========
+    
+    /**
+     * Obter alíquota ICMS por NCM - USA DADOS JÁ CALCULADOS
+     */
+    getAliquotaICMSPorNCM(ncm) {
+        if (this.calculos && this.calculos.impostos && this.calculos.impostos.icms) {
+            return this.calculos.impostos.icms.aliquota;
+        }
+        throw new Error(`Alíquota ICMS não encontrada para NCM ${ncm}`);
+    }
+    
+    /**
+     * Obter alíquota IPI por NCM - USA DADOS JÁ EXTRAÍDOS DA DI
+     */
+    getAliquotaIPIPorNCM(ncm) {
+        if (this.di && this.di.adicoes) {
+            const adicaoNCM = this.di.adicoes.find(ad => ad.ncm === ncm);
+            if (adicaoNCM && adicaoNCM.tributos) {
+                return adicaoNCM.tributos.ipi_aliquota_ad_valorem;
+            }
+        }
+        throw new Error(`Alíquota IPI não encontrada para NCM ${ncm}`);
     }
 }
 

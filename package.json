@@ -1,0 +1,27 @@
+{
+  "name": "importa-precifica",
+  "version": "1.0.0",
+  "description": "Sistema brasileiro para processamento de Declarações de Importação (DI), cálculo de impostos de importação e otimização de estratégias de precificação com incentivos fiscais estaduais.",
+  "main": "test-phase2-integration.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceciliodaher/importa-precifica.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ceciliodaher/importa-precifica/issues"
+  },
+  "homepage": "https://github.com/ceciliodaher/importa-precifica#readme",
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "xmldom": "^0.6.0"
+  }
+}

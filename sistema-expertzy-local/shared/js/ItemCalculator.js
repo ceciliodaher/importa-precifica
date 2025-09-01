@@ -444,4 +444,11 @@ class ItemCalculator {
 }
 
 // Instância global do ItemCalculator
-window.ItemCalculator = ItemCalculator;
+if (typeof window !== 'undefined') {
+    window.ItemCalculator = ItemCalculator;
+}
+
+// Export para uso em Node.js
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ItemCalculator;
+}

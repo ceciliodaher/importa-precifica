@@ -38,6 +38,11 @@ async function initializeSystem() {
         // Setup expense preview listeners
         setupExpensePreview();
         
+        // Make instances globally available for testing
+        window.diProcessor = diProcessor;
+        window.complianceCalculator = complianceCalculator;
+        window.ItemCalculator = ItemCalculator;
+        
         console.log('✅ Sistema inicializado com sucesso');
         
     } catch (error) {
@@ -716,9 +721,12 @@ async function calcularImpostos() {
         // Use the modular method to calculate taxes for ALL additions
         const taxCalculation = complianceCalculator.calcularTodasAdicoes(currentDI, despesasConsolidadas);
         
-        // Store calculation results
+        // Store calculation results with individual products
         currentDI.calculoImpostos = taxCalculation;
         currentDI.despesasExtras = expenses; // Store for export
+        
+        // Make calculation available globally for export modules
+        window.currentCalculation = taxCalculation;
         
         // Populate step 3 with results
         populateStep3Results(taxCalculation);
