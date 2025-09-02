@@ -595,4 +595,228 @@ class StorageManager {
             return [];
         }
     }
+
+    // ========== GESTÃO DE SNAPSHOTS DE DI ==========
+
+    /**
+     * Salva snapshot completo da DI com cálculos
+     */
+    saveDISnapshot(diData, calculation, customName = null) {
+        try {
+            if (!diData || !diData.numero_di) {
+                console.error('Dados da DI inválidos para snapshot');
+                return false;
+            }
+
+            const timestamp = Date.now();
+            const identifier = `${diData.numero_di}_${timestamp}`;
+            const key = `${this.prefix}di_snapshot_${identifier}`;
+
+            const snapshot = {
+                identifier: identifier,
+                numero_di: diData.numero_di,
+                custom_name: customName || `DI ${diData.numero_di}`,
+                timestamp: timestamp,
+                data_salvamento: new Date().toLocaleString('pt-BR'),
+                di_data: diData,
+                calculation_data: calculation,
+                valor_total: diData.totais?.valor_total_fob_brl || 0,
+                total_adicoes: diData.total_adicoes || 0,
+                version: '2025.1'
+            };
+
+            localStorage.setItem(key, JSON.stringify(snapshot));
+
+            // Adicionar ao índice de snapshots
+            this.addToSnapshotIndex(identifier, snapshot);
+
+            console.log(`✅ Snapshot da DI ${diData.numero_di} salvo com sucesso`);
+            return identifier;
+
+        } catch (error) {
+            console.error('Erro ao salvar snapshot da DI:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Adiciona snapshot ao índice para busca rápida
+     */
+    addToSnapshotIndex(identifier, snapshot) {
+        try {
+            const indexKey = `${this.prefix}snapshot_index`;
+            const index = JSON.parse(localStorage.getItem(indexKey) || '[]');
+
+            // Adicionar nova entrada ao índice
+            index.unshift({
+                identifier: identifier,
+                numero_di: snapshot.numero_di,
+                custom_name: snapshot.custom_name,
+                timestamp: snapshot.timestamp,
+                data_salvamento: snapshot.data_salvamento,
+                valor_total: snapshot.valor_total,
+                total_adicoes: snapshot.total_adicoes
+            });
+
+            // Manter apenas últimos 100 registros no índice
+            if (index.length > 100) {
+                index.splice(100);
+            }
+
+            localStorage.setItem(indexKey, JSON.stringify(index));
+
+        } catch (error) {
+            console.error('Erro ao atualizar índice de snapshots:', error);
+        }
+    }
+
+    /**
+     * Lista todos os snapshots salvos
+     */
+    listDISnapshots() {
+        try {
+            const indexKey = `${this.prefix}snapshot_index`;
+            const index = JSON.parse(localStorage.getItem(indexKey) || '[]');
+            
+            // Filtrar snapshots que ainda existem
+            const validSnapshots = index.filter(item => {
+                const key = `${this.prefix}di_snapshot_${item.identifier}`;
+                return localStorage.getItem(key) !== null;
+            });
+
+            // Atualizar índice se houve remoções
+            if (validSnapshots.length !== index.length) {
+                localStorage.setItem(indexKey, JSON.stringify(validSnapshots));
+            }
+
+            return validSnapshots;
+
+        } catch (error) {
+            console.error('Erro ao listar snapshots:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Carrega snapshot específico
+     */
+    loadDISnapshot(identifier) {
+        try {
+            const key = `${this.prefix}di_snapshot_${identifier}`;
+            const stored = localStorage.getItem(key);
+
+            if (!stored) {
+                console.error(`Snapshot ${identifier} não encontrado`);
+                return null;
+            }
+
+            const snapshot = JSON.parse(stored);
+            console.log(`✅ Snapshot ${identifier} carregado com sucesso`);
+            return snapshot;
+
+        } catch (error) {
+            console.error('Erro ao carregar snapshot:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Deleta snapshot específico
+     */
+    deleteDISnapshot(identifier) {
+        try {
+            // Remover snapshot
+            const key = `${this.prefix}di_snapshot_${identifier}`;
+            localStorage.removeItem(key);
+
+            // Atualizar índice
+            const indexKey = `${this.prefix}snapshot_index`;
+            const index = JSON.parse(localStorage.getItem(indexKey) || '[]');
+            const newIndex = index.filter(item => item.identifier !== identifier);
+            localStorage.setItem(indexKey, JSON.stringify(newIndex));
+
+            console.log(`🗑️ Snapshot ${identifier} removido com sucesso`);
+            return true;
+
+        } catch (error) {
+            console.error('Erro ao deletar snapshot:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Limpa cache mantendo snapshots salvos
+     */
+    clearCacheKeepSnapshots() {
+        try {
+            const keys = Object.keys(localStorage);
+            let cleared = 0;
+
+            keys.forEach(key => {
+                // Manter apenas snapshots e índice
+                if (key.startsWith(this.prefix) && 
+                    !key.includes('di_snapshot_') && 
+                    !key.includes('snapshot_index')) {
+                    localStorage.removeItem(key);
+                    cleared++;
+                }
+            });
+
+            console.log(`🧹 Cache limpo: ${cleared} itens removidos (snapshots mantidos)`);
+            
+            // Recriar configurações padrão
+            this.ensureDefaultConfig();
+            
+            return cleared;
+
+        } catch (error) {
+            console.error('Erro ao limpar cache:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Exporta snapshot como arquivo JSON
+     */
+    exportSnapshot(identifier) {
+        try {
+            const snapshot = this.loadDISnapshot(identifier);
+            if (!snapshot) return null;
+
+            return {
+                export_date: new Date().toISOString(),
+                system_version: '2025.1',
+                snapshot: snapshot
+            };
+
+        } catch (error) {
+            console.error('Erro ao exportar snapshot:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Importa snapshot de arquivo JSON
+     */
+    importSnapshot(jsonData) {
+        try {
+            if (!jsonData.snapshot) {
+                console.error('Formato de importação inválido');
+                return false;
+            }
+
+            const snapshot = jsonData.snapshot;
+            const key = `${this.prefix}di_snapshot_${snapshot.identifier}`;
+            
+            localStorage.setItem(key, JSON.stringify(snapshot));
+            this.addToSnapshotIndex(snapshot.identifier, snapshot);
+
+            console.log(`✅ Snapshot importado: ${snapshot.identifier}`);
+            return true;
+
+        } catch (error) {
+            console.error('Erro ao importar snapshot:', error);
+            return false;
+        }
+    }
 }

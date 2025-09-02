@@ -192,6 +192,9 @@ async function processarDI() {
         // Read file content
         const xmlContent = await readFileContent(file);
         
+        // Armazenar XML original em base64 para salvamento
+        currentXMLContent = btoa(unescape(encodeURIComponent(xmlContent)));
+        
         // Process DI usando o parser legado funcional
         currentDI = await diProcessor.parseXML(xmlContent);
         
@@ -1076,28 +1079,295 @@ function createTaxReport(diData, calculations) {
     };
 }
 
+function confirmarProcessarNovaDI() {
+    // Se não há DI carregada, apenas processa nova
+    if (!currentDI) {
+        processarNovaDI();
+        return;
+    }
+    
+    // Mostrar modal de confirmação
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarNovaDI'));
+    modal.show();
+}
+
+function salvarEProcessarNovaDI() {
+    // Salvar dados antes de processar nova DI
+    salvarDadosDI(false); // false = não mostrar modal de sucesso
+    
+    // Fechar modal de confirmação
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarNovaDI'));
+    modal.hide();
+    
+    // Processar nova DI
+    processarNovaDI();
+}
+
+function processarNovaDISemSalvar() {
+    // Fechar modal de confirmação
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarNovaDI'));
+    modal.hide();
+    
+    // Processar nova DI sem salvar
+    processarNovaDI();
+}
+
 function processarNovaDI() {
     // Reset system
     currentDI = null;
+    currentCalculation = null;
     currentStep = 1;
-    document.getElementById('xmlFile').value = '';
+    
+    // Limpar cache mantendo snapshots
+    if (window.storageManager) {
+        window.storageManager.clearCacheKeepSnapshots();
+    }
+    
+    // Clear file input
+    const xmlFileInput = document.getElementById('xmlFile');
+    if (xmlFileInput) {
+        xmlFileInput.value = '';
+    }
     
     // Clear file info
     hideFileInfo();
     
-    // Clear forms
-    document.getElementById('expenseStorage').value = '0';
-    document.getElementById('expenseTransport').value = '0';
-    document.getElementById('expenseAgent').value = '0';
+    // Clear display areas
+    const adicoesDisplay = document.getElementById('adicoes-display');
+    if (adicoesDisplay) {
+        adicoesDisplay.innerHTML = '';
+    }
     
-    document.getElementById('storageICMS').checked = false;
-    document.getElementById('transportICMS').checked = false;
-    document.getElementById('agentICMS').checked = false;
+    const diInfoDisplay = document.getElementById('diInfoDisplay');
+    if (diInfoDisplay) {
+        diInfoDisplay.innerHTML = '';
+    }
+    
+    const resultadosDisplay = document.getElementById('resultados-display');
+    if (resultadosDisplay) {
+        resultadosDisplay.innerHTML = '';
+    }
     
     // Go to step 1
     avancarStep(1);
     
-    showAlert('Sistema resetado. Selecione uma nova DI.', 'info');
+    showAlert('Sistema reiniciado. Pronto para processar nova DI.', 'info');
+}
+
+// ========== FUNÇÕES DE SALVAMENTO E RECUPERAÇÃO DE DADOS ==========
+
+// Variável global para armazenar conteúdo XML original
+let currentXMLContent = null;
+
+/**
+ * Salvar dados completos em arquivo JSON
+ */
+function salvarDadosEmArquivo() {
+    if (!currentDI) {
+        showAlert('Nenhuma DI carregada para salvar.', 'warning');
+        return;
+    }
+    
+    try {
+        // Preparar dados completos para salvamento
+        const dadosCompletos = {
+            version: "2025.1",
+            type: "expertzy_di_compliance",
+            timestamp: new Date().toISOString(),
+            di_data: currentDI,
+            calculation_results: currentCalculation,
+            xml_content: currentXMLContent, // XML original em base64
+            metadata: {
+                processed_by: "DI Compliance Processor v2025.1",
+                ready_for_pricing: true,
+                numero_di: currentDI.numero_di,
+                valor_total_fob_brl: currentDI.totais?.valor_total_fob_brl || 0,
+                total_adicoes: currentDI.total_adicoes || 0,
+                estado_importador: currentDI.importador?.endereco_uf || 'N/A',
+                data_processamento: new Date().toLocaleString('pt-BR')
+            }
+        };
+        
+        // Criar arquivo JSON para download
+        const jsonStr = JSON.stringify(dadosCompletos, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DI_${currentDI.numero_di}_${Date.now()}.expertzy.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showAlert(`✅ Arquivo salvo: DI_${currentDI.numero_di}.expertzy.json`, 'success');
+        
+    } catch (error) {
+        console.error('Erro ao salvar arquivo:', error);
+        showAlert('❌ Erro ao salvar arquivo. Verifique o console para detalhes.', 'danger');
+    }
+}
+
+/**
+ * Carregar arquivo salvo do computador
+ */
+function carregarArquivoSalvo(input) {
+    const file = input.files[0];
+    if (!file) {
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const dadosCarregados = JSON.parse(e.target.result);
+            
+            // Validar arquivo
+            if (dadosCarregados.type !== 'expertzy_di_compliance') {
+                throw new Error('Arquivo não é do tipo Expertzy DI Compliance');
+            }
+            
+            if (!dadosCarregados.di_data || !dadosCarregados.di_data.numero_di) {
+                throw new Error('Dados da DI inválidos no arquivo');
+            }
+            
+            // Restaurar dados globais
+            currentDI = dadosCarregados.di_data;
+            currentCalculation = dadosCarregados.calculation_results;
+            currentXMLContent = dadosCarregados.xml_content;
+            
+            console.log('✅ Dados carregados:', {
+                di: currentDI.numero_di,
+                calculation: currentCalculation ? 'Presente' : 'Ausente',
+                xml: currentXMLContent ? 'Presente' : 'Ausente'
+            });
+            
+            // Atualizar interface - ir direto para Step 3 se tiver cálculos
+            if (currentCalculation) {
+                currentStep = 3;
+                avancarStep(3);
+                
+                // Atualizar displays
+                updateDIInfo();
+                mostrarResultadosCalculo();
+                
+                showAlert(`✅ Trabalho carregado: DI ${currentDI.numero_di} - Pronto para continuar!`, 'success');
+            } else {
+                // Se não tiver cálculos, ir para Step 2
+                currentStep = 2;
+                avancarStep(2);
+                
+                updateDIInfo();
+                showAlert(`✅ DI ${currentDI.numero_di} carregada - Continue o processamento.`, 'info');
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar arquivo:', error);
+            showAlert(`❌ Erro ao carregar arquivo: ${error.message}`, 'danger');
+        }
+    };
+    
+    reader.readAsText(file);
+}
+
+/**
+ * Mostrar resultados dos cálculos na interface
+ */
+function mostrarResultadosCalculo() {
+    if (!currentCalculation) {
+        console.log('Nenhum cálculo disponível para exibir');
+        return;
+    }
+    
+    try {
+        // Encontrar container de resultados
+        const resultadosContainer = document.getElementById('resultados-display');
+        if (!resultadosContainer) {
+            console.log('Container de resultados não encontrado');
+            return;
+        }
+        
+        // Se já tem resultados exibidos, não duplicar
+        if (resultadosContainer.innerHTML && resultadosContainer.innerHTML.trim() !== '') {
+            console.log('Resultados já exibidos');
+            return;
+        }
+        
+        // Exibir resumo dos cálculos
+        resultadosContainer.innerHTML = `
+            <div class="results-summary">
+                <h4><i class="bi bi-calculator"></i> Resultados dos Cálculos</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Impostos Federais</h6>
+                                <p><strong>II:</strong> ${formatCurrency(currentCalculation.impostos?.ii || 0)}</p>
+                                <p><strong>IPI:</strong> ${formatCurrency(currentCalculation.impostos?.ipi || 0)}</p>
+                                <p><strong>PIS:</strong> ${formatCurrency(currentCalculation.impostos?.pis || 0)}</p>
+                                <p><strong>COFINS:</strong> ${formatCurrency(currentCalculation.impostos?.cofins || 0)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>ICMS e Totais</h6>
+                                <p><strong>ICMS:</strong> ${formatCurrency(currentCalculation.impostos?.icms || 0)}</p>
+                                <p><strong>Total Impostos:</strong> ${formatCurrency(currentCalculation.totais?.total_impostos || 0)}</p>
+                                <p><strong>Custo Total:</strong> ${formatCurrency(currentCalculation.totais?.custo_total || 0)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log('✅ Resultados dos cálculos exibidos com sucesso');
+        
+    } catch (error) {
+        console.error('Erro ao exibir resultados:', error);
+        showAlert('⚠️ Erro ao exibir resultados dos cálculos.', 'warning');
+    }
+}
+
+/**
+ * Preparar dados para fase de precificação
+ */
+function prepararParaPrecificacao() {
+    if (!currentDI || !currentCalculation) {
+        showAlert('Complete o processamento da DI antes de prosseguir para precificação.', 'warning');
+        return;
+    }
+    
+    try {
+        // Preparar dados para próxima fase
+        const dadosParaPrecificacao = {
+            di_data: currentDI,
+            calculation_results: currentCalculation,
+            xml_content: currentXMLContent,
+            compliance_completed: true,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Passar dados via sessionStorage para próxima fase
+        sessionStorage.setItem('di_compliance_data', JSON.stringify(dadosParaPrecificacao));
+        
+        // Salvar automaticamente antes de prosseguir
+        salvarDadosEmArquivo();
+        
+        // Aguardar um pouco para o download e então redirecionar
+        setTimeout(() => {
+            if (confirm('Dados salvos! Deseja prosseguir para a fase de precificação?')) {
+                window.location.href = '../pricing-strategy/pricing-system.html';
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Erro ao preparar para precificação:', error);
+        showAlert('❌ Erro ao preparar dados para precificação.', 'danger');
+    }
 }
 
 /**
@@ -1355,6 +1625,13 @@ window.exportarRelatórioImpostos = exportarRelatórioImpostos;
 window.exportarCroquiNF = exportarCroquiNF;
 window.exportarMemoriaCalculo = exportarMemoriaCalculo;
 window.processarNovaDI = processarNovaDI;
+window.confirmarProcessarNovaDI = confirmarProcessarNovaDI;
+window.salvarEProcessarNovaDI = salvarEProcessarNovaDI;
+window.processarNovaDISemSalvar = processarNovaDISemSalvar;
+window.salvarDadosEmArquivo = salvarDadosEmArquivo;
+window.carregarArquivoSalvo = carregarArquivoSalvo;
+window.mostrarResultadosCalculo = mostrarResultadosCalculo;
+window.prepararParaPrecificacao = prepararParaPrecificacao;
 window.addExpenseRow = addExpenseRow;
 
 // ===== MEMÓRIA DE CÁLCULO DETALHADA =====

@@ -18,7 +18,8 @@
       "Bash(pkill:*)",
       "Bash(npx playwright test:*)",
       "Bash(git push:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

@@ -38,10 +38,43 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
-## Recent Critical Fixes (2025-09-01)
+## Recent Critical Fixes (2025-09-02)
+
+### **💾 Advanced Data Management System: File-Based Workflow Implementation**
+**Latest Fix (2025-09-02)**: Complete implementation of file-based data management with workflow continuity
+
+**New Features Implemented**:
+- ✅ **File-Based Saving**: Save complete DI work as `.expertzy.json` files on user's computer
+- ✅ **Workflow Continuity**: Load saved files to continue exactly where you left off
+- ✅ **Step 1 Redesign**: Two clear options - "Nova Importação" OR "Continuar Trabalho"
+- ✅ **Integration Ready**: Automatic data preparation for pricing phase
+- ✅ **Complete Data Preservation**: XML content, DI data, calculations, and metadata all saved
+
+**Technical Implementation**:
+- **File Format**: `.expertzy.json` contains full project state (DI data + calculations + XML base64)
+- **Step 1 Interface**: Card-based layout with upload zone and file recovery option
+- **Data Flow**: XML → Process → Calculate → Save (.expertzy) → Continue to Pricing
+- **Error Resolution**: Fixed missing `fileType` element causing "Processar DI" button to disappear
+- **Smart Navigation**: Loaded files go directly to appropriate step (Step 2 or 3) based on completion state
+
+**Files Updated**:
+- `di-processing/di-processor.html` → New Step 1 interface with dual options and restored fileType element
+- `di-processing/js/di-interface.js` → File-based save/load functions replacing localStorage approach
+- `shared/js/storage.js` → Extended with snapshot management for backward compatibility
+- `di-processing/css/compliance-theme.css` → New styling for option cards and upload areas
+
+**User Benefits**:
+- **Portability**: Work files can be shared, backed up, and moved between computers
+- **Flexibility**: Stop and resume work at any time without losing progress
+- **Integration**: Seamless transition to pricing phase with all data preserved
+- **Audit Trail**: Complete processing history saved in human-readable JSON format
+
+**Business Impact**: Users can now work on DI processing in stages, save their progress, and seamlessly transition to the pricing optimization phase without data loss or reprocessing.
+
+## Previous Critical Fixes (2025-09-01)
 
 ### **🔧 TypeError Fixes: Complete Data Structure Standardization**
-**Latest Fix (2025-09-01)**: Complete resolution of TypeError issues in calculation objects and export functions
+**Previous Fix (2025-09-01)**: Complete resolution of TypeError issues in calculation objects and export functions
 
 **Problems Solved**:
 - ❌ **TypeError: calculation.despesas is undefined** → ✅ **Despesas structure** correctly passed to export functions

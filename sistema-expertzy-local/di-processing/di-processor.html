@@ -107,55 +107,85 @@
         <!-- Step 1: Upload DI -->
         <div id="step1" class="process-step active">
             <div class="step-number">1</div>
+            <h3 class="text-center mb-4"><i class="bi bi-file-earmark-check"></i> Iniciar Processamento de DI</h3>
+            
             <div class="row">
-                <div class="col-md-8">
-                    <h3><i class="bi bi-cloud-upload"></i> Upload da Declaração de Importação</h3>
-                    <p class="text-muted">Faça o upload do arquivo XML da DI para iniciar o processamento de compliance.</p>
-                    
-                    <!-- Drag & Drop Upload Area -->
-                    <div class="upload-area mb-4" id="dropZone">
-                        <div class="upload-content text-center">
-                            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: var(--expertzy-red);"></i>
-                            <h4>Arraste o arquivo XML aqui</h4>
-                            <p class="text-muted mb-3">ou clique para selecionar</p>
-                            <input type="file" id="xmlFile" accept=".xml" style="display: none;">
-                            <button type="button" class="btn btn-compliance" onclick="document.getElementById('xmlFile').click()">
-                                <i class="bi bi-folder2-open"></i> Selecionar Arquivo
-                            </button>
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <!-- Opção 1: Nova Importação -->
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center mb-3">
+                                <i class="bi bi-cloud-upload"></i> Nova Importação
+                            </h5>
+                            
+                            <!-- Drag & Drop Upload Area -->
+                            <div class="upload-area mb-3" id="dropZone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                <div class="upload-content text-center">
+                                    <i class="bi bi-file-earmark-xml" style="font-size: 3rem; color: var(--expertzy-red);"></i>
+                                    <h6 class="mt-3">Arraste o arquivo XML aqui</h6>
+                                    <p class="text-muted mb-3">ou clique para selecionar</p>
+                                    <input type="file" id="xmlFile" accept=".xml" style="display: none;" onchange="handleFileSelection(event)">
+                                    <button type="button" class="btn btn-compliance" onclick="document.getElementById('xmlFile').click()">
+                                        <i class="bi bi-folder2-open"></i> Selecionar XML
+                                    </button>
+                                </div>
+                            </div>
 
-                    <!-- File Info Display -->
-                    <div class="file-info mt-3 d-none" id="fileInfo">
-                        <div class="alert alert-compliance">
-                            <h6><i class="bi bi-file-earmark-text"></i> Arquivo Selecionado:</h6>
-                            <div class="row">
-                                <div class="col-md-4">
+                            <!-- File Info Display -->
+                            <div class="file-info mt-3 d-none" id="fileInfo">
+                                <div class="alert alert-success">
+                                    <h6><i class="bi bi-check-circle"></i> Arquivo Selecionado:</h6>
                                     <p class="mb-1"><strong>Nome:</strong> <span id="fileName">-</span></p>
-                                </div>
-                                <div class="col-md-4">
                                     <p class="mb-1"><strong>Tamanho:</strong> <span id="fileSize">-</span></p>
-                                </div>
-                                <div class="col-md-4">
                                     <p class="mb-0"><strong>Tipo:</strong> <span id="fileType">-</span></p>
                                 </div>
+                                <button type="button" class="btn btn-compliance btn-lg w-100" onclick="processarDI()">
+                                    <i class="bi bi-play-fill"></i> Processar DI
+                                </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <button type="button" class="btn btn-compliance btn-lg" onclick="processarDI()">
-                        <i class="bi bi-play-fill"></i> Processar DI
-                    </button>
                 </div>
-                <div class="col-md-4">
-                    <div class="alert alert-info">
-                        <h6><i class="bi bi-info-circle"></i> Informações Importantes</h6>
-                        <ul class="mb-0 small">
-                            <li>Arquivo deve estar no formato XML padrão SISCOMEX</li>
-                            <li>Todas as despesas aduaneiras serão extraídas automaticamente</li>
-                            <li>Dados fiscais serão validados conforme legislação</li>
-                            <li>Processo focado em compliance obrigatória</li>
-                        </ul>
+                
+                <div class="col-md-6">
+                    <!-- Opção 2: Recuperar Trabalho Salvo -->
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-center mb-3">
+                                <i class="bi bi-folder-open"></i> Continuar Trabalho
+                            </h5>
+                            
+                            <div class="text-center p-4">
+                                <i class="bi bi-archive" style="font-size: 3rem; color: var(--bs-info);"></i>
+                                <p class="mt-3">Carregue um arquivo .expertzy salvo anteriormente para continuar de onde parou</p>
+                                
+                                <input type="file" id="loadSavedFile" accept=".json,.expertzy" style="display: none;" onchange="carregarArquivoSalvo(this)">
+                                <button type="button" class="btn btn-info btn-lg w-100 mt-3" onclick="document.getElementById('loadSavedFile').click()">
+                                    <i class="bi bi-upload"></i> Carregar Arquivo Salvo
+                                </button>
+                                
+                                <small class="text-muted d-block mt-2">Formatos aceitos: .expertzy.json</small>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h6><i class="bi bi-lightbulb"></i> Benefícios</h6>
+                                <ul class="mb-0 small">
+                                    <li>Continue exatamente de onde parou</li>
+                                    <li>Todos os cálculos preservados</li>
+                                    <li>Sem necessidade de reprocessar XML</li>
+                                    <li>Pronto para fase de precificação</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-secondary">
+                        <h6><i class="bi bi-info-circle"></i> Sobre o Sistema</h6>
+                        <p class="mb-0 small">O sistema processa Declarações de Importação (DI) do SISCOMEX, calcula impostos e permite salvar o trabalho para continuação posterior ou integração com o módulo de precificação.</p>
                     </div>
                 </div>
             </div>
@@ -454,6 +484,10 @@
                                 <button type="button" class="btn btn-compliance-secondary" onclick="exportarMemoriaCalculo()">
                                     <i class="bi bi-journal-text"></i> Memória de Cálculo
                                 </button>
+                                
+                                <button type="button" class="btn btn-success" onclick="salvarDadosEmArquivo()">
+                                    <i class="bi bi-save"></i> Salvar Trabalho (.expertzy)
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -478,11 +512,11 @@
                             </ul>
                             
                             <div class="d-grid gap-2 mt-4">
-                                <button type="button" class="btn btn-compliance" onclick="window.location.href='../pricing-strategy/pricing-system.html'">
-                                    <i class="bi bi-graph-up-arrow"></i> Iniciar Análise de Precificação
+                                <button type="button" class="btn btn-primary btn-lg" onclick="prepararParaPrecificacao()">
+                                    <i class="bi bi-graph-up-arrow"></i> Continuar para Precificação
                                 </button>
                                 
-                                <button type="button" class="btn btn-outline-compliance" onclick="processarNovaDI()">
+                                <button type="button" class="btn btn-outline-compliance" onclick="confirmarProcessarNovaDI()">
                                     <i class="bi bi-arrow-clockwise"></i> Processar Nova DI
                                 </button>
                             </div>
@@ -495,6 +529,79 @@
         <!-- Success/Error Messages -->
         <div id="alertContainer" class="mt-4">
             <!-- Mensagens dinâmicas -->
+        </div>
+    </div>
+
+    <!-- Modal para Gerenciar Dados Salvos -->
+    <div class="modal fade" id="modalDadosSalvos" tabindex="-1" aria-labelledby="modalDadosSalvosLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-compliance text-white">
+                    <h5 class="modal-title" id="modalDadosSalvosLabel">
+                        <i class="bi bi-folder-open"></i> Dados Salvos de DI
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="searchDISalva" placeholder="Buscar por número de DI...">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Número DI</th>
+                                    <th>Data Salvamento</th>
+                                    <th>Valor Total</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyDadosSalvos">
+                                <!-- Dados serão inseridos dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="mensagemSemDados" class="text-center text-muted d-none">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p>Nenhum dado salvo encontrado</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação para Processar Nova DI -->
+    <div class="modal fade" id="modalConfirmarNovaDI" tabindex="-1" aria-labelledby="modalConfirmarNovaDILabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="modalConfirmarNovaDILabel">
+                        <i class="bi bi-exclamation-triangle"></i> Confirmar Nova Importação
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Você está prestes a iniciar uma nova importação de DI.</p>
+                    <p><strong>Deseja salvar os dados da DI atual antes de continuar?</strong></p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Os dados salvos poderão ser recuperados posteriormente.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" onclick="salvarEProcessarNovaDI()">
+                        <i class="bi bi-save"></i> Salvar e Continuar
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="processarNovaDISemSalvar()">
+                        <i class="bi bi-arrow-clockwise"></i> Continuar sem Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

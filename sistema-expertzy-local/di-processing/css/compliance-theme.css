@@ -46,6 +46,56 @@
     --compliance-gray-900: #212529;
 }
 
+/* Step 1 - Opções de Importação */
+.option-card {
+    border: 2px solid var(--compliance-gray-200);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.option-card:hover {
+    border-color: var(--compliance-primary);
+    box-shadow: 0 4px 15px rgba(255, 0, 45, 0.1);
+    transform: translateY(-2px);
+}
+
+.option-card .card-title {
+    color: var(--compliance-secondary);
+    font-weight: 600;
+}
+
+.upload-area {
+    border: 2px dashed var(--compliance-primary);
+    border-radius: 10px;
+    padding: 2rem;
+    background: var(--compliance-primary-lighter);
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    background: var(--compliance-light);
+    border-color: var(--compliance-primary-dark);
+}
+
+.upload-area.dragover {
+    background: var(--compliance-primary-light);
+    border-color: var(--compliance-primary);
+    transform: scale(1.02);
+}
+
+.recover-zone {
+    border: 2px dashed var(--compliance-info);
+    border-radius: 10px;
+    background: rgba(23, 162, 184, 0.05);
+    transition: all 0.3s ease;
+}
+
+.recover-zone:hover {
+    background: rgba(23, 162, 184, 0.1);
+    border-color: #138496;
+}
+
 /* Base Compliance Styling */
 .compliance-container {
     background-color: var(--compliance-gray-50);
