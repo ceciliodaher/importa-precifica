@@ -63,7 +63,7 @@ class DIProcessor {
      * @param {string} xmlContent - Conteúdo do arquivo XML
      * @returns {Object} Dados estruturados da DI
      */
-    parseXML(xmlContent) {
+    async parseXML(xmlContent) {
         try {
             this.originalXmlContent = xmlContent;
             
@@ -96,7 +96,7 @@ class DIProcessor {
             this.extractInformacoesComplementares(xmlDoc);
             
             // ===== CORREÇÃO CRÍTICA: Extrair despesas aduaneiras =====
-            this.extractDespesasAduaneiras(xmlDoc);
+            await this.extractDespesasAduaneiras(xmlDoc);
             
             // Processar múltiplas moedas e taxas de câmbio
             this.processarMultiplasMoedas(xmlDoc);
@@ -877,7 +877,7 @@ class DIProcessor {
      * ===== MÉTODO CRÍTICO: Extrai TODAS as despesas aduaneiras =====
      * Extrai pagamentos, acréscimos e calcula despesas obrigatórias
      */
-    extractDespesasAduaneiras(xmlDoc) {
+    async extractDespesasAduaneiras(xmlDoc) {
         console.log('🔍 Extraindo despesas aduaneiras...');
         
         const despesas = {
@@ -894,7 +894,7 @@ class DIProcessor {
         this.extractAcrescimos(xmlDoc, despesas);
         
         // ===== 3. CALCULAR DESPESAS AUTOMÁTICAS =====
-        this.calcularDespesasAutomaticas(xmlDoc, despesas);
+        await this.calcularDespesasAutomaticas(xmlDoc, despesas);
         
         // ===== 5. TOTALIZAR DESPESAS =====
         this.totalizarDespesasAduaneiras(despesas);
@@ -997,7 +997,7 @@ class DIProcessor {
     /**
      * Calcula despesas automáticas (AFRMM, etc.)
      */
-    calcularDespesasAutomaticas(xmlDoc, despesas) {
+    async calcularDespesasAutomaticas(xmlDoc, despesas) {
         // ===== AFRMM = 25% do frete marítimo =====
         const viaTransporte = this.getTextContent(xmlDoc, 'dadosCargaViaTransporteCodigo');
         

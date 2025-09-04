@@ -127,9 +127,9 @@ function populateDIInfo(diData) {
                 <p><strong>Fornecedor:</strong> ${firstAddition.fornecedor?.nome || 'N/A'}</p>
             </div>
             <div class="col-md-6">
-                <p><strong>CIF:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.valores_base?.valor_aduaneiro_total, 'Valor aduaneiro'))}</p>
-                <p><strong>Total Impostos:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.totais?.total_impostos, 'Total impostos'))}</p>
-                <p><strong>Custo Total:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.totais?.custo_total, 'Custo total'))}</p>
+                <p><strong>CIF:</strong> R$ ${formatCurrency(validateNumericValue(calculation.valores_base?.valor_aduaneiro_total, 'Valor aduaneiro'))}</p>
+                <p><strong>Total Impostos:</strong> R$ ${formatCurrency(validateNumericValue(calculation.totais?.total_impostos, 'Total impostos'))}</p>
+                <p><strong>Custo Total:</strong> R$ ${formatCurrency(validateNumericValue(calculation.totais?.custo_total, 'Custo total'))}</p>
             </div>
         </div>
         <div class="alert alert-success mt-2">

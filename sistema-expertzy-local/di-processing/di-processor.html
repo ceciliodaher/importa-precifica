@@ -768,11 +768,15 @@
     <!-- Validation Module -->
     <script src="js/CalculationValidator.js"></script>
     
+    <!-- Core DI Processing Scripts -->
+    <script src="js/DIProcessor.js"></script>
+    <script src="js/ComplianceCalculator.js"></script>
+    
+    <!-- Configuration Loader (after core classes) -->
+    <script src="../shared/js/ConfigLoader.js"></script>
+    
     <!-- Multi-Addition Exporter -->
     <script src="js/MultiAdditionExporter.js"></script>
-    
-    <!-- Configuration Loader -->
-    <script src="../shared/js/ConfigLoader.js"></script>
     
     <!-- Export System Modules -->
     <script src="js/ExcelExporter.js"></script>
@@ -781,9 +785,7 @@
     <!-- Legacy PDF Export (for CroquiNF only) -->
     <script src="../shared/js/exportCroquiNF.js"></script>
     
-    <!-- Core DI Processing Scripts -->
-    <script src="js/DIProcessor.js"></script>
-    <script src="js/ComplianceCalculator.js"></script>
+    <!-- Interface (last) -->
     <script src="js/di-interface.js"></script>
 </body>
 </html>
