@@ -13,14 +13,18 @@ class PricingEngine {
         this.pricingRules = {};
         this.marketAnalysis = {};
         this.configurations = {};
+        this.configLoader = new ConfigLoader();
     }
 
     /**
      * Load processed DI data from Phase 1
      * @param {Object} processedDI - Data from DI Processor
      */
-    loadProcessedDI(processedDI) {
+    async loadProcessedDI(processedDI) {
         console.log('📊 PricingEngine: Carregando dados da DI processada...');
+        
+        // Initialize configurations
+        await this.configLoader.loadAll();
         
         if (!processedDI || !processedDI.calculoImpostos) {
             throw new Error('Dados da DI devem ser processados na Fase 1 antes da precificação');
@@ -106,12 +110,8 @@ class PricingEngine {
     calculateStateScenario(state) {
         const baseCalculation = { ...this.diData.calculoImpostos };
         
-        // Recalculate for specific state (simplified)
-        const stateAliquotas = {
-            'GO': 17, 'SC': 17, 'ES': 17, 'MG': 18, 'SP': 18
-        };
-        
-        const icmsRate = stateAliquotas[state] || 17;
+        // Use ICMS rate from aliquotas.json (correct rates)
+        const icmsRate = await this.configLoader.getICMSRate(state);
         const baseICMS = baseCalculation.impostos.icms.base_calculo_antes;
         const newICMSValue = (baseICMS / (1 - icmsRate/100)) - baseICMS;
         
@@ -129,8 +129,8 @@ class PricingEngine {
                 pis: baseCalculation.impostos.pis.valor_devido,
                 cofins: baseCalculation.impostos.cofins.valor_devido,
                 icms_nominal: newICMSValue,
-                icms_effective: newICMSValue - (benefits.tax_savings || 0),
-                total_taxes: baseCalculation.totais.total_impostos - baseCalculation.impostos.icms.valor_devido + newICMSValue - (benefits.tax_savings || 0)
+                icms_effective: newICMSValue - this.validateTaxSavings(benefits),
+                total_taxes: baseCalculation.totais.total_impostos - baseCalculation.impostos.icms.valor_devido + newICMSValue - this.validateTaxSavings(benefits)
             },
             
             // Benefits
@@ -149,9 +149,10 @@ class PricingEngine {
         scenario.totals.total_cost = 
             scenario.totals.cif_cost + 
             scenario.taxes.total_taxes + 
-            (baseCalculation.despesas?.total_custos || 0);
+            this.validateExpenseTotal(baseCalculation.despesas);
             
-        scenario.totals.cost_per_kg = scenario.totals.total_cost / (baseCalculation.valores_base.peso_liquido || 1);
+        const pesoLiquido = this.validateWeight(baseCalculation.valores_base.peso_liquido);
+        scenario.totals.cost_per_kg = scenario.totals.total_cost / pesoLiquido;
         
         // Calculate competitiveness (lower cost = higher score)
         scenario.totals.competitiveness_score = this.calculateCompetitivenessScore(scenario.totals.total_cost);
@@ -163,43 +164,8 @@ class PricingEngine {
      * Calculate state-specific fiscal benefits
      */
     calculateStateBenefits(state, ncm, icmsValue) {
-        const benefitRules = {
-            'GO': {
-                name: 'FOMENTAR - Crédito ICMS',
-                type: 'credit',
-                rate: 67,
-                applicable_ncms: ['8517', '9018', '8471', '2942'],
-                description: '67% de crédito outorgado sobre ICMS devido'
-            },
-            'SC': {
-                name: 'TTD 060 - Diferimento ICMS',
-                type: 'deferral',
-                rate: 75,
-                applicable_ncms: ['8517', '9018', '8471'],
-                description: '75% de diferimento do ICMS'
-            },
-            'ES': {
-                name: 'FUNDAP - Redução ICMS',
-                type: 'reduction',
-                effective_rate: 9,
-                applicable_ncms: ['8517', '9018', '8471'],
-                description: 'Alíquota efetiva de 9% do ICMS'
-            },
-            'MG': {
-                name: 'Sem benefícios específicos',
-                type: 'none',
-                rate: 0,
-                description: 'Tributação padrão'
-            },
-            'SP': {
-                name: 'Sem benefícios específicos',
-                type: 'none', 
-                rate: 0,
-                description: 'Tributação padrão'
-            }
-        };
-        
-        const rule = benefitRules[state];
+        // Use benefits from beneficios.json (existing configuration)
+        const rule = this.configLoader.getBenefits(state, ncm);
         if (!rule || rule.type === 'none') {
             return {
                 applicable: false,
@@ -354,7 +320,7 @@ class PricingEngine {
                 state: scenario.state,
                 state_name: scenario.state_name,
                 total_cost: scenario.totals.total_cost,
-                tax_savings: scenario.benefits.tax_savings || 0,
+                tax_savings: this.validateTaxSavings(scenario.benefits),
                 competitiveness: scenario.totals.competitiveness_score,
                 recommended: scenario.state === this.scenarios[0].state
             })),
@@ -369,8 +335,8 @@ class PricingEngine {
      */
     findBestBenefitsScenario() {
         return this.scenarios.reduce((best, current) => {
-            const currentSavings = current.benefits.tax_savings || 0;
-            const bestSavings = best.benefits.tax_savings || 0;
+            const currentSavings = this.validateTaxSavings(current.benefits);
+            const bestSavings = this.validateTaxSavings(best.benefits);
             return currentSavings > bestSavings ? current : best;
         });
     }
@@ -380,7 +346,7 @@ class PricingEngine {
      */
     generateComparisonAnalysis() {
         const costs = this.scenarios.map(s => s.totals.total_cost);
-        const savings = this.scenarios.map(s => s.benefits.tax_savings || 0);
+        const savings = this.scenarios.map(s => this.validateTaxSavings(s.benefits));
         
         return {
             cost_variation: {
@@ -527,6 +493,30 @@ class PricingEngine {
             factors: riskFactors,
             recommendations: riskFactors.length > 0 ? ['Considerar posicionamento padrão', 'Analisar elasticidade de demanda'] : ['Estratégia de preços balanceada']
         };
+    }
+
+    /**
+     * Validation methods for strict fiscal calculations
+     */
+    validateTaxSavings(benefits) {
+        if (!benefits || typeof benefits.tax_savings === 'undefined') {
+            throw new Error('Benefícios fiscais não calculados - obrigatório para análise de precificação');
+        }
+        return benefits.tax_savings;
+    }
+
+    validateExpenseTotal(despesas) {
+        if (!despesas || typeof despesas.total_custos === 'undefined') {
+            throw new Error('Total de despesas não disponível - obrigatório para cálculo de custo');
+        }
+        return despesas.total_custos;
+    }
+
+    validateWeight(pesoLiquido) {
+        if (!pesoLiquido || pesoLiquido <= 0) {
+            throw new Error('Peso líquido inválido - obrigatório para cálculo de custo por kg');
+        }
+        return pesoLiquido;
     }
 }
 

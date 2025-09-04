@@ -8,6 +8,18 @@ class DIProcessor {
         this.diData = {};
         this.originalXmlContent = null;
         this.incotermIdentificado = null;
+        this.configLoader = new ConfigLoader();
+        this.configsLoaded = false;
+    }
+
+    /**
+     * Ensure configurations are loaded before using them
+     */
+    async ensureConfigsLoaded() {
+        if (!this.configsLoaded) {
+            await this.configLoader.loadAll();
+            this.configsLoaded = true;
+        }
     }
 
     /**
@@ -993,10 +1005,12 @@ class DIProcessor {
             const freteValorReais = this.convertValue(this.getTextContent(xmlDoc, 'freteValorReais'), 'monetary');
             
             if (freteValorReais > 0) {
-                const afrmm = freteValorReais * 0.25; // 25% do frete
+                await this.ensureConfigsLoaded();
+                const afrmmRate = this.configLoader.getAFRMMRate();
+                const afrmm = freteValorReais * afrmmRate;
                 despesas.calculadas.afrmm = afrmm;
                 
-                console.log(`📋 AFRMM calculado: 25% de R$ ${freteValorReais.toFixed(2)} = R$ ${afrmm.toFixed(2)}`);
+                console.log(`📋 AFRMM calculado: ${afrmmRate * 100}% de R$ ${freteValorReais.toFixed(2)} = R$ ${afrmm.toFixed(2)}`);
             }
         }
     }

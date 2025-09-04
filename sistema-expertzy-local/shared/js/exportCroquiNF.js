@@ -1121,12 +1121,7 @@ window.gerarCroquiPDFNovo = async function(diData) {
         console.log('🚀 Iniciando geração do Croqui NF PDF (v2.0)...');
         
         if (!diData) {
-            // Tentar obter do app global
-            if (window.app && window.app.currentDI) {
-                diData = window.app.currentDI;
-            } else {
-                throw new Error('Dados da DI não fornecidos. Carregue uma DI primeiro.');
-            }
+            throw new Error('Dados da DI não fornecidos - obrigatório para geração do croqui NF');
         }
         
         const exporter = new CroquiNFExporter(diData, window.currentCalculation);

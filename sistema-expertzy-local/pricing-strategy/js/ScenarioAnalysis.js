@@ -49,7 +49,7 @@ class ScenarioAnalysis {
     analyzeCostStructure() {
         const costs = this.scenarios.map(s => s.totals.total_cost);
         const taxes = this.scenarios.map(s => s.taxes.total_taxes);
-        const benefits = this.scenarios.map(s => s.benefits.tax_savings || 0);
+        const benefits = this.scenarios.map(s => this.validateTaxSavings(s.benefits, `Cenário ${s.state}`));
 
         return {
             cost_range: {
@@ -80,7 +80,7 @@ class ScenarioAnalysis {
         const taxEfficiency = this.scenarios.map(scenario => {
             const effectiveTaxRate = scenario.taxes.total_taxes / scenario.totals.cif_cost;
             const benefitUtilization = scenario.benefits.applicable ? 
-                (scenario.benefits.tax_savings || 0) / scenario.taxes.icms_nominal : 0;
+                this.validateTaxSavings(scenario.benefits, `Cenário ${scenario.state}`) / scenario.taxes.icms_nominal : 0;
             
             return {
                 state: scenario.state,
@@ -116,7 +116,7 @@ class ScenarioAnalysis {
         };
 
         const competitiveAnalysis = this.scenarios.map(scenario => {
-            const marketRef = marketReferences[scenario.state] || 12000;
+            const marketRef = this.validateMarketReference(marketReferences[scenario.state], scenario.state);
             const competitiveAdvantage = (marketRef - scenario.totals.total_cost) / marketRef * 100;
             
             return {
@@ -234,7 +234,7 @@ class ScenarioAnalysis {
 
         // Tax benefits recommendation
         const bestBenefits = this.scenarios.reduce((best, current) => 
-            (current.benefits.tax_savings || 0) > (best.benefits.tax_savings || 0) ? current : best);
+            this.validateTaxSavings(current.benefits, `Cenário ${current.state}`) > this.validateTaxSavings(best.benefits, `Cenário ${best.state}`) ? current : best);
         
         if (bestBenefits.benefits.applicable && bestBenefits.benefits.tax_savings > 0) {
             recommendations.push({
@@ -293,7 +293,7 @@ class ScenarioAnalysis {
                 total_cost: this.scenarios.map(s => s.totals.total_cost),
                 tax_burden: this.scenarios.map(s => s.taxes.total_taxes),
                 icms_rate: this.scenarios.map(s => s.taxes.icms_nominal),
-                benefits: this.scenarios.map(s => s.benefits.tax_savings || 0),
+                benefits: this.scenarios.map(s => this.validateTaxSavings(s.benefits, `Cenário ${s.state}`)),
                 competitiveness: this.scenarios.map(s => s.totals.competitiveness_score)
             },
             rankings: {
@@ -319,7 +319,7 @@ class ScenarioAnalysis {
     calculateTaxEfficiencyScore(scenario) {
         const baseTaxRate = scenario.taxes.total_taxes / scenario.totals.cif_cost;
         const benefitFactor = scenario.benefits.applicable ? 
-            1 + (scenario.benefits.tax_savings || 0) / scenario.taxes.total_taxes : 1;
+            1 + this.validateTaxSavings(scenario.benefits, `Cenário ${scenario.state}`) / scenario.taxes.total_taxes : 1;
         
         return (1 / baseTaxRate) * benefitFactor * 100; // Higher score = more efficient
     }
@@ -448,7 +448,10 @@ class ScenarioAnalysis {
 
     getImpactScore(impact) {
         const scores = { 'high': 3, 'medium': 2, 'low': 1 };
-        return scores[impact] || 0;
+        if (scores[impact] === undefined) {
+            throw new Error(`Nível de impacto inválido: ${impact} - deve ser 'high', 'medium' ou 'low'`);
+        }
+        return scores[impact];
     }
 
     calculateMaxSavings(bestScenario) {
@@ -460,7 +463,7 @@ class ScenarioAnalysis {
         return this.scenarios
             .map(s => ({
                 state: s.state,
-                efficiency: s.totals.total_cost + (s.benefits.tax_savings || 0) * -1
+                efficiency: s.totals.total_cost + this.validateTaxSavings(s.benefits, `Cenário ${s.state}`) * -1
             }))
             .sort((a, b) => a.efficiency - b.efficiency);
     }
@@ -473,8 +476,8 @@ class ScenarioAnalysis {
 
     rankStatesByBenefits() {
         return this.scenarios
-            .sort((a, b) => (b.benefits.tax_savings || 0) - (a.benefits.tax_savings || 0))
-            .map((s, index) => ({ state: s.state, rank: index + 1, benefits: s.benefits.tax_savings || 0 }));
+            .sort((a, b) => this.validateTaxSavings(b.benefits, `Cenário ${b.state}`) - this.validateTaxSavings(a.benefits, `Cenário ${a.state}`))
+            .map((s, index) => ({ state: s.state, rank: index + 1, benefits: this.validateTaxSavings(s.benefits, `Cenário ${s.state}`) }));
     }
 
     rankStatesByCompetitiveness() {
@@ -546,6 +549,23 @@ class ScenarioAnalysis {
             'Regular compliance reviews',
             'Stakeholder communication protocols'
         ];
+    }
+
+    /**
+     * Validation methods for strict fiscal calculations
+     */
+    validateTaxSavings(benefits, contextLabel) {
+        if (!benefits || typeof benefits.tax_savings === 'undefined') {
+            throw new Error(`Benefícios fiscais não calculados para ${contextLabel} - obrigatório para análise`);
+        }
+        return benefits.tax_savings;
+    }
+
+    validateMarketReference(marketRef, state) {
+        if (!marketRef || marketRef <= 0) {
+            throw new Error(`Referência de mercado não disponível para estado ${state} - obrigatório para análise competitiva`);
+        }
+        return marketRef;
     }
 }
 

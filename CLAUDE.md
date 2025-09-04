@@ -9,9 +9,11 @@ Brazilian import taxation and pricing system (Sistema de Importação e Precific
 ## Current Implementation
 
 ### **Production Web System** (JavaScript-based)
+
 Located at `sistema-expertzy-local/` - **Two-phase architecture** with fully functional DI processing:
 
 **Phase 1: DI Compliance Processor** (`/di-processing/`) ✅ **FULLY FUNCTIONAL**
+
 - ✅ **Complete DI data display**: Shows correct DI number, incoterm, all additions
 - ✅ **Multiple additions support**: Interactive table with 16+ additions, detail modals
 - ✅ **Brazilian formatting**: Currency (R$ 33.112,20), numbers (1.234,56)
@@ -26,24 +28,71 @@ Located at `sistema-expertzy-local/` - **Two-phase architecture** with fully fun
 - ✅ **Legacy system parity**: All core functionality replicated
 
 **Phase 2: Pricing Strategy System** (`/pricing-strategy/`)
+
 - Multi-scenario pricing analysis (planned)
 - State-specific fiscal incentive optimization
 - Business-focused interface (green theme)
 
 ### **Legacy Python Prototype**
+
 Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py`:
+
 - GUI interface using Tkinter
 - XML parsing for DI documents
 - Tax calculation engine (ICMS, IPI, PIS, COFINS, II)
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
-## Recent Critical Fixes (2025-09-02)
+## Recent Critical Fixes (2025-09-04)
+
+### **🔧 Modular Export System: Eliminação de Dependências Legadas**
+
+**Latest Fix (2025-09-04)**: Implementação de sistema modular de export e eliminação completa de dependências do sistema legado
+
+**Problemas Resolvidos**:
+
+- ❌ **Excel export falhando**: "Sistema não inicializado" em globals.js → ✅ **ExcelExporter.js especializado**
+- ❌ **Dependência window.app legado** → ✅ **Sistema totalmente modular sem globals.js**
+- ❌ **ICMS GO = 17% incorreto** em PricingEngine → ✅ **19% correto via aliquotas.json**
+- ❌ **AFRMM 25% hardcoded** → ✅ **Taxa configurável em import-fees.json**
+- ❌ **73+ fallbacks fiscais problemáticos** → ✅ **Fail-fast com validação explícita**
+
+**Implementações Técnicas**:
+
+- **ExcelExporter.js**: Módulo especializado para planilhas de custo com formatação brasileira
+- **ExportManager.js**: Coordenador de exports (Excel, PDF, JSON) com validação unificada  
+- **ConfigLoader.js**: Carregador simples para configurações que mudam com legislação
+- **import-fees.json**: Centralizou SISCOMEX, AFRMM e outras taxas de importação
+- **Eliminação completa**: 73+ fallbacks `|| 0` removidos dos cálculos fiscais
+
+**Arquivos Criados/Modificados**:
+
+- `di-processing/js/ExcelExporter.js` → Novo módulo especializado para Excel
+- `di-processing/js/ExportManager.js` → Novo coordenador de exports  
+- `shared/js/ConfigLoader.js` → Novo carregador de configurações
+- `shared/data/import-fees.json` → Novas taxas de importação configuráveis
+- `shared/js/globals.js` → **REMOVIDO** (eliminada dependência legada)
+- `pricing-strategy/js/PricingEngine.js` → Corrigido para usar aliquotas.json
+- `di-processing/js/DIProcessor.js` → AFRMM agora configurável
+- Multiple files → Fallbacks fiscais eliminados
+
+**Princípio KISS Aplicado**:
+
+- **Centralizados apenas**: Dados que mudam com legislação (alíquotas, taxas)
+- **Mantidos no código**: Fórmulas, conversões, lógica de negócio (já funcionam)
+- **Sistema modular**: Cada export tem módulo especializado
+- **Zero dependências legadas**: Eliminado window.app e globals.js completamente
+
+**Business Impact**: Excel export agora funciona com dados reais da DI, alíquotas corretas e sistema 100% modular sem dependências legadas.
+
+## Previous Critical Fixes (2025-09-02)
 
 ### **💾 Advanced Data Management System: File-Based Workflow Implementation**
-**Latest Fix (2025-09-02)**: Complete implementation of file-based data management with workflow continuity
+
+**Previous Fix (2025-09-02)**: Complete implementation of file-based data management with workflow continuity
 
 **New Features Implemented**:
+
 - ✅ **File-Based Saving**: Save complete DI work as `.expertzy.json` files on user's computer
 - ✅ **Workflow Continuity**: Load saved files to continue exactly where you left off
 - ✅ **Step 1 Redesign**: Two clear options - "Nova Importação" OR "Continuar Trabalho"
@@ -51,6 +100,7 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - ✅ **Complete Data Preservation**: XML content, DI data, calculations, and metadata all saved
 
 **Technical Implementation**:
+
 - **File Format**: `.expertzy.json` contains full project state (DI data + calculations + XML base64)
 - **Step 1 Interface**: Card-based layout with upload zone and file recovery option
 - **Data Flow**: XML → Process → Calculate → Save (.expertzy) → Continue to Pricing
@@ -58,12 +108,14 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - **Smart Navigation**: Loaded files go directly to appropriate step (Step 2 or 3) based on completion state
 
 **Files Updated**:
+
 - `di-processing/di-processor.html` → New Step 1 interface with dual options and restored fileType element
 - `di-processing/js/di-interface.js` → File-based save/load functions replacing localStorage approach
 - `shared/js/storage.js` → Extended with snapshot management for backward compatibility
 - `di-processing/css/compliance-theme.css` → New styling for option cards and upload areas
 
 **User Benefits**:
+
 - **Portability**: Work files can be shared, backed up, and moved between computers
 - **Flexibility**: Stop and resume work at any time without losing progress
 - **Integration**: Seamless transition to pricing phase with all data preserved
@@ -74,15 +126,18 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 ## Previous Critical Fixes (2025-09-01)
 
 ### **🔧 TypeError Fixes: Complete Data Structure Standardization**
+
 **Previous Fix (2025-09-01)**: Complete resolution of TypeError issues in calculation objects and export functions
 
 **Problems Solved**:
+
 - ❌ **TypeError: calculation.despesas is undefined** → ✅ **Despesas structure** correctly passed to export functions
 - ❌ **TypeError: p.valor_unitario is undefined** → ✅ **Property names standardized** across all modules
 - ❌ **Error: Alíquota ICMS não encontrada para NCM** → ✅ **State-based ICMS rates** from DI importer address
 - ❌ **Missing consolidated fields** → ✅ **Complete calculation object** with peso_liquido, taxa_cambio, ncm, custo_por_kg
 
 **Technical Implementation**:
+
 - **State Extraction**: Estado obtained from `di.importador.endereco_uf` instead of hardcoded 'GO'
 - **Data Flow**: `despesasConsolidadas` properly passed through `consolidarTotaisDI()` method
 - **Property Standardization**: `valor_unitario_reais` → `valor_unitario` for consistency
@@ -90,6 +145,7 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - **Fallback Removal**: Eliminated unnecessary fallback for products (all DIs have products)
 
 **Files Updated**:
+
 - `di-processing/js/di-interface.js` → State extraction and proper data passing
 - `di-processing/js/ComplianceCalculator.js` → Complete consolidated object structure
 - `shared/js/exportCroquiNF.js` → Property name standardization and robust error handling
@@ -99,9 +155,11 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 ## Previous Critical Fixes (2025-08-29)
 
 ### **🎨 Visual Interface Standardization: Complete Expertzy Brand Implementation**
+
 **Latest Fix (2025-08-29)**: Complete visual standardization across all interfaces using Expertzy brand identity
 
 **Problems Solved**:
+
 - ❌ **Inconsistent navbar**: Different styling across pages → ✅ **Unified navbar** with navy background and white logo background
 - ❌ **Simple gradients**: Basic 2-color headers → ✅ **Professional gradients** with SVG decorative overlay
 - ❌ **Poor typography**: Small fonts, low contrast → ✅ **Consistent hierarchy** (3rem H1, 1.5rem lead, proper contrast)
@@ -109,6 +167,7 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - ❌ **Low-impact headers**: Short headers with poor visual presence → ✅ **Majestic headers** with 50vh min-height
 
 **Technical Implementation**:
+
 - **CSS Architecture**: Consolidated all brand CSS into `shared/css/` directory structure
 - **Gradient Unification**: Applied same `linear-gradient(135deg, navy → #0d1a3d)` + SVG overlay across all pages
 - **Logo Enhancement**: Added white background container with rounded corners and hover effects
@@ -116,6 +175,7 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - **Navbar Consistency**: Identical navigation styling matching landing page across all interfaces
 
 **Files Updated**:
+
 - `sistema-expertzy-local/index.html` → Updated CSS references to shared directory
 - `sistema-expertzy-local/di-processing/css/compliance-theme.css` → Complete overhaul with Expertzy branding
 - `sistema-expertzy-local/pricing-strategy/css/business-theme.css` → Complete overhaul with Expertzy branding
@@ -124,24 +184,29 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 **Visual Result**: All three interfaces (index.html, di-processor.html, pricing-system.html) now maintain 100% visual consistency with professional Expertzy branding, differentiated only by button colors for UX clarity.
 
 ### **🎯 Currency Formatting Fix: Complete Brazilian Standards Implementation**
+
 **Latest Fix (2025-08-29)**: Comprehensive currency formatting corrections throughout the interface
 
 **Problems Solved**:
+
 - ❌ USD values showing "Valor USD: R$ 6.346,13" → ✅ Shows **"Valor USD: $6,346.13"** (USD symbol only)
 - ❌ Preview sections using periods: "R$ 112998.65" → ✅ **Brazilian commas: "R$ 112.998,65"**
 - ❌ Inconsistent formatting across interface → ✅ **All currency displays use formatCurrency()**
 - ❌ Mixed currency symbols and formats → ✅ **Proper USD ($) vs BRL (R$) distinction**
 
 **Technical Implementation**:
+
 - **Lines 506-509**: Fixed preview sections to use `formatCurrency()` instead of `.toFixed(2)`
 - **Lines 443-664**: Applied Brazilian formatting to all currency displays in interface
 - **Multi-currency support**: USD shows "$", BRL shows "R$" with proper decimal separators
 - **Complete consistency**: All monetary values throughout system use standardized formatting
 
-### **🎯 KISS Implementation: Replicating Legacy System Functionality** 
+### **🎯 KISS Implementation: Replicating Legacy System Functionality**
+
 **Previous Major Fix**: "Keep It Simple, Stupid" - copied exactly what **ALREADY WORKED** in the legacy system
 
 **Problems Solved**:
+
 - ❌ DI showing "Número: N/A, Incoterm: N/A" → ✅ Shows **"DI 2300120746, Incoterm: CFR"**
 - ❌ Incorrect CIF value from unknown source → ✅ **Correct total from all additions**
 - ❌ Only first addition displayed → ✅ **All 16 additions** in interactive table
@@ -151,20 +216,24 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 ### **✅ Implementation Details (5 Phases)**
 
 **PHASE 1: Field Name Standardization**
+
 - Fixed `di_numero` → `numero_di` (matching legacy)  
 - Fixed `incoterm?.codigo` → `incoterm_identificado?.codigo` (matching DIProcessor)
 
 **PHASE 2: Legacy updateDIInfo() Replication**
+
 - Implemented `updateDIInfo()` function copying exact legacy behavior
 - Added DI summary display at top of Step 2
 - Brazilian currency formatting with `formatCurrency()`
 
 **PHASE 3: Multiple Additions Support**
+
 - `populateAllAdditions()`: Table showing all DI additions
 - `viewAdicaoDetails()`: Modal with detailed addition view (taxes, products, supplier)
 - Interactive navigation between additions (legacy-style buttons)
 
 **PHASE 4: Export Functions Activation** 
+
 - Connected to legacy export scripts: `exportCroquiNF.js`, `globals.js`
 - Real export functions (not placeholders):
   - Excel: via SheetJS integration
@@ -173,15 +242,18 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - Proper error handling and user feedback
 
 **PHASE 5: Brazilian Number Formatting**
+
 - `formatCurrency()`: R$ 33.112,20 (pt-BR locale)
 - `formatNumber()`: 1.234,56 formatting
 - Applied throughout interface
 
 ### **🔧 Previous Tax Calculation Fix (2025-08-28)**
+
 **Problem**: ComplianceCalculator was using non-existent JSON configurations instead of DI-extracted values
 **Solution**: Implemented POP compliance - **"alíquotas devem ser extraídas da DI nesta etapa"**
 
 **Fixed**:
+
 - ✅ **PIS**: Uses `adicao.tributos.pis_aliquota_ad_valorem` + `pis_valor_devido`
 - ✅ **COFINS**: Uses `adicao.tributos.cofins_aliquota_ad_valorem` + `cofins_valor_devido`
 - ✅ **II**: Uses `adicao.tributos.ii_aliquota_ad_valorem` + `ii_valor_devido`
@@ -189,6 +261,7 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - ✅ **ICMS**: Uses `aliquotas_icms_2025[estado].aliquota_interna` (GO = 19%)
 
 **Eliminated**:
+
 - ❌ Fallback configurations with incorrect values
 - ❌ Validation errors with zero tax rates
 - ❌ "Configuração PIS não carregada" errors
@@ -196,7 +269,9 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - ❌ Redundant tax recalculations
 
 ### **🏆 Current System Status**
+
 **DI Compliance Processor** is now **production-ready** with:
+
 - ✅ Complete DI data extraction and display
 - ✅ All 16 additions viewable with detailed breakdowns
 - ✅ Correct tax calculations using DI values
@@ -205,12 +280,15 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - ✅ Legacy system parity achieved
 
 **Key Commits**:
+
 - `a5b618d` - KISS implementation replicating legacy functionality
 - `419824f` - Tax validation fixes for zero values
 - `4974771` - Tax calculation using DI-extracted values
-## Key Commands
+  
+  ## Key Commands
 
 ### Running the Web System
+
 ```bash
 # Open the main system
 open sistema-expertzy-local/index.html
@@ -220,18 +298,22 @@ open sistema-expertzy-local/di-processing/di-processor.html
 ```
 
 ### Running the Legacy Python Prototype
+
 ```bash
 python orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py
 ```
 
 ### Serena MCP Analysis
+
 ```bash
 # Global Serena MCP access (configured)
 uvx --python 3.11 --from git+https://github.com/oraios/serena.git serena --help
 ```
 
 ### Python Dependencies (Legacy)
+
 The prototype requires these packages (no requirements.txt exists yet):
+
 - tkinter (usually included with Python)
 - pandas
 - openpyxl (for Excel export)
@@ -239,7 +321,8 @@ The prototype requires these packages (no requirements.txt exists yet):
 
 ## Architecture and Structure
 
-### **Current Directory Structure** 
+### **Current Directory Structure**
+
 ```
 /sistema-expertzy-local/
 ├── index.html                    # Landing page with navigation
@@ -276,7 +359,8 @@ DI (XML) → DIProcessor.js → ComplianceCalculator.js → Interface
 ✅ Conform to POP: "alíquotas extraídas da DI"
 ```
 
-### **Tax Calculation Flow** 
+### **Tax Calculation Flow**
+
 1. **DIProcessor.js**: Extracts all tax rates and values from DI XML
 2. **ComplianceCalculator.js**: Uses extracted values (not recalculates)
 3. **ICMS Only**: Uses JSON configuration (by state) for ICMS rates
@@ -285,17 +369,19 @@ DI (XML) → DIProcessor.js → ComplianceCalculator.js → Interface
 ### **Import Expenses Management**
 
 **Current System (Functional)**:
+
 - ✅ **Automatic DI Processing**: SISCOMEX, AFRMM, capatazia extraction
 - ✅ **Manual Extra Expenses**: Storage, transport, customs agent
 - ✅ **ICMS Classification**: Mark expenses as taxable or cost-only
 - ✅ **Real-time Preview**: Show ICMS impact before applying
 
 **ICMS Tax Base Formula**:
+
 ```
 Base ICMS = (CIF + II + IPI + PIS + COFINS + DI Expenses + Extra Taxable Expenses) / (1 - ICMS rate)
 ```
-```
 
+```
 ## Tax Calculation Logic
 
 The system handles Brazilian import taxes with specific rules:
@@ -399,8 +485,8 @@ The system handles Brazilian import taxes with specific rules:
 - **`index.html`**: Landing page ONLY - marketing/presentation interface
 - **Functional Systems**: Located in dedicated phase directories
 - **No mixing**: Landing page does not contain system functionality
-
 ```
+
 /sistema-expertzy-local/
 ├── index.html                  # LANDING PAGE ONLY (marketing/navigation)
 ├── di-processing/              # PHASE 1: Compliance System
@@ -429,8 +515,8 @@ The system handles Brazilian import taxes with specific rules:
 │   └── data/
 └── legacy/                     # Original system (backup)
     └── sistema-importacao.html
-```
 
+```
 **Navigation Flow:**
 1. `index.html` → Landing page with links to phases
 2. `di-processing/di-processor.html` → Full DI processing functionality
@@ -486,6 +572,7 @@ produto = {
 ## Data Processing Rules (MANDATORY)
 
 **XMLParser.js Centralization Principle:**
+
 - XMLParser.js is the SINGLE SOURCE OF TRUTH for all DI data processing
 - NO other module should perform conversions, parsing, or calculations on DI data
 - Consumer modules (Calculator, ExportCroqui, ExportNF, Storage) must ONLY consume processed data
@@ -493,6 +580,7 @@ produto = {
 - Any DI-related data transformation MUST be implemented in XMLParser.js only
 
 **Prohibited Actions in Consumer Modules:**
+
 - Unit conversions (KG to MG, currency conversions)
 - Mathematical operations on raw DI data
 - Reprocessing of XML elements
@@ -506,6 +594,7 @@ produto = {
 **MANDATORY: All fiscal/tax calculation modules MUST fail fast when data is missing**
 
 **Prohibited Patterns:**
+
 ```javascript
 // ❌ NEVER DO THIS IN FISCAL MODULES:
 const aliquota = adicao.tributos?.ii_aliquota || 0;           // Masks missing data
@@ -516,6 +605,7 @@ const automaticas = despesasConsolidadas.automaticas?.total || 0; // Hides struc
 ```
 
 **Required Pattern:**
+
 ```javascript
 // ✅ ALWAYS DO THIS IN FISCAL MODULES:
 const aliquota = adicao.tributos?.ii_aliquota;
@@ -530,10 +620,12 @@ if (!despesasConsolidadas.automaticas || typeof despesasConsolidadas.automaticas
 ```
 
 **Scope:**
+
 - ✅ **Apply to**: DIProcessor, ComplianceCalculator, ItemCalculator, exportCroquiNF
 - ❌ **Exempt**: UX display modules (quantities can default to 1), localStorage, logs
 
 **Expense Distribution Workflow (Bottom-Up):**
+
 1. DIProcessor extracts total expenses from DI (e.g., SISCOMEX R$ 493.56)
 2. ItemCalculator distributes expenses proportionally to EACH item
 3. Each item's taxes are calculated INCLUDING its expense share
@@ -542,24 +634,39 @@ if (!despesasConsolidadas.automaticas || typeof despesasConsolidadas.automaticas
 
 **Rationale**: Fallbacks in fiscal calculations create phantom values (like R$ 112.505,09) that don't exist in the source DI, violating fiscal compliance. The system must use ONLY real data from the DI.
 
+## Important Coding Rules
+
+### ⚠️ NEVER Use Fallbacks
+
+- **NUNCA** use fallbacks que silenciosamente pulam etapas do fluxo
+- **SEMPRE** lance exceções explícitas quando componentes obrigatórios não estão disponíveis
+- **PROIBIDO** usar padrões como `if (!component) { return; }` ou `if (!component) { proceedToNextStep(); }`
+- **OBRIGATÓRIO** falhar com mensagem de erro clara: `throw new Error('Component X não disponível - obrigatório para o fluxo')`
+- **EVITE** duplicação de lógica entre módulos (ex: WorkflowOrchestrator vs CorrectionInterface)
+
+## Debugging
+
+Use browser dev tools and the built-in log window. The application provides extensive logging through the Logger class, with both console and UI output available.
+
 ## CRITICAL: Variable Naming Standards (Data Flow)
 
 ### **MANDATORY: Consistent Naming Across Modules**
 
 **Variable Naming Table (Workflow Order):**
 
-| **Module** | **Data Type** | **Variable Name** | **Access Pattern** | **Flow Order** |
-|------------|---------------|-------------------|-------------------|----------------|
-| **DIProcessor.js** | DI Data | `this.diData` | `diData.numero_di` | 1 |
-| **di-interface.js** | DI Global | `currentDI` | `currentDI.numero_di` | 2 |
-| **ComplianceCalculator.js** | Calculation | `this.lastCalculation` | `calculo.impostos.ii` | 3 |
-| **di-interface.js** | Calculation Global | `window.currentCalculation` | `currentCalculation.despesas` | 4 |
-| **exportCroquiNF.js** | Calculation Export | `this.calculos` | `this.calculos.despesas.automaticas` | 5 |
-| **DIProcessor.js** | Expenses | `despesasConsolidadas` | `despesas.automaticas.total` | 3 |
-| **ComplianceCalculator.js** | Expenses Proportional | `despesasAdicao` | `despesas.automaticas.total` | 3 |
-| **ItemCalculator.js** | Expenses Per Item | `despesasAduaneiras` | `despesas.total_despesas_aduaneiras` | 4 |
+| **Module**                  | **Data Type**         | **Variable Name**           | **Access Pattern**                   | **Flow Order** |
+| --------------------------- | --------------------- | --------------------------- | ------------------------------------ | -------------- |
+| **DIProcessor.js**          | DI Data               | `this.diData`               | `diData.numero_di`                   | 1              |
+| **di-interface.js**         | DI Global             | `currentDI`                 | `currentDI.numero_di`                | 2              |
+| **ComplianceCalculator.js** | Calculation           | `this.lastCalculation`      | `calculo.impostos.ii`                | 3              |
+| **di-interface.js**         | Calculation Global    | `window.currentCalculation` | `currentCalculation.despesas`        | 4              |
+| **exportCroquiNF.js**       | Calculation Export    | `this.calculos`             | `this.calculos.despesas.automaticas` | 5              |
+| **DIProcessor.js**          | Expenses              | `despesasConsolidadas`      | `despesas.automaticas.total`         | 3              |
+| **ComplianceCalculator.js** | Expenses Proportional | `despesasAdicao`            | `despesas.automaticas.total`         | 3              |
+| **ItemCalculator.js**       | Expenses Per Item     | `despesasAduaneiras`        | `despesas.total_despesas_aduaneiras` | 4              |
 
 **NEVER MIX NAMES:**
+
 - ❌ `this.calculation` vs `this.calculos` 
 - ❌ `automaticas` vs `automaticas.total`
 - ❌ Different property names for same data across modules

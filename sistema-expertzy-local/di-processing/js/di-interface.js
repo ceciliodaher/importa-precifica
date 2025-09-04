@@ -10,6 +10,7 @@
 let diProcessor = null;
 let complianceCalculator = null;
 let validator = null;
+let exportManager = null;
 let currentDI = null;
 let currentStep = 1;
 let expenseCounter = 0;
@@ -31,6 +32,7 @@ async function initializeSystem() {
         diProcessor = new DIProcessor();
         complianceCalculator = new ComplianceCalculator();
         validator = new CalculationValidator();
+        exportManager = new ExportManager();
         
         // Load tax configurations
         await complianceCalculator.carregarConfiguracoes();
@@ -42,6 +44,7 @@ async function initializeSystem() {
         window.diProcessor = diProcessor;
         window.complianceCalculator = complianceCalculator;
         window.ItemCalculator = ItemCalculator;
+        window.exportManager = exportManager;
         
         console.log('✅ Sistema inicializado com sucesso');
         
@@ -938,22 +941,20 @@ function updateStepIndicator(activeStep) {
 /**
  * Export functions
  */
-function exportarPlanilhaCustos() {
+async function exportarPlanilhaCustos() {
     if (!currentDI) {
         showAlert('Nenhuma DI carregada para exportar.', 'warning');
         return;
     }
     
+    if (!currentCalculation) {
+        showAlert('Execute o cálculo de impostos antes de exportar.', 'warning');
+        return;
+    }
+    
     try {
-        // Call the global export function from the legacy system
-        if (typeof exportData === 'function') {
-            exportData('excel');
-            showAlert('Planilha de custos exportada com sucesso!', 'success');
-        } else {
-            // Fallback: Export as JSON
-            exportAsJSON('custos_di_' + currentDI.numero_di, currentDI);
-            showAlert('Dados exportados como JSON.', 'success');
-        }
+        const result = await exportManager.export('excel', currentDI, currentCalculation);
+        showAlert(`Planilha exportada: ${result.filename}`, 'success');
     } catch (error) {
         console.error('Erro na exportação:', error);
         showAlert('Erro ao exportar planilha: ' + error.message, 'danger');

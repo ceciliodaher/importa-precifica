@@ -127,9 +127,9 @@ function populateDIInfo(diData) {
                 <p><strong>Fornecedor:</strong> ${firstAddition.fornecedor?.nome || 'N/A'}</p>
             </div>
             <div class="col-md-6">
-                <p><strong>CIF:</strong> R$ ${(calculation.valores_base?.cif_brl || 0).toFixed(2)}</p>
-                <p><strong>Total Impostos:</strong> R$ ${(calculation.totais?.total_impostos || 0).toFixed(2)}</p>
-                <p><strong>Custo Total:</strong> R$ ${(calculation.totais?.custo_total || 0).toFixed(2)}</p>
+                <p><strong>CIF:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.valores_base?.valor_aduaneiro_total, 'Valor aduaneiro'))}</p>
+                <p><strong>Total Impostos:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.totais?.total_impostos, 'Total impostos'))}</p>
+                <p><strong>Custo Total:</strong> R$ ${this.formatCurrency(this.validateNumericValue(calculation.totais?.custo_total, 'Custo total'))}</p>
             </div>
         </div>
         <div class="alert alert-success mt-2">
@@ -752,6 +752,24 @@ function showAlert(message, type = 'info') {
 
 // Make functions available globally for button onclick handlers
 window.iniciarAnaliseEstados = iniciarAnaliseEstados;
+/**
+ * Validation helper functions for strict data handling
+ */
+function validateNumericValue(value, fieldName) {
+    if (value === null || value === undefined || isNaN(value)) {
+        throw new Error(`${fieldName} não disponível ou inválido - obrigatório para exibição`);
+    }
+    return value;
+}
+
+function formatCurrency(value) {
+    return value.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    });
+}
+
+// Make functions globally available
 window.configurarPrecos = configurarPrecos;
 window.gerarRecomendacoes = gerarRecomendacoes;
 window.gerarRelatorios = gerarRelatorios;

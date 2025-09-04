@@ -87,7 +87,7 @@ class StorageManager {
                 numero_di: diData.numero_di,
                 data_processamento: new Date().toLocaleString('pt-BR'),
                 total_adicoes: diData.total_adicoes,
-                valor_total: diData.totais?.valor_total_fob_brl || 0
+                valor_total: this.validateDITotal(diData.totais?.valor_total_fob_brl, diData.numero_di)
             });
 
             console.log('DI salva com sucesso:', diData.numero_di);
@@ -620,8 +620,8 @@ class StorageManager {
                 data_salvamento: new Date().toLocaleString('pt-BR'),
                 di_data: diData,
                 calculation_data: calculation,
-                valor_total: diData.totais?.valor_total_fob_brl || 0,
-                total_adicoes: diData.total_adicoes || 0,
+                valor_total: this.validateDITotal(diData.totais?.valor_total_fob_brl, diData.numero_di),
+                total_adicoes: this.validateAdditionsCount(diData.total_adicoes, diData.numero_di),
                 version: '2025.1'
             };
 
@@ -818,5 +818,22 @@ class StorageManager {
             console.error('Erro ao importar snapshot:', error);
             return false;
         }
+    }
+
+    /**
+     * Validation methods for strict DI data handling
+     */
+    validateDITotal(valorTotal, numeroDI) {
+        if (valorTotal === null || valorTotal === undefined || isNaN(valorTotal)) {
+            throw new Error(`Valor total da DI ${numeroDI} inválido - obrigatório para salvamento`);
+        }
+        return valorTotal;
+    }
+
+    validateAdditionsCount(totalAdicoes, numeroDI) {
+        if (!totalAdicoes || totalAdicoes <= 0) {
+            throw new Error(`Total de adições da DI ${numeroDI} inválido - obrigatório para salvamento`);
+        }
+        return totalAdicoes;
     }
 }
