@@ -201,9 +201,6 @@ async function processarDI() {
         // Process DI usando o parser legado funcional
         currentDI = await diProcessor.parseXML(xmlContent);
         
-        // INTEGRAÇÃO OBRIGATÓRIA: Salvar DI no localStorage IMEDIATAMENTE após processamento - NO FALLBACKS
-        salvarDIParaIntegracao(currentDI, xmlContent);
-        
         // Set global variable for ItemCalculator access
         window.currentDI = currentDI;
         
@@ -1337,152 +1334,41 @@ function mostrarResultadosCalculo() {
 }
 
 /**
- * INTEGRAÇÃO VALIDADA: Preparar transição para precificação com validação rigorosa - NO FALLBACKS
+ * Preparar dados para fase de precificação
  */
 function prepararParaPrecificacao() {
+    if (!currentDI || !currentCalculation) {
+        showAlert('Complete o processamento da DI antes de prosseguir para precificação.', 'warning');
+        return;
+    }
+    
     try {
-        console.log('🔄 Validando pré-requisitos para transição à precificação...');
+        // Preparar dados para próxima fase
+        const dadosParaPrecificacao = {
+            di_data: currentDI,
+            calculation_results: currentCalculation,
+            xml_content: currentXMLContent,
+            compliance_completed: true,
+            timestamp: new Date().toISOString()
+        };
         
-        // Validação RIGOROSA de pré-requisitos - FAIL-FAST
-        const validacao = validarPreRequisitosIntegracao();
-        if (validacao.erro) {
-            console.error('❌ Pré-requisitos não atendidos:', validacao.erro);
-            showAlert(`Não é possível prosseguir: ${validacao.erro}`, 'danger');
-            return;
-        }
+        // Passar dados via sessionStorage para próxima fase
+        sessionStorage.setItem('di_compliance_data', JSON.stringify(dadosParaPrecificacao));
         
-        // Verificar se dados estão salvos no localStorage
-        const diSalva = localStorage.getItem('expertzy_processed_di');
-        if (!diSalva) {
-            throw new Error('Dados da DI não encontrados no localStorage - integração comprometida');
-        }
+        // Salvar automaticamente antes de prosseguir
+        salvarDadosEmArquivo();
         
-        const dadosDI = JSON.parse(diSalva);
-        if (!dadosDI.integration.phase1_completed) {
-            throw new Error('Fase 1 não marcada como completa - dados de integração inconsistentes');
-        }
-        
-        // Validar integridade dos dados salvos
-        if (dadosDI.di_numero !== currentDI.numero_di) {
-            throw new Error(`DI salva (${dadosDI.di_numero}) não corresponde à DI atual (${currentDI.numero_di})`);
-        }
-        
-        console.log(`✅ Validação completa - DI ${dadosDI.di_numero} pronta para precificação`);
-        console.log(`📊 Dados disponíveis: ${dadosDI.produtos.length} produtos, impostos calculados, despesas consolidadas`);
-        
-        // Transição confirmada pelo usuário
-        const confirmacao = confirm(
-            `✅ Validação Completa!\n\n` +
-            `DI: ${dadosDI.di_numero}\n` +
-            `Produtos: ${dadosDI.produtos.length}\n` +
-            `Status: Impostos calculados\n\n` +
-            `Deseja prosseguir para a análise de precificação?`
-        );
-        
-        if (confirmacao) {
-            console.log('🚀 Redirecionando para sistema de precificação...');
-            window.location.href = '../pricing-strategy/pricing-system.html';
-        }
+        // Aguardar um pouco para o download e então redirecionar
+        setTimeout(() => {
+            if (confirm('Dados salvos! Deseja prosseguir para a fase de precificação?')) {
+                window.location.href = '../pricing-strategy/pricing-system.html';
+            }
+        }, 1000);
         
     } catch (error) {
-        console.error('❌ Erro crítico na preparação para precificação:', error);
-        showAlert(`Erro na transição: ${error.message}`, 'danger');
+        console.error('Erro ao preparar para precificação:', error);
+        showAlert('❌ Erro ao preparar dados para precificação.', 'danger');
     }
-}
-
-/**
- * Validar todos os pré-requisitos para integração com precificação - NO FALLBACKS
- * @returns {Object} - {erro: string|null, detalhes: Object}
- */
-function validarPreRequisitosIntegracao() {
-    // 1. Verificar se DI foi processada
-    if (!currentDI) {
-        return {
-            erro: 'DI não processada. Faça upload e processamento do XML primeiro.',
-            detalhes: { etapa: 'upload_xml' }
-        };
-    }
-    
-    if (!currentDI.numero_di) {
-        return {
-            erro: 'Número da DI ausente após processamento. XML pode estar corrompido.',
-            detalhes: { etapa: 'validacao_di' }
-        };
-    }
-    
-    // 2. Verificar se impostos foram calculados
-    if (!currentCalculation) {
-        return {
-            erro: 'Impostos não calculados. Complete o Step 3 (Calcular Impostos) antes de prosseguir.',
-            detalhes: { etapa: 'calculo_impostos' }
-        };
-    }
-    
-    if (!currentCalculation.impostos) {
-        return {
-            erro: 'Estrutura de impostos inválida após cálculo. Recalcule os impostos.',
-            detalhes: { etapa: 'validacao_impostos' }
-        };
-    }
-    
-    // 3. Verificar se há produtos válidos
-    if (!currentDI.adicoes || !Array.isArray(currentDI.adicoes)) {
-        return {
-            erro: 'Adições da DI não encontradas. Verifique se o XML foi processado corretamente.',
-            detalhes: { etapa: 'validacao_adicoes' }
-        };
-    }
-    
-    let totalProdutos = 0;
-    for (const adicao of currentDI.adicoes) {
-        if (adicao.produtos && Array.isArray(adicao.produtos)) {
-            totalProdutos += adicao.produtos.length;
-        }
-    }
-    
-    if (totalProdutos === 0) {
-        return {
-            erro: 'Nenhum produto encontrado na DI. Impossível prosseguir para precificação.',
-            detalhes: { etapa: 'validacao_produtos' }
-        };
-    }
-    
-    // 4. Verificar valores essenciais
-    if (typeof currentDI.taxa_cambio !== 'number' || currentDI.taxa_cambio <= 0) {
-        return {
-            erro: 'Taxa de câmbio inválida na DI. Verifique os dados do XML.',
-            detalhes: { etapa: 'validacao_cambio' }
-        };
-    }
-    
-    // 5. Verificar se valores de impostos são numéricos
-    const impostosPrincipais = ['ii', 'ipi', 'pis', 'cofins', 'icms'];
-    for (const imposto of impostosPrincipais) {
-        if (!currentCalculation.impostos[imposto]) {
-            return {
-                erro: `Imposto ${imposto.toUpperCase()} não calculado. Recalcule os impostos.`,
-                detalhes: { etapa: 'validacao_impostos', imposto }
-            };
-        }
-        
-        if (typeof currentCalculation.impostos[imposto].valor_devido !== 'number') {
-            return {
-                erro: `Valor devido do ${imposto.toUpperCase()} deve ser numérico.`,
-                detalhes: { etapa: 'validacao_valores', imposto }
-            };
-        }
-    }
-    
-    // Tudo válido
-    return {
-        erro: null,
-        detalhes: {
-            di_numero: currentDI.numero_di,
-            total_produtos: totalProdutos,
-            impostos_calculados: impostosPrincipais.length,
-            taxa_cambio: currentDI.taxa_cambio
-        }
-    };
 }
 
 /**
@@ -1724,247 +1610,6 @@ function handleFileDrop(event) {
     }
 }
 
-/**
- * INTEGRAÇÃO OBRIGATÓRIA: Salva DI para sistema de precificação - NO FALLBACKS
- * Executa imediatamente após processamento do XML
- * @param {Object} di - DI processada pelo DIProcessor
- * @param {String} xmlContent - Conteúdo XML original  
- */
-function salvarDIParaIntegracao(di, xmlContent) {
-    if (!di) {
-        throw new Error('DI não processada - impossível salvar para integração com precificação');
-    }
-    
-    if (!di.numero_di) {
-        throw new Error('Número da DI ausente - obrigatório para integração com precificação');
-    }
-    
-    if (!xmlContent) {
-        throw new Error('Conteúdo XML ausente - obrigatório para integração com precificação');
-    }
-    
-    try {
-        console.log('🔗 Salvando DI processada no localStorage para integração Fase 2...');
-        
-        // Validar campos obrigatórios da DI - FAIL-FAST
-        if (!di.adicoes || !Array.isArray(di.adicoes)) {
-            throw new Error('Adições da DI ausentes - obrigatórias para integração com precificação');
-        }
-        
-        if (di.adicoes.length === 0) {
-            throw new Error('DI deve ter pelo menos uma adição para integração com precificação');
-        }
-        
-        // Tentar obter taxa de câmbio (ordem de prioridade)
-        const taxa_cambio = di.taxa_cambio || 
-                           di.moedas?.vmle_vmld?.taxa ||
-                           di.adicoes?.[0]?.taxa_cambio;
-        
-        if (typeof taxa_cambio !== 'number' || taxa_cambio <= 0) {
-            throw new Error('Taxa de câmbio não encontrada na DI - obrigatória para precificação');
-        }
-        
-        // Estruturar dados básicos da DI para Fase 2
-        const diParaIntegracao = {
-            // Metadados da integração
-            integration: {
-                version: '2.0',
-                phase1_completed: false, // Será true após cálculo impostos
-                saved_at: new Date().toISOString(),
-                source: 'DIProcessor_immediate',
-                xml_processed: true,
-                calculations_pending: true
-            },
-            
-            // Dados básicos da DI processada
-            di_numero: di.numero_di,
-            di_data: di.data_registro,
-            incoterm: di.incoterm_identificado,
-            importador: di.importador,
-            taxa_cambio: taxa_cambio,
-            
-            // XML original preservado
-            xml_content: btoa(unescape(encodeURIComponent(xmlContent))),
-            
-            // Produtos estruturados básicos
-            produtos: extrairProdutosBasicos(di),
-            
-            // Valores base preliminares (serão atualizados após cálculo)  
-            valores_base_preliminares: {
-                cif_brl: calcularCIFTotalBRL(di),
-                peso_liquido: calcularPesoLiquidoTotal(di),
-                numero_adicoes: di.adicoes.length
-            },
-            
-            // Placeholders para dados que virão após cálculo
-            calculoImpostos: null,
-            despesas: null
-        };
-        
-        // Validar estrutura antes de salvar
-        validarEstruturaDIBasica(diParaIntegracao);
-        
-        // Salvar no localStorage com key obrigatória
-        const dataString = JSON.stringify(diParaIntegracao);
-        localStorage.setItem('expertzy_processed_di', dataString);
-        
-        // Validar que salvamento funcionou
-        const verificacao = localStorage.getItem('expertzy_processed_di');
-        if (!verificacao) {
-            throw new Error('Falha ao salvar DI no localStorage - dados não foram persistidos');
-        }
-        
-        const dadosVerificados = JSON.parse(verificacao);
-        if (dadosVerificados.di_numero !== di.numero_di) {
-            throw new Error('Dados corrompidos no localStorage após salvamento');
-        }
-        
-        console.log(`✅ DI ${di.numero_di} salva para integração - ${diParaIntegracao.produtos.length} produtos disponíveis para precificação`);
-        
-    } catch (error) {
-        console.error('❌ ERRO CRÍTICO ao salvar DI para integração:', error);
-        throw new Error(`Falha na integração DI→Precificação: ${error.message}`);
-    }
-}
-
-/**
- * Extrair produtos básicos da DI - NO FALLBACKS
- * @param {Object} di - DI processada
- * @returns {Array} - Produtos básicos estruturados
- */
-function extrairProdutosBasicos(di) {
-    if (!di.adicoes || !Array.isArray(di.adicoes)) {
-        throw new Error('Adições da DI não encontradas para extração de produtos');
-    }
-    
-    const produtos = [];
-    
-    di.adicoes.forEach((adicao, adicaoIndex) => {
-        if (!adicao.produtos || !Array.isArray(adicao.produtos)) {
-            throw new Error(`Adição ${adicao.numero} sem produtos - impossível extrair para precificação`);
-        }
-        
-        adicao.produtos.forEach((produto, produtoIndex) => {
-            if (!produto.ncm) {
-                throw new Error(`Produto na adição ${adicao.numero} sem NCM - obrigatório para precificação`);
-            }
-            
-            if (!produto.descricao_mercadoria) {
-                throw new Error(`Produto ${produto.ncm} na adição ${adicao.numero} sem descrição - obrigatória para precificação`);
-            }
-            
-            if (typeof produto.valor_unitario_brl !== 'number') {
-                throw new Error(`Produto ${produto.ncm} sem valor unitário BRL válido - obrigatório para precificação`);
-            }
-            
-            produtos.push({
-                id: `${di.numero_di}_${adicao.numero}_${produtoIndex}`,
-                adicao_numero: adicao.numero,
-                ncm: produto.ncm,
-                descricao: produto.descricao_mercadoria,
-                quantidade: produto.quantidade_unidade_comercial,
-                unidade: produto.unidade_comercial,
-                valor_unitario_brl: produto.valor_unitario_brl,
-                peso_liquido_kg: produto.peso_liquido_kg
-            });
-        });
-    });
-    
-    if (produtos.length === 0) {
-        throw new Error('Nenhum produto válido encontrado na DI para precificação');
-    }
-    
-    return produtos;
-}
-
-/**
- * Calcular CIF total em BRL - NO FALLBACKS
- * @param {Object} di - DI processada  
- * @returns {Number} - CIF total em BRL
- */
-function calcularCIFTotalBRL(di) {
-    if (!di.adicoes || !Array.isArray(di.adicoes)) {
-        throw new Error('Adições da DI não encontradas para cálculo CIF');
-    }
-    
-    let cifTotalBRL = 0;
-    
-    di.adicoes.forEach((adicao, index) => {
-        if (typeof adicao.valor_total_condicao_venda_real !== 'number') {
-            throw new Error(`Valor CIF da adição ${adicao.numero} deve ser numérico`);
-        }
-        
-        cifTotalBRL += adicao.valor_total_condicao_venda_real;
-    });
-    
-    if (cifTotalBRL <= 0) {
-        throw new Error('CIF total deve ser positivo para precificação');
-    }
-    
-    return cifTotalBRL;
-}
-
-/**
- * Calcular peso líquido total - NO FALLBACKS  
- * @param {Object} di - DI processada
- * @returns {Number} - Peso líquido total em KG
- */
-function calcularPesoLiquidoTotal(di) {
-    if (!di.adicoes || !Array.isArray(di.adicoes)) {
-        throw new Error('Adições da DI não encontradas para cálculo de peso');
-    }
-    
-    let pesoTotalKG = 0;
-    
-    di.adicoes.forEach((adicao, index) => {
-        if (!adicao.produtos || !Array.isArray(adicao.produtos)) {
-            throw new Error(`Adição ${adicao.numero} sem produtos para cálculo de peso`);
-        }
-        
-        adicao.produtos.forEach((produto, prodIndex) => {
-            if (typeof produto.peso_liquido_kg === 'number' && produto.peso_liquido_kg > 0) {
-                pesoTotalKG += produto.peso_liquido_kg;
-            }
-        });
-    });
-    
-    if (pesoTotalKG <= 0) {
-        throw new Error('Peso líquido total deve ser positivo para precificação');
-    }
-    
-    return pesoTotalKG;
-}
-
-/**
- * Validar estrutura básica da DI para integração - FAIL-FAST
- * @param {Object} diCompleta - DI estruturada básica
- */
-function validarEstruturaDIBasica(diCompleta) {
-    const camposObrigatorios = [
-        'di_numero', 'produtos', 'valores_base_preliminares', 'xml_content'
-    ];
-    
-    camposObrigatorios.forEach(campo => {
-        if (!diCompleta[campo]) {
-            throw new Error(`Campo obrigatório ausente na DI para integração: ${campo}`);
-        }
-    });
-    
-    if (!diCompleta.produtos.length) {
-        throw new Error('DI deve ter pelo menos um produto para integração');
-    }
-    
-    if (typeof diCompleta.valores_base_preliminares.cif_brl !== 'number') {
-        throw new Error('CIF BRL deve ser numérico para integração');
-    }
-    
-    if (typeof diCompleta.valores_base_preliminares.peso_liquido !== 'number') {
-        throw new Error('Peso líquido deve ser numérico para integração');
-    }
-    
-    console.log('✅ Estrutura básica de DI validada para integração');
-}
-
 // Make functions available globally for button onclick handlers
 window.processarDI = processarDI;
 window.calcularImpostos = calcularImpostos;
@@ -2008,7 +1653,7 @@ function viewCalculationMemory(numeroAdicao) {
     }
 
     const modalContent = document.getElementById('calculationMemoryContent');
-    const taxa_cambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
+    const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
     
     // Perform validation
     const validation = validator.validateCalculation(currentDI, currentCalculation, numeroAdicao);
@@ -2047,7 +1692,7 @@ function viewCalculationMemory(numeroAdicao) {
                             </tr>
                             <tr class="table-primary">
                                 <td><strong>Taxa de Câmbio:</strong></td>
-                                <td class="text-end"><strong>${taxa_cambio.toFixed(6)}</strong></td>
+                                <td class="text-end"><strong>${taxaCambio.toFixed(6)}</strong></td>
                             </tr>
                             <tr>
                                 <td><strong>Peso Líquido:</strong></td>
@@ -2058,7 +1703,7 @@ function viewCalculationMemory(numeroAdicao) {
                         <div class="alert alert-light small">
                             <i class="bi bi-lightbulb"></i> <strong>Como é calculado:</strong><br>
                             Taxa de Câmbio = Valor em R$ ÷ Valor em USD<br>
-                            ${formatCurrency(adicao.valor_reais || 0)} ÷ $${(adicao.valor_moeda_negociacao || 0).toFixed(2)} = ${taxa_cambio.toFixed(6)}
+                            ${formatCurrency(adicao.valor_reais || 0)} ÷ $${(adicao.valor_moeda_negociacao || 0).toFixed(2)} = ${taxaCambio.toFixed(6)}
                         </div>
                     </div>
                 </div>
@@ -2263,7 +1908,7 @@ function exportCalculationMemory() {
 
     try {
         const workbook = XLSX.utils.book_new();
-        const taxa_cambio = currentCalculation.valores_base.taxa_cambio;
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
         
         // Sheet 1: Resumo Geral
         const resumoData = [
@@ -2295,7 +1940,7 @@ function exportCalculationMemory() {
             ['Descrição', 'Valor', 'Observação'],
             ['CIF USD', `$${(currentCalculation.valores_base.cif_usd || 0).toFixed(2)}`, 'Valor original da DI'],
             ['CIF BRL', formatCurrencyValue(currentCalculation.valores_base.cif_brl), 'Valor convertido'],
-            ['Taxa de Câmbio', taxa_cambio.toFixed(6), 'R$/USD'],
+            ['Taxa de Câmbio', taxaCambio.toFixed(6), 'R$/USD'],
             ['Peso Líquido', `${(currentCalculation.valores_base.peso_liquido || 0).toFixed(2)} kg`, 'Conforme DI'],
             [''],
             ['IMPOSTOS FEDERAIS'],
@@ -2372,7 +2017,7 @@ function exportCalculationMemoryPDF() {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const taxa_cambio = currentCalculation.valores_base.taxa_cambio;
+        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
         
         // Header
         doc.setFontSize(16);
@@ -2387,7 +2032,7 @@ function exportCalculationMemoryPDF() {
         doc.text(`Adição: ${currentCalculation.adicao_numero}`, 80, 45);
         doc.text(`NCM: ${currentCalculation.ncm}`, 140, 45);
         doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 55);
-        doc.text(`Taxa Câmbio: ${taxa_cambio.toFixed(6)}`, 80, 55);
+        doc.text(`Taxa Câmbio: ${taxaCambio.toFixed(6)}`, 80, 55);
         doc.text(`Estado: ${currentCalculation.estado}`, 140, 55);
         
         // Base Values Table
@@ -2509,7 +2154,7 @@ function viewMultiAdditionSummary() {
     let totalFederalTaxes = 0;
     
     const additionsSummary = currentDI.adicoes.map(adicao => {
-        const taxa_cambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
+        const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
         const federalTaxes = (adicao.tributos.ii_valor_devido || 0) +
                            (adicao.tributos.ipi_valor_devido || 0) +
                            (adicao.tributos.pis_valor_devido || 0) +
@@ -2525,7 +2170,7 @@ function viewMultiAdditionSummary() {
             descricao: adicao.descricao_ncm,
             cif_usd: adicao.valor_moeda_negociacao || 0,
             cif_brl: adicao.valor_reais || 0,
-            taxa_cambio: taxa_cambio,
+            taxa_cambio: taxaCambio,
             peso: adicao.peso_liquido || 0,
             ii: adicao.tributos.ii_valor_devido || 0,
             ipi: adicao.tributos.ipi_valor_devido || 0,

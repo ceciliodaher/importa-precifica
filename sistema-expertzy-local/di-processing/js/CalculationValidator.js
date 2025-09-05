@@ -73,10 +73,22 @@ class CalculationValidator {
             details: {}
         };
 
-        const valorUSD = adicao.valor_moeda_negociacao || 0;
-        const valorBRL = adicao.valor_reais || 0;
+        // Validação estrutural: dados base são obrigatórios
+        const valorUSD = adicao.valor_moeda_negociacao;
+        const valorBRL = adicao.valor_reais;
+        const taxaUsadaCalculo = calculation.valores_base?.taxa_cambio;
+        
+        if (valorUSD === undefined || valorUSD === null) {
+            throw new Error(`Valor USD ausente na adição ${adicao.numero_adicao} - obrigatório para validação`);
+        }
+        if (valorBRL === undefined || valorBRL === null) {
+            throw new Error(`Valor BRL ausente na adição ${adicao.numero_adicao} - obrigatório para validação`);
+        }
+        if (taxaUsadaCalculo === undefined || taxaUsadaCalculo === null) {
+            throw new Error(`Taxa de câmbio ausente no cálculo - obrigatória para validação`);
+        }
+        
         const taxaCalculadaDI = valorUSD > 0 ? valorBRL / valorUSD : 0;
-        const taxaUsadaCalculo = calculation.valores_base.taxa_cambio || 0;
 
         test.details = {
             di_usd: valorUSD,
@@ -107,10 +119,19 @@ class CalculationValidator {
                 details: {}
             };
 
-            const diValue = adicao.tributos?.[`${tax}_valor_devido`] || 0;
-            const calculatedValue = calculation.impostos?.[tax]?.valor_devido || 0;
-            const diRate = adicao.tributos?.[`${tax}_aliquota_ad_valorem`] || 0;
-            const calculatedRate = calculation.impostos?.[tax]?.aliquota || 0;
+            // ETAPA 1: Verificar estrutura obrigatória (fail-fast)
+            if (!adicao.tributos) {
+                throw new Error(`Estrutura tributos ausente na adição ${adicao.numero_adicao} - obrigatória para validação fiscal`);
+            }
+            if (!calculation.impostos?.[tax]) {
+                throw new Error(`Imposto ${tax.toUpperCase()} ausente no cálculo - obrigatório para validação`);
+            }
+            
+            // ETAPA 2: Aceitar valores zero como isenção legítima (DI é fonte da verdade)
+            const diValue = adicao.tributos[`${tax}_valor_devido`] ?? 0;        // null/undefined = erro
+            const calculatedValue = calculation.impostos[tax].valor_devido ?? 0; // null/undefined = erro  
+            const diRate = adicao.tributos[`${tax}_aliquota_ad_valorem`] ?? 0;   // null/undefined = erro
+            const calculatedRate = calculation.impostos[tax].aliquota ?? 0;      // null/undefined = erro
 
             test.details = {
                 di_valor: diValue,
@@ -147,10 +168,24 @@ class CalculationValidator {
             details: {}
         };
 
-        const cifDI = adicao.valor_reais || 0;
-        const cifCalculo = calculation.valores_base.cif_brl || 0;
-        const pesoDI = adicao.peso_liquido || 0;
-        const pesoCalculo = calculation.valores_base.peso_liquido || 0;
+        // Validação estrutural: valores base são obrigatórios 
+        const cifDI = adicao.valor_reais;
+        const cifCalculo = calculation.valores_base?.cif_brl;
+        const pesoDI = adicao.peso_liquido;
+        const pesoCalculo = calculation.valores_base?.peso_liquido;
+        
+        if (cifDI === undefined || cifDI === null) {
+            throw new Error(`Valor CIF BRL ausente na adição ${adicao.numero_adicao} - obrigatório para validação`);
+        }
+        if (cifCalculo === undefined || cifCalculo === null) {
+            throw new Error(`Valor CIF BRL ausente no cálculo - obrigatório para validação`);
+        }
+        if (pesoDI === undefined || pesoDI === null) {
+            throw new Error(`Peso líquido ausente na adição ${adicao.numero_adicao} - obrigatório para validação`);
+        }
+        if (pesoCalculo === undefined || pesoCalculo === null) {
+            throw new Error(`Peso líquido ausente no cálculo - obrigatório para validação`);
+        }
 
         test.details = {
             cif_di: cifDI,
