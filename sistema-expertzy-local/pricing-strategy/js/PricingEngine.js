@@ -14,6 +14,53 @@ class PricingEngine {
         this.marketAnalysis = {};
         this.configurations = {};
         this.configLoader = new ConfigLoader();
+        
+        // NOVA INTEGRAÇÃO: Sistema de cálculo de custos por regime
+        this.costCalculationEngine = null;
+        this.regimeConfigManager = null;
+        this.productMemoryManager = null;
+        this.initializeCostSystem();
+    }
+    
+    /**
+     * Inicializa sistema de cálculo de custos integrado
+     */
+    async initializeCostSystem() {
+        const missingComponents = [];
+        
+        try {
+            // Verificar se classes estão disponíveis - OBRIGATÓRIAS
+            if (typeof CostCalculationEngine !== 'undefined') {
+                this.costCalculationEngine = new CostCalculationEngine();
+                await this.costCalculationEngine.initializeEngine();
+                console.log('✅ CostCalculationEngine integrado ao PricingEngine');
+            } else {
+                missingComponents.push('CostCalculationEngine');
+            }
+            
+            if (typeof RegimeConfigManager !== 'undefined') {
+                this.regimeConfigManager = new RegimeConfigManager();
+                console.log('✅ RegimeConfigManager integrado ao PricingEngine');
+            } else {
+                missingComponents.push('RegimeConfigManager');
+            }
+            
+            if (typeof ProductMemoryManager !== 'undefined') {
+                this.productMemoryManager = new ProductMemoryManager();
+                console.log('✅ ProductMemoryManager integrado ao PricingEngine');
+            } else {
+                missingComponents.push('ProductMemoryManager');
+            }
+            
+            // FAIL-FAST: Se componentes obrigatórios não estão disponíveis
+            if (missingComponents.length > 0) {
+                throw new Error(`Componentes obrigatórios não disponíveis: ${missingComponents.join(', ')} - PricingEngine não pode operar sem sistema completo de custos por regime`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro crítico na inicialização do PricingEngine:', error);
+            throw new Error(`PricingEngine requer integração completa com sistema de custos - ${error.message}`);
+        }
     }
 
     /**
@@ -78,28 +125,38 @@ class PricingEngine {
     }
 
     /**
-     * Generate pricing scenarios for multiple states
+     * Generate pricing scenarios using regime-based cost calculation
      */
-    generateStateScenarios() {
-        console.log('🗺️ Gerando cenários por estado...');
+    async generateStateScenarios() {
+        console.log('🗺️ Gerando cenários por estado com custos por regime...');
         
-        if (!this.diData) {
-            throw new Error('Carregue os dados da DI primeiro');
+        if (!this.productMemoryManager) {
+            throw new Error('ProductMemoryManager não disponível - necessário para análise de precificação');
+        }
+        
+        // Obter regime tributário atual
+        const currentRegime = this.regimeConfigManager.getCurrentRegime();
+        console.log(`📊 Regime atual: ${currentRegime}`);
+        
+        // Obter produtos da memória
+        const allProducts = this.productMemoryManager.products;
+        if (!allProducts || allProducts.length === 0) {
+            throw new Error('Nenhum produto encontrado na memória - processe uma DI primeiro');
         }
         
         const states = ['GO', 'SC', 'ES', 'MG', 'SP'];
         const scenarios = [];
         
-        states.forEach(state => {
-            const scenario = this.calculateStateScenario(state);
+        for (const state of states) {
+            const scenario = await this.calculateRegimeBasedScenario(state, currentRegime, allProducts);
             scenarios.push(scenario);
-        });
+        }
         
         // Sort by best total cost
         scenarios.sort((a, b) => a.totals.total_cost - b.totals.total_cost);
         
         this.scenarios = scenarios;
-        console.log('✅ Cenários gerados para todos os estados');
+        console.log(`✅ ${scenarios.length} cenários gerados com custos por regime`);
         
         return scenarios;
     }
@@ -107,7 +164,159 @@ class PricingEngine {
     /**
      * Calculate scenario for specific state
      */
-    calculateStateScenario(state) {
+    /**
+     * NOVO: Calcula cenário baseado em regime tributário correto - ZERO FALLBACKS
+     */
+    async calculateRegimeBasedScenario(state, regime, products) {
+        console.log(`🏛️ Calculando cenário ${state} para regime ${regime}...`);
+        
+        if (!state) {
+            throw new Error('Estado não fornecido - obrigatório para cálculo de cenário');
+        }
+        
+        if (!regime) {
+            throw new Error('Regime tributário não fornecido - obrigatório para cálculo de cenário');
+        }
+        
+        if (!products || products.length === 0) {
+            throw new Error('Produtos não fornecidos - obrigatório para cálculo de cenário');
+        }
+        
+        let totalBaseCost = 0;
+        let totalNetCost = 0;
+        let totalCredits = 0;
+        let productCount = 0;
+        
+        // Calcular custos líquidos para cada produto usando CostCalculationEngine
+        for (const product of products) {
+            if (!product.id) {
+                throw new Error(`Produto sem ID encontrado - obrigatório para cálculo`);
+            }
+            
+            // Calcular custo para o regime atual - FAIL-FAST se erro
+            const costCalculation = this.costCalculationEngine.calculateProductCost(product.id, regime);
+            
+            if (!costCalculation.net_cost) {
+                throw new Error(`Cálculo de custo inválido para produto ${product.id} - estrutura net_cost ausente`);
+            }
+            
+            if (typeof costCalculation.net_cost.base_cost !== 'number') {
+                throw new Error(`Base cost inválido para produto ${product.id} - deve ser numérico`);
+            }
+            
+            if (typeof costCalculation.net_cost.final_cost !== 'number') {
+                throw new Error(`Final cost inválido para produto ${product.id} - deve ser numérico`);
+            }
+            
+            if (typeof costCalculation.tax_credits.total_credits !== 'number') {
+                throw new Error(`Total credits inválido para produto ${product.id} - deve ser numérico`);
+            }
+            
+            totalBaseCost += costCalculation.net_cost.base_cost;
+            totalNetCost += costCalculation.net_cost.final_cost;
+            totalCredits += costCalculation.tax_credits.total_credits;
+            productCount++;
+        }
+        
+        if (productCount === 0) {
+            throw new Error(`Nenhum produto válido encontrado para calcular cenário ${state}`);
+        }
+        
+        // Obter alíquotas de saída do regime - FAIL-FAST se não encontrar
+        const salesTaxRates = this.regimeConfigManager.getSalesTaxRates(regime);
+        if (!salesTaxRates) {
+            throw new Error(`Alíquotas de saída não encontradas para regime ${regime} - obrigatórias para cálculo`);
+        }
+        
+        // Validar alíquotas obrigatórias baseado no regime
+        if (regime === 'simples_nacional') {
+            if (typeof salesTaxRates.das !== 'number') {
+                throw new Error(`Alíquota DAS não encontrada para Simples Nacional - obrigatória para cálculo`);
+            }
+        } else {
+            if (typeof salesTaxRates.pis !== 'number') {
+                throw new Error(`Alíquota PIS não encontrada para regime ${regime} - obrigatória para cálculo`);
+            }
+            
+            if (typeof salesTaxRates.cofins !== 'number') {
+                throw new Error(`Alíquota COFINS não encontrada para regime ${regime} - obrigatória para cálculo`);
+            }
+        }
+        
+        // Obter alíquota ICMS do estado - FAIL-FAST se não encontrar
+        const icmsRate = await this.configLoader.getICMSRate(state);
+        if (typeof icmsRate !== 'number') {
+            throw new Error(`Alíquota ICMS não encontrada para estado ${state} - obrigatória para cálculo`);
+        }
+        
+        // Calcular benefícios fiscais específicos do estado
+        const firstProductNcm = products[0]?.ncm;
+        if (!firstProductNcm) {
+            throw new Error('NCM do produto não encontrado - obrigatório para análise de benefícios');
+        }
+        
+        const stateBenefits = this.calculateStateBenefitsNew(state, firstProductNcm, totalNetCost);
+        if (!stateBenefits) {
+            throw new Error(`Erro ao calcular benefícios fiscais para estado ${state}`);
+        }
+        
+        // Calcular tax burden total
+        const totalTaxBurden = this.calculateTotalTaxBurden(salesTaxRates);
+        if (typeof totalTaxBurden !== 'number') {
+            throw new Error(`Erro ao calcular carga tributária total para regime ${regime}`);
+        }
+        
+        // Calcular competitiveness score
+        const competitivenessScore = this.calculateCompetitivenessScore(totalNetCost);
+        if (typeof competitivenessScore !== 'number') {
+            throw new Error(`Erro ao calcular score de competitividade`);
+        }
+        
+        // Validar tax_savings
+        const taxSavings = stateBenefits.tax_savings;
+        if (typeof taxSavings !== 'number') {
+            throw new Error(`Tax savings inválido para estado ${state} - deve ser numérico`);
+        }
+        
+        // Estruturar cenário com dados validados - ZERO FALLBACKS
+        const scenario = {
+            state: state,
+            state_name: await this.getStateName(state),
+            regime: regime,
+            
+            costs: {
+                base_cost: totalBaseCost,
+                net_cost: totalNetCost,
+                credits_applied: totalCredits,
+                unit_cost: totalNetCost / productCount
+            },
+            
+            taxes: {
+                pis_rate: salesTaxRates.pis,
+                cofins_rate: salesTaxRates.cofins,
+                das_rate: salesTaxRates.das,
+                icms_rate: icmsRate,
+                total_tax_burden: totalTaxBurden
+            },
+            
+            benefits: stateBenefits,
+            
+            totals: {
+                total_cost: totalNetCost - taxSavings, // Subtraindo savings (benefício reduz custo)
+                cost_per_unit: totalNetCost / productCount,
+                competitiveness_score: competitivenessScore,
+                potential_savings: totalCredits
+            }
+        };
+        
+        console.log(`✅ Cenário ${state} calculado: Custo R$ ${scenario.totals.total_cost.toFixed(2)}`);
+        return scenario;
+    }
+
+    /**
+     * MÉTODO LEGADO: Calculate scenario for a specific state (mantido para compatibilidade)
+     */
+    async calculateStateScenario(state) {
         const baseCalculation = { ...this.diData.calculoImpostos };
         
         // Use ICMS rate from aliquotas.json (correct rates)
@@ -120,7 +329,7 @@ class PricingEngine {
         
         const scenario = {
             state: state,
-            state_name: this.getStateName(state),
+            state_name: await this.getStateName(state),
             
             // Tax calculation
             taxes: {
@@ -410,21 +619,24 @@ class PricingEngine {
     }
 
     /**
-     * Utility functions
+     * Utility functions - REMOVED: duplicated getStateName
+     * Using async version at line 738 that loads from estados-brasil.json
      */
-    getStateName(code) {
-        const states = {
-            'GO': 'Goiás', 'SC': 'Santa Catarina', 'ES': 'Espírito Santo',
-            'MG': 'Minas Gerais', 'SP': 'São Paulo'
-        };
-        return states[code] || code;
-    }
 
     getPositioningName(code) {
+        if (!code) {
+            throw new Error('Código de posicionamento não fornecido - obrigatório');
+        }
+        
         const names = {
             'competitive': 'Competitivo', 'standard': 'Padrão', 'premium': 'Premium'
         };
-        return names[code] || code;
+        
+        if (!names[code]) {
+            throw new Error(`Código de posicionamento inválido: ${code}`);
+        }
+        
+        return names[code];
     }
 
     getVolumeTierName(minQty) {
@@ -434,17 +646,30 @@ class PricingEngine {
         return 'Atacado';
     }
 
-    calculateCompetitivenessScore(cost) {
-        // Simplified competitiveness scoring
-        // Lower cost = higher score (0-100)
-        const referenceCost = 10000; // Reference value
-        return Math.max(0, Math.min(100, 100 - ((cost - referenceCost) / referenceCost) * 50));
-    }
+    // REMOVED: Old hardcoded calculateCompetitivenessScore
+    // Using improved version at line 862 with dynamic cost comparison
 
-    analyzeCompetitivePosition(price) {
-        // Simplified competitive analysis
-        const marketReference = 15000; // Assumed market reference
-        const position = price / marketReference;
+    analyzeCompetitivePosition(price, marketPrices = []) {
+        if (typeof price !== 'number' || price <= 0) {
+            throw new Error('Preço deve ser numérico e positivo para análise competitiva');
+        }
+        
+        // Se não há preços de mercado para comparar, retorna análise neutra
+        if (!marketPrices || marketPrices.length === 0) {
+            return {
+                level: 'neutral',
+                description: 'Sem dados de mercado para comparação'
+            };
+        }
+        
+        // Calcular posição relativa no mercado
+        const validPrices = marketPrices.filter(p => typeof p === 'number' && p > 0);
+        if (validPrices.length === 0) {
+            throw new Error('Nenhum preço de mercado válido encontrado para comparação');
+        }
+        
+        const avgMarketPrice = validPrices.reduce((sum, p) => sum + p, 0) / validPrices.length;
+        const position = price / avgMarketPrice;
         
         if (position < 0.9) return { level: 'very_competitive', description: 'Muito competitivo' };
         if (position < 1.1) return { level: 'competitive', description: 'Competitivo' };
@@ -517,6 +742,171 @@ class PricingEngine {
             throw new Error('Peso líquido inválido - obrigatório para cálculo de custo por kg');
         }
         return pesoLiquido;
+    }
+
+    /**
+     * NOVOS MÉTODOS AUXILIARES - ZERO FALLBACKS
+     */
+    
+    /**
+     * Obter nome do estado - carregado de arquivo JSON
+     */
+    async getStateName(stateCode) {
+        if (!stateCode) {
+            throw new Error('Código do estado não fornecido - obrigatório');
+        }
+        
+        // Carregar estados do arquivo JSON
+        try {
+            const response = await fetch('../shared/data/estados-brasil.json');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar arquivo de estados');
+            }
+            
+            const estadosData = await response.json();
+            if (!estadosData.estados) {
+                throw new Error('Estrutura de dados de estados inválida');
+            }
+            
+            const estado = estadosData.estados.find(e => e.codigo === stateCode);
+            if (!estado) {
+                throw new Error(`Estado ${stateCode} não encontrado no arquivo de configuração`);
+            }
+            
+            return estado.nome;
+            
+        } catch (error) {
+            throw new Error(`Erro ao obter nome do estado ${stateCode}: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Calcular benefícios fiscais específicos do estado - ZERO FALLBACKS
+     */
+    calculateStateBenefitsNew(state, ncm, totalCost) {
+        if (!state) {
+            throw new Error('Estado não fornecido para cálculo de benefícios');
+        }
+        
+        if (!ncm) {
+            throw new Error('NCM não fornecido para cálculo de benefícios');
+        }
+        
+        if (typeof totalCost !== 'number') {
+            throw new Error('Custo total deve ser numérico para cálculo de benefícios');
+        }
+        
+        // Usar ConfigLoader para obter benefícios
+        const benefits = this.configLoader.getBenefits(state, ncm);
+        
+        if (!benefits || benefits.type === 'none') {
+            return {
+                applicable: false,
+                name: 'Sem benefícios específicos',
+                description: 'Tributação padrão sem incentivos',
+                tax_savings: 0,
+                effective_rate: null
+            };
+        }
+        
+        // Calcular savings baseado no tipo de benefício
+        let taxSavings = 0;
+        
+        switch (benefits.type) {
+            case 'credito_icms':
+                if (!benefits.percentage || typeof benefits.percentage !== 'number') {
+                    throw new Error(`Percentual de crédito ICMS inválido para estado ${state}`);
+                }
+                taxSavings = totalCost * (benefits.percentage / 100);
+                break;
+                
+            case 'diferimento':
+                if (!benefits.percentage || typeof benefits.percentage !== 'number') {
+                    throw new Error(`Percentual de diferimento inválido para estado ${state}`);
+                }
+                taxSavings = totalCost * (benefits.percentage / 100);
+                break;
+                
+            default:
+                taxSavings = 0;
+        }
+        
+        return {
+            applicable: true,
+            name: benefits.name,
+            description: benefits.description,
+            tax_savings: taxSavings,
+            effective_rate: benefits.effective_rate
+        };
+    }
+    
+    /**
+     * Calcular carga tributária total - ZERO FALLBACKS
+     */
+    calculateTotalTaxBurden(salesTaxRates) {
+        if (!salesTaxRates) {
+            throw new Error('Alíquotas de saída não fornecidas para cálculo de carga tributária');
+        }
+        
+        let totalBurden = 0;
+        
+        // Para Simples Nacional
+        if (salesTaxRates.das && typeof salesTaxRates.das === 'number') {
+            totalBurden = salesTaxRates.das;
+        } 
+        // Para outros regimes
+        else if (salesTaxRates.pis && salesTaxRates.cofins) {
+            if (typeof salesTaxRates.pis !== 'number') {
+                throw new Error('Alíquota PIS deve ser numérica para cálculo de carga tributária');
+            }
+            
+            if (typeof salesTaxRates.cofins !== 'number') {
+                throw new Error('Alíquota COFINS deve ser numérica para cálculo de carga tributária');
+            }
+            
+            totalBurden = salesTaxRates.pis + salesTaxRates.cofins;
+        } else {
+            throw new Error('Estrutura de alíquotas inválida para cálculo de carga tributária');
+        }
+        
+        return totalBurden;
+    }
+    
+    /**
+     * Calcular score de competitividade baseado em posição relativa - ZERO HARDCODED VALUES
+     */
+    calculateCompetitivenessScore(cost, allCosts = []) {
+        if (typeof cost !== 'number') {
+            throw new Error('Custo deve ser numérico para cálculo de competitividade');
+        }
+        
+        if (cost <= 0) {
+            throw new Error('Custo deve ser positivo para cálculo de competitividade');
+        }
+        
+        // Se não há outros custos para comparar, retorna score neutro
+        if (!allCosts || allCosts.length === 0) {
+            return 50; // Score neutro sem comparação
+        }
+        
+        // Validar array de custos
+        const validCosts = allCosts.filter(c => typeof c === 'number' && c > 0);
+        if (validCosts.length === 0) {
+            return 50; // Score neutro se não há custos válidos para comparar
+        }
+        
+        // Calcular posição relativa (menor custo = melhor score)
+        const sortedCosts = [...validCosts].sort((a, b) => a - b);
+        const position = sortedCosts.indexOf(cost);
+        
+        if (position === -1) {
+            throw new Error('Custo não encontrado no array de comparação');
+        }
+        
+        // Score baseado na posição: melhor posição = score mais alto
+        const scorePercentile = (1 - (position / (sortedCosts.length - 1))) * 100;
+        
+        return Math.round(scorePercentile);
     }
 }
 

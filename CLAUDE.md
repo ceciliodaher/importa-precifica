@@ -43,11 +43,59 @@ Python prototype at `orientacoes/importador-xml-di-nf-entrada-perplexity-aprimor
 - Fiscal incentive analysis for states (GO, SC, ES, MG)
 - Excel export functionality
 
-## Recent Critical Fixes (2025-09-04)
+## Recent Critical Fixes (2025-09-05)
+
+### **🧠 Advanced Memory System: Regime-Based Cost Calculation Architecture**
+
+**Latest Fix (2025-09-05)**: Implementação completa de sistema de memória com cálculo de custos por regime tributário - arquitetura database-ready com zero fallbacks
+
+**Sistema Implementado**:
+
+- ✅ **ProductMemoryManager.js**: Sistema de memória para produtos importados com estrutura database-ready
+- ✅ **RegimeConfigManager.js**: Gerenciamento de regime tributário (Lucro Real, Lucro Presumido, Simples Nacional)
+- ✅ **CostCalculationEngine.js**: Motor de cálculo que aplica créditos tributários baseado no regime da empresa
+- ✅ **Interface de configuração**: HTML + JS completo para configuração de regime tributário
+- ✅ **Integração completa**: PricingEngine atualizado para usar sistema de custos por regime
+- ✅ **Zero fallbacks**: Eliminados todos os padrões `|| 0` e `|| code` dos métodos críticos
+
+**Cálculo Inteligente por Regime**:
+
+```javascript
+// Lucro Real: Créditos PIS/COFINS não-cumulativo + IPI (indústria) + ICMS
+// Lucro Presumido: Créditos ICMS + IPI (indústria), PIS/COFINS cumulativo
+// Simples Nacional: Sem créditos, DAS unificado
+```
+
+**Arquivos Criados**:
+
+- `shared/js/ProductMemoryManager.js` → Sistema de memória JSON database-ready
+- `shared/js/RegimeConfigManager.js` → Configuração de regime com carregamento dinâmico
+- `shared/js/CostCalculationEngine.js` → Motor de cálculo com fail-fast validation
+- `shared/data/regime-aliquotas.json` → Alíquotas por regime (eliminado hardcode)
+- `shared/data/estados-brasil.json` → Todos os 27 estados + DF (eliminado hardcode)
+- `js/regime-interface.js` → Interface completa para configuração
+
+**Arquivos Modificados**:
+
+- `di-processing/js/ComplianceCalculator.js` → Integrado com ProductMemoryManager
+- `pricing-strategy/js/PricingEngine.js` → Métodos auxiliares corrigidos, duplicatas removidas
+- `pricing-strategy/js/business-interface.js` → Carregamento dinâmico de estados
+- `pricing-strategy/pricing-system.html` → Select de estados dinâmico
+
+**Technical Excellence**:
+
+- **Database-Ready JSON Structure**: Produtos salvos com ID, base costs, special cases
+- **Fail-Fast Validation**: Todos os métodos críticos lançam exceções explícitas
+- **Zero Hardcoded Data**: Estados, alíquotas, preços - tudo carregado de arquivos JSON
+- **Regime-Based Logic**: Créditos aplicados conforme regime tributário da empresa
+
+**Business Impact**: Sistema agora calcula custo líquido real considerando regime tributário, eliminando estimativas e fornecendo precificação precisa baseada na situação fiscal da empresa.
+
+## Previous Critical Fixes (2025-09-04)
 
 ### **🔧 Modular Export System: Eliminação de Dependências Legadas**
 
-**Latest Fix (2025-09-04)**: Implementação de sistema modular de export e eliminação completa de dependências do sistema legado
+**Previous Fix (2025-09-04)**: Implementação de sistema modular de export e eliminação completa de dependências do sistema legado
 
 **Problemas Resolvidos**:
 

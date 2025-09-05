@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração de Regime Tributário - Expertzy</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Expertzy Brand System -->
+    <link href="shared/css/expertzy-brand.css" rel="stylesheet">
+    <link href="shared/css/compliance-theme.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Professional Navigation -->
+    <nav class="navbar navbar-expand-lg expertzy-navbar fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="https://expertzy.com.br" target="_blank">
+                <img src="images/expertzy-it.png" alt="Expertzy - Inteligência Tributária" class="expertzy-complete-logo">
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="index.html">
+                            <i class="bi bi-house"></i> Início
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="di-processing/di-processor.html">
+                            <i class="bi bi-file-earmark-text"></i> Processamento DI
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white fw-bold" href="regime-config.html">
+                            <i class="bi bi-gear"></i> Configuração
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Compliance Header -->
+    <header class="compliance-header" style="margin-top: 60px;">
+        <div class="container">
+            <div class="row align-items-center text-center">
+                <div class="col-12">
+                    <i class="bi bi-gear" style="font-size: 4rem; color: var(--expertzy-navy);"></i>
+                    <h1 class="display-4 fw-bold mb-3">Configuração de Regime Tributário</h1>
+                    <p class="lead mb-4">Configure o regime tributário da sua empresa para cálculos precisos</p>
+                    <p class="mb-0 opacity-75">Definições • Créditos • Alíquotas • Simples Nacional</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Current Config Display -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card compliance-card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-info-circle"></i> Configuração Atual
+                        </h5>
+                        <div id="currentConfigDisplay">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm me-2"></div>
+                                Carregando configuração...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Form -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card compliance-card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-pencil-square"></i> Alterar Configuração
+                        </h5>
+                        
+                        <form id="regimeConfigForm">
+                            <!-- Regime Tributário -->
+                            <div class="mb-4">
+                                <label for="regimeTributario" class="form-label">
+                                    <strong>Regime Tributário</strong>
+                                </label>
+                                <select class="form-select" id="regimeTributario" required>
+                                    <option value="lucro_real">Lucro Real</option>
+                                    <option value="lucro_presumido">Lucro Presumido</option>
+                                    <option value="simples_nacional">Simples Nacional</option>
+                                </select>
+                                <div class="form-text">
+                                    Define os créditos tributários aplicáveis e alíquotas de PIS/COFINS
+                                </div>
+                            </div>
+
+                            <!-- Tipo de Empresa -->
+                            <div class="mb-4">
+                                <label for="tipoEmpresa" class="form-label">
+                                    <strong>Tipo de Empresa</strong>
+                                </label>
+                                <select class="form-select" id="tipoEmpresa" required>
+                                    <option value="comercio">Comércio</option>
+                                    <option value="industria">Indústria</option>
+                                    <option value="servicos">Serviços</option>
+                                    <option value="misto">Misto (Comércio + Indústria)</option>
+                                </select>
+                                <div class="form-text">
+                                    Indústrias podem creditar IPI de insumos
+                                </div>
+                            </div>
+
+                            <!-- Estado Sede -->
+                            <div class="mb-4">
+                                <label for="estadoSede" class="form-label">
+                                    <strong>Estado Sede da Empresa</strong>
+                                </label>
+                                <select class="form-select" id="estadoSede" required>
+                                    <option value="">Carregando estados...</option>
+                                </select>
+                                <div class="form-text">
+                                    Estado onde a empresa tem sua sede fiscal
+                                </div>
+                            </div>
+
+                            <!-- Inscrição Estadual -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="inscricaoEstadual" checked>
+                                    <label class="form-check-label" for="inscricaoEstadual">
+                                        <strong>Possui Inscrição Estadual</strong>
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    Necessário para crédito de ICMS na importação
+                                </div>
+                            </div>
+
+                            <!-- Configurações Simples Nacional (conditional) -->
+                            <div id="simplesConfig" class="mb-4" style="display: none;">
+                                <div class="border p-3 rounded bg-light">
+                                    <h6><i class="bi bi-gear-fill"></i> Configurações do Simples Nacional</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="simplesAnexo" class="form-label">Anexo</label>
+                                            <select class="form-select" id="simplesAnexo">
+                                                <option value="I">Anexo I - Comércio</option>
+                                                <option value="II">Anexo II - Indústria</option>
+                                                <option value="III">Anexo III - Serviços</option>
+                                                <option value="IV">Anexo IV - Serviços</option>
+                                                <option value="V">Anexo V - Serviços</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="simplesFaixa" class="form-label">Faixa de Receita</label>
+                                            <select class="form-select" id="simplesFaixa">
+                                                <option value="1">Faixa 1 (até R$ 180.000)</option>
+                                                <option value="2">Faixa 2 (até R$ 360.000)</option>
+                                                <option value="3">Faixa 3 (até R$ 720.000)</option>
+                                                <option value="4">Faixa 4 (até R$ 1.800.000)</option>
+                                                <option value="5">Faixa 5 (até R$ 3.600.000)</option>
+                                                <option value="6">Faixa 6 (até R$ 4.800.000)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-info small mb-0">
+                                        <i class="bi bi-info-circle"></i>
+                                        A alíquota DAS será calculada automaticamente com base no anexo e faixa selecionados
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle"></i> Salvar Configuração
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault()">
+                                    <i class="bi bi-arrow-clockwise"></i> Restaurar Padrão
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits Preview -->
+            <div class="col-md-4">
+                <div class="card compliance-card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-cash-stack"></i> Créditos Aplicáveis
+                        </h6>
+                        <div id="creditsPreview">
+                            <div class="text-center text-muted py-3">
+                                <small>Configure o regime para ver créditos</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card compliance-card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-percent"></i> Alíquotas de Saída
+                        </h6>
+                        <div id="salesTaxPreview">
+                            <div class="text-center text-muted py-3">
+                                <small>Configure o regime para ver alíquotas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card compliance-card">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-tools"></i> Ações
+                        </h6>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="exportConfig()">
+                                <i class="bi bi-download"></i> Exportar Configuração
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('importFile').click()">
+                                <i class="bi bi-upload"></i> Importar Configuração
+                            </button>
+                            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importConfig(event)">
+                            
+                            <div class="ms-auto">
+                                <a href="di-processing/di-processor.html" class="btn btn-primary">
+                                    <i class="bi bi-arrow-right"></i> Processar DI
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div id="alertContainer" class="mt-4">
+            <!-- Mensagens dinâmicas -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="shared/js/RegimeConfigManager.js"></script>
+    <script src="js/regime-interface.js"></script>
+</body>
+</html>

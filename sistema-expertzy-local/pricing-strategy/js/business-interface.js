@@ -45,6 +45,9 @@ async function initializeBusinessSystem() {
             }
         });
         
+        // Load states dynamically
+        await loadStates();
+        
         console.log('✅ Sistema de precificação inicializado');
         
     } catch (error) {
@@ -76,6 +79,42 @@ function setupBusinessEventListeners() {
             }
         });
     });
+}
+
+/**
+ * Load Brazilian states from JSON file - ZERO HARDCODED DATA
+ */
+async function loadStates() {
+    try {
+        const response = await fetch('../shared/data/estados-brasil.json');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar arquivo de estados');
+        }
+        
+        const estadosData = await response.json();
+        if (!estadosData.estados) {
+            throw new Error('Estrutura de dados de estados inválida');
+        }
+        
+        // Populate target state select with ALL states
+        const targetStateSelect = document.getElementById('targetState');
+        if (targetStateSelect) {
+            targetStateSelect.innerHTML = ''; // Clear loading option
+            
+            estadosData.estados.forEach(estado => {
+                const option = document.createElement('option');
+                option.value = estado.codigo;
+                option.textContent = `${estado.nome} (${estado.codigo})`;
+                targetStateSelect.appendChild(option);
+            });
+        }
+        
+        console.log(`✅ ${estadosData.estados.length} estados carregados para precificação`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar estados:', error);
+        throw new Error(`Erro ao carregar estados: ${error.message}`);
+    }
 }
 
 /**

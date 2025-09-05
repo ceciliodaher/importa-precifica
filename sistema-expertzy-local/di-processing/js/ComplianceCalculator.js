@@ -16,6 +16,27 @@ class ComplianceCalculator {
         this.calculationMemory = [];
         this.lastCalculation = null;
         this.itemCalculator = new ItemCalculator(); // NOVO: Integração para cálculos por item
+        
+        // NOVA INTEGRAÇÃO: ProductMemoryManager para sistema de precificação
+        this.productMemory = null;
+        this.initializeProductMemory();
+    }
+    
+    /**
+     * Inicializa ProductMemoryManager se disponível
+     */
+    initializeProductMemory() {
+        try {
+            if (typeof ProductMemoryManager !== 'undefined') {
+                this.productMemory = new ProductMemoryManager();
+                console.log('✅ ProductMemoryManager integrado ao ComplianceCalculator');
+            } else {
+                console.log('ℹ️ ProductMemoryManager não disponível - produtos não serão salvos para precificação');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao inicializar ProductMemoryManager:', error);
+            this.productMemory = null;
+        }
     }
 
     /**
@@ -145,6 +166,9 @@ class ComplianceCalculator {
         
         // Validação automática comparando com totais extraídos do XML
         this.validarTotaisComXML(di, totaisConsolidados);
+        
+        // NOVA FUNCIONALIDADE: Salvar produtos na memória para sistema de precificação
+        this.salvarProdutosNaMemoria(di, totaisConsolidados, despesasConsolidadas);
         
         return totaisConsolidados;
     }
@@ -800,6 +824,69 @@ class ComplianceCalculator {
         this.calculationMemory = [];
         this.lastCalculation = null;
         console.log('🧹 Cache de cálculos limpo');
+    }
+    
+    /**
+     * NOVA FUNCIONALIDADE: Salva produtos na memória para sistema de precificação
+     * @param {Object} di - Dados da DI
+     * @param {Object} totaisConsolidados - Resultados do cálculo
+     * @param {Object} despesasConsolidadas - Despesas consolidadas
+     */
+    salvarProdutosNaMemoria(di, totaisConsolidados, despesasConsolidadas) {
+        if (!this.productMemory) {
+            console.log('ℹ️ ProductMemoryManager não disponível - produtos não serão salvos');
+            return;
+        }
+        
+        try {
+            console.log('💾 Salvando produtos na memória para sistema de precificação...');
+            
+            // Extrair dados relevantes da DI para salvar produtos estruturados
+            const diNumber = di.numero_di;
+            const additions = di.adicoes || [];
+            
+            // Usar método específico do ProductMemoryManager para salvar dados da DI
+            const savedProducts = this.productMemory.saveProductsFromDI(
+                diNumber, 
+                additions, 
+                totaisConsolidados
+            );
+            
+            console.log(`✅ ${savedProducts.length} produtos salvos na memória para precificação`);
+            
+            // Opcional: Notificar outros sistemas que produtos foram salvos
+            this.notifyProductsSaved(savedProducts);
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar produtos na memória:', error);
+            // Não interrompe o fluxo principal - é uma funcionalidade adicional
+        }
+    }
+    
+    /**
+     * Notifica outros sistemas que produtos foram salvos
+     * @param {Array} products - Produtos salvos
+     */
+    notifyProductsSaved(products) {
+        try {
+            // Dispatch event para outros sistemas
+            const event = new CustomEvent('productsMemorySaved', {
+                detail: {
+                    products: products,
+                    count: products.length,
+                    timestamp: new Date().toISOString()
+                }
+            });
+            
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(event);
+            }
+            
+            console.log(`📡 Evento 'productsMemorySaved' disparado para ${products.length} produtos`);
+            
+        } catch (error) {
+            console.error('❌ Erro ao notificar salvamento de produtos:', error);
+        }
     }
 }
 
