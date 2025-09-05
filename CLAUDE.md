@@ -518,8 +518,55 @@ The system handles Brazilian import taxes with specific rules:
 2. **Markup Calculation**: Based on total landed cost including all taxes
 3. **State-Specific Logic**: Each state has unique fiscal benefits requiring separate calculation paths
 4. **XML Parsing**: Must handle Brazilian DI (Declaração de Importação) format with additions (adições)
-<<<<<<< HEAD
 5. **Import Expenses Management**: System must handle both automatic DI expenses and manual extra expenses, with proper ICMS tax base calculation
+6. **Exchange Rate Calculation**: Taxa de câmbio must be CALCULATED from DI values (not extracted directly)
+
+## Multiple Currencies and Exchange Rate Handling
+
+### Exchange Rate Calculation Strategy
+
+The system MUST calculate exchange rates dynamically from DI values. Exchange rates are NOT explicitly provided in the XML.
+
+**Global DI Exchange Rate**:
+```javascript
+// Calculate from total values (VMLE - Valor da Mercadoria no Local de Embarque)
+const taxaCambio = localEmbarqueTotalReais / localEmbarqueTotalDolares;
+// Example: 551683.75 / 105732.33 = 5.2163 BRL/USD
+```
+
+**Per-Addition Exchange Rate** (for multi-currency DIs):
+```javascript
+// Each addition may have different currency
+const taxaAdicao = condicaoVendaValorReais / condicaoVendaValorMoeda;
+```
+
+### Multi-Currency Support
+
+DIs can contain multiple currencies:
+- Main merchandise in USD (code 220)
+- Some additions in EUR (code 978) or INR (code 860)
+- Freight/insurance with code "000" (already in BRL, no conversion needed)
+
+**Storage Structure**:
+```javascript
+di.taxa_cambio = 5.2163;  // Global rate for compatibility
+di.moedas = {
+    vmle_vmld: {
+        codigo: '220',
+        taxa: 5.2163  // Main currency rate
+    },
+    lista: [...]  // All currencies found in DI
+}
+```
+
+### Critical Implementation Notes
+
+1. **Always validate division by zero** when calculating rates
+2. **Code "000" means BRL** - no conversion needed
+3. **Each addition stores its own rate** in `adicao.taxa_cambio`
+4. **Global rate** should be stored in `di.taxa_cambio` for system compatibility
+
+See detailed documentation: `orientacoes/Estrutura-Moedas-Cambio-DI-Brasil.md`
 
 ## Development Notes
 

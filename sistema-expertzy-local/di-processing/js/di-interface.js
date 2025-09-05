@@ -1755,8 +1755,13 @@ function salvarDIParaIntegracao(di, xmlContent) {
             throw new Error('DI deve ter pelo menos uma adição para integração com precificação');
         }
         
-        if (typeof di.taxa_cambio !== 'number') {
-            throw new Error('Taxa de câmbio deve ser numérica - obrigatória para precificação');
+        // Tentar obter taxa de câmbio (ordem de prioridade)
+        const taxa_cambio = di.taxa_cambio || 
+                           di.moedas?.vmle_vmld?.taxa ||
+                           di.adicoes?.[0]?.taxa_cambio;
+        
+        if (typeof taxa_cambio !== 'number' || taxa_cambio <= 0) {
+            throw new Error('Taxa de câmbio não encontrada na DI - obrigatória para precificação');
         }
         
         // Estruturar dados básicos da DI para Fase 2
@@ -1776,7 +1781,7 @@ function salvarDIParaIntegracao(di, xmlContent) {
             di_data: di.data_registro,
             incoterm: di.incoterm_identificado,
             importador: di.importador,
-            taxa_cambio: di.taxa_cambio,
+            taxa_cambio: taxa_cambio,
             
             // XML original preservado
             xml_content: btoa(unescape(encodeURIComponent(xmlContent))),
@@ -2003,7 +2008,7 @@ function viewCalculationMemory(numeroAdicao) {
     }
 
     const modalContent = document.getElementById('calculationMemoryContent');
-    const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
+    const taxa_cambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
     
     // Perform validation
     const validation = validator.validateCalculation(currentDI, currentCalculation, numeroAdicao);
@@ -2042,7 +2047,7 @@ function viewCalculationMemory(numeroAdicao) {
                             </tr>
                             <tr class="table-primary">
                                 <td><strong>Taxa de Câmbio:</strong></td>
-                                <td class="text-end"><strong>${taxaCambio.toFixed(6)}</strong></td>
+                                <td class="text-end"><strong>${taxa_cambio.toFixed(6)}</strong></td>
                             </tr>
                             <tr>
                                 <td><strong>Peso Líquido:</strong></td>
@@ -2053,7 +2058,7 @@ function viewCalculationMemory(numeroAdicao) {
                         <div class="alert alert-light small">
                             <i class="bi bi-lightbulb"></i> <strong>Como é calculado:</strong><br>
                             Taxa de Câmbio = Valor em R$ ÷ Valor em USD<br>
-                            ${formatCurrency(adicao.valor_reais || 0)} ÷ $${(adicao.valor_moeda_negociacao || 0).toFixed(2)} = ${taxaCambio.toFixed(6)}
+                            ${formatCurrency(adicao.valor_reais || 0)} ÷ $${(adicao.valor_moeda_negociacao || 0).toFixed(2)} = ${taxa_cambio.toFixed(6)}
                         </div>
                     </div>
                 </div>
@@ -2258,7 +2263,7 @@ function exportCalculationMemory() {
 
     try {
         const workbook = XLSX.utils.book_new();
-        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
+        const taxa_cambio = currentCalculation.valores_base.taxa_cambio;
         
         // Sheet 1: Resumo Geral
         const resumoData = [
@@ -2290,7 +2295,7 @@ function exportCalculationMemory() {
             ['Descrição', 'Valor', 'Observação'],
             ['CIF USD', `$${(currentCalculation.valores_base.cif_usd || 0).toFixed(2)}`, 'Valor original da DI'],
             ['CIF BRL', formatCurrencyValue(currentCalculation.valores_base.cif_brl), 'Valor convertido'],
-            ['Taxa de Câmbio', taxaCambio.toFixed(6), 'R$/USD'],
+            ['Taxa de Câmbio', taxa_cambio.toFixed(6), 'R$/USD'],
             ['Peso Líquido', `${(currentCalculation.valores_base.peso_liquido || 0).toFixed(2)} kg`, 'Conforme DI'],
             [''],
             ['IMPOSTOS FEDERAIS'],
@@ -2367,7 +2372,7 @@ function exportCalculationMemoryPDF() {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const taxaCambio = currentCalculation.valores_base.taxa_cambio;
+        const taxa_cambio = currentCalculation.valores_base.taxa_cambio;
         
         // Header
         doc.setFontSize(16);
@@ -2382,7 +2387,7 @@ function exportCalculationMemoryPDF() {
         doc.text(`Adição: ${currentCalculation.adicao_numero}`, 80, 45);
         doc.text(`NCM: ${currentCalculation.ncm}`, 140, 45);
         doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 55);
-        doc.text(`Taxa Câmbio: ${taxaCambio.toFixed(6)}`, 80, 55);
+        doc.text(`Taxa Câmbio: ${taxa_cambio.toFixed(6)}`, 80, 55);
         doc.text(`Estado: ${currentCalculation.estado}`, 140, 55);
         
         // Base Values Table
@@ -2504,7 +2509,7 @@ function viewMultiAdditionSummary() {
     let totalFederalTaxes = 0;
     
     const additionsSummary = currentDI.adicoes.map(adicao => {
-        const taxaCambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
+        const taxa_cambio = adicao.taxa_cambio || (adicao.valor_reais / adicao.valor_moeda_negociacao);
         const federalTaxes = (adicao.tributos.ii_valor_devido || 0) +
                            (adicao.tributos.ipi_valor_devido || 0) +
                            (adicao.tributos.pis_valor_devido || 0) +
@@ -2520,7 +2525,7 @@ function viewMultiAdditionSummary() {
             descricao: adicao.descricao_ncm,
             cif_usd: adicao.valor_moeda_negociacao || 0,
             cif_brl: adicao.valor_reais || 0,
-            taxa_cambio: taxaCambio,
+            taxa_cambio: taxa_cambio,
             peso: adicao.peso_liquido || 0,
             ii: adicao.tributos.ii_valor_devido || 0,
             ipi: adicao.tributos.ipi_valor_devido || 0,

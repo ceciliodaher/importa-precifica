@@ -123,8 +123,8 @@ class MultiAdditionExporter {
         const data = [headers];
         
         this.di.adicoes.forEach(adicao => {
-            const taxaCambio = adicao.taxa_cambio || 
-                              (adicao.valor_reais / adicao.valor_moeda_negociacao);
+            const taxa_cambio = adicao.taxa_cambio || 
+                               (adicao.valor_reais / adicao.valor_moeda_negociacao);
             
             const totalFederal = (adicao.tributos?.ii_valor_devido || 0) +
                                (adicao.tributos?.ipi_valor_devido || 0) +
@@ -138,7 +138,7 @@ class MultiAdditionExporter {
                 adicao.fornecedor?.nome || 'N/A',
                 adicao.valor_moeda_negociacao || 0,
                 adicao.valor_reais || 0,
-                taxaCambio.toFixed(6),
+                taxa_cambio.toFixed(6),
                 adicao.peso_liquido || 0,
                 adicao.tributos?.ii_aliquota_ad_valorem || 0,
                 adicao.tributos?.ii_valor_devido || 0,

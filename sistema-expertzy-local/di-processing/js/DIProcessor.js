@@ -427,10 +427,10 @@ class DIProcessor {
             throw new Error(`Taxa de câmbio não pode ser calculada para adição ${numeroAdicao}: valorMoedaNegociacao=${valorMoedaNegociacao}, valorReais=${valorReais}`);
         }
         
-        const taxaCambio = valorReais / valorMoedaNegociacao;
+        const taxa_cambio = valorReais / valorMoedaNegociacao;
         
         // Adicionar taxa de câmbio aos dados da adição
-        adicaoData.taxa_cambio = taxaCambio;
+        adicaoData.taxa_cambio = taxa_cambio;
 
         produtoNodes.forEach(produtoNode => {
             // Extrair dados originais da DI
@@ -452,9 +452,9 @@ class DIProcessor {
                 valor_total_usd: quantidadeOriginal * valorUnitarioUSD,
                 
                 // Valores em BRL (convertidos pela taxa de câmbio da DI)
-                valor_unitario_brl: valorUnitarioUSD * taxaCambio,
-                valor_total_brl: quantidadeOriginal * valorUnitarioUSD * taxaCambio,
-                taxa_cambio: taxaCambio,
+                valor_unitario_brl: valorUnitarioUSD * taxa_cambio,
+                valor_total_brl: quantidadeOriginal * valorUnitarioUSD * taxa_cambio,
+                taxa_cambio: taxa_cambio,
                 
                 // Campos para compatibilidade (USD por padrão)
                 valor_unitario: valorUnitarioUSD,
@@ -642,6 +642,9 @@ class DIProcessor {
             },
             validacao: this.validarConversoes(xmlDoc, moedas)
         };
+        
+        // Adicionar taxa de câmbio global (KISS)
+        this.diData.taxa_cambio = vmleReais / vmleDolares;
         
         // Log se múltiplas moedas
         if (moedas.size > 1) {

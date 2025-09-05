@@ -113,13 +113,13 @@ class CroquiNFExporter {
         const importador = this.di.importador || {};
         const fornecedor = this.extractFornecedor();
         
-        // Taxa de câmbio
-        let taxaCambio = 5.3928; // Default
-        if (this.di.moedas?.lista?.length > 0) {
-            const moedaPrincipal = this.di.moedas.lista[0];
-            if (moedaPrincipal.taxa_conversao) {
-                taxaCambio = moedaPrincipal.taxa_conversao;
-            }
+        // Taxa de câmbio da DI (calculada dinamicamente)
+        const taxa_cambio = this.di.taxa_cambio || 
+                           this.di.moedas?.vmle_vmld?.taxa ||
+                           this.di.adicoes?.[0]?.taxa_cambio;
+        
+        if (!taxa_cambio || taxa_cambio <= 0) {
+            throw new Error('Taxa de câmbio não encontrada na DI para export');
         }
         
         return {
@@ -149,7 +149,7 @@ class CroquiNFExporter {
             
             // Taxa de câmbio
             moedas: this.di.moedas,
-            taxa_cambio: taxaCambio.toFixed(8)
+            taxa_cambio: taxa_cambio.toFixed(8)
         };
     }
     
