@@ -118,34 +118,208 @@ async function loadStates() {
 }
 
 /**
- * Check for loaded DI data from Phase 1
+ * INTEGRAÇÃO RIGOROSA: Validar e carregar DI da Fase 1 - NO FALLBACKS
  */
 function checkForLoadedDI() {
     try {
-        // Try to load DI data from localStorage
+        console.log('🔍 Verificando dados da DI no localStorage...');
+        
+        // Tentar recuperar dados OBRIGATÓRIOS do localStorage
         const storedDI = localStorage.getItem('expertzy_processed_di');
         
-        if (storedDI) {
-            loadedDI = JSON.parse(storedDI);
-            console.log('📄 DI carregada do armazenamento:', loadedDI.di_numero);
-            
-            // Show DI data section
-            document.getElementById('noDIAlert')?.classList.add('hidden');
-            document.getElementById('diDataSection')?.classList.remove('hidden');
-            
-            // Populate DI info
-            populateDIInfo(loadedDI);
-            
-        } else {
-            console.log('ℹ️ Nenhuma DI encontrada no armazenamento');
-            document.getElementById('noDIAlert')?.classList.remove('hidden');
-            document.getElementById('diDataSection')?.classList.add('hidden');
+        if (!storedDI) {
+            console.log('❌ Nenhuma DI encontrada no localStorage');
+            mostrarErroIntegracao('NENHUMA_DI', 
+                'Nenhuma DI processada encontrada',
+                'Processe uma DI na Fase 1 (Sistema de Compliance) antes de acessar a precificação.'
+            );
+            return;
         }
         
+        // Validar estrutura JSON
+        let diData;
+        try {
+            diData = JSON.parse(storedDI);
+        } catch (parseError) {
+            console.error('❌ Dados da DI corrompidos:', parseError);
+            mostrarErroIntegracao('DADOS_CORROMPIDOS', 
+                'Dados da DI estão corrompidos no armazenamento', 
+                'Processe a DI novamente na Fase 1.'
+            );
+            return;
+        }
+        
+        // Validação RIGOROSA da estrutura da DI - FAIL-FAST
+        const erroValidacao = validarEstruturaDICarregada(diData);
+        if (erroValidacao) {
+            console.error('❌ Estrutura de DI inválida:', erroValidacao);
+            mostrarErroIntegracao('ESTRUTURA_INVALIDA', 
+                'Estrutura de dados da DI inválida',
+                `${erroValidacao}. Reprocesse a DI na Fase 1.`
+            );
+            return;
+        }
+        
+        // Verificar se Fase 1 foi completada
+        if (!diData.integration.phase1_completed) {
+            console.log('⚠️ Fase 1 não completada - DI processada mas impostos não calculados');
+            mostrarErroIntegracao('FASE1_INCOMPLETA',
+                'Cálculo de impostos não finalizado',
+                'Complete o cálculo de impostos na Fase 1 antes de prosseguir para precificação.'
+            );
+            return;
+        }
+        
+        // Tudo válido - carregar DI
+        loadedDI = diData;
+        console.log(`✅ DI ${diData.di_numero} carregada e validada - ${diData.produtos.length} produtos disponíveis`);
+        
+        // Mostrar seção de dados da DI
+        const noDIAlert = document.getElementById('noDIAlert');
+        const diDataSection = document.getElementById('diDataSection');
+        
+        if (!noDIAlert || !diDataSection) {
+            throw new Error('Elementos de interface não encontrados - DOM pode estar corrompido');
+        }
+        
+        noDIAlert.classList.add('hidden');
+        diDataSection.classList.remove('hidden');
+        
+        // Popular informações da DI na interface
+        populateDIInfo(loadedDI);
+        
     } catch (error) {
-        console.error('❌ Erro ao carregar DI:', error);
-        showAlert('Erro ao carregar dados da DI.', 'danger');
+        console.error('❌ Erro crítico ao verificar DI:', error);
+        mostrarErroIntegracao('ERRO_CRITICO', 
+            'Erro crítico na verificação da DI',
+            `${error.message}. Reinicie o navegador e tente novamente.`
+        );
     }
+}
+
+/**
+ * Validar estrutura rigorosa da DI carregada - NO FALLBACKS
+ * @param {Object} diData - Dados da DI carregados do localStorage
+ * @returns {String|null} - Erro de validação ou null se válida
+ */
+function validarEstruturaDICarregada(diData) {
+    // Validar metadados de integração
+    if (!diData.integration) {
+        return 'Metadados de integração ausentes';
+    }
+    
+    if (diData.integration.version !== '2.0') {
+        return `Versão de integração incompatível: ${diData.integration.version}`;
+    }
+    
+    // Validar campos básicos obrigatórios
+    const camposObrigatorios = ['di_numero', 'produtos', 'taxa_cambio'];
+    for (const campo of camposObrigatorios) {
+        if (!diData[campo]) {
+            return `Campo obrigatório ausente: ${campo}`;
+        }
+    }
+    
+    // Validar número da DI
+    if (typeof diData.di_numero !== 'string' || diData.di_numero.length === 0) {
+        return 'Número da DI deve ser uma string não-vazia';
+    }
+    
+    // Validar taxa de câmbio
+    if (typeof diData.taxa_cambio !== 'number' || diData.taxa_cambio <= 0) {
+        return 'Taxa de câmbio deve ser um número positivo';
+    }
+    
+    // Validar produtos
+    if (!Array.isArray(diData.produtos)) {
+        return 'Lista de produtos deve ser um array';
+    }
+    
+    if (diData.produtos.length === 0) {
+        return 'DI deve ter pelo menos um produto';
+    }
+    
+    // Validar estrutura dos produtos
+    for (let i = 0; i < diData.produtos.length; i++) {
+        const produto = diData.produtos[i];
+        
+        if (!produto.id) {
+            return `Produto ${i} sem ID`;
+        }
+        
+        if (!produto.ncm) {
+            return `Produto ${i} sem NCM`;
+        }
+        
+        if (!produto.descricao) {
+            return `Produto ${i} sem descrição`;
+        }
+        
+        if (typeof produto.valor_unitario_brl !== 'number') {
+            return `Produto ${i} sem valor unitário BRL válido`;
+        }
+    }
+    
+    // Se Fase 1 completa, validar cálculos
+    if (diData.integration.phase1_completed) {
+        if (!diData.calculoImpostos) {
+            return 'Cálculos de impostos ausentes apesar de Fase 1 marcada como completa';
+        }
+        
+        if (!diData.despesas) {
+            return 'Despesas consolidadas ausentes apesar de Fase 1 marcada como completa';
+        }
+        
+        if (!diData.valores_base_finais) {
+            return 'Valores base finais ausentes apesar de Fase 1 marcada como completa';
+        }
+    }
+    
+    return null; // Tudo válido
+}
+
+/**
+ * Mostrar erro de integração específico para usuário - NO FALLBACKS
+ * @param {String} tipo - Tipo do erro
+ * @param {String} titulo - Título do erro  
+ * @param {String} descricao - Descrição detalhada
+ */
+function mostrarErroIntegracao(tipo, titulo, descricao) {
+    const noDIAlert = document.getElementById('noDIAlert');
+    const diDataSection = document.getElementById('diDataSection');
+    
+    if (!noDIAlert || !diDataSection) {
+        console.error('❌ Elementos de interface não encontrados para mostrar erro');
+        return;
+    }
+    
+    // Mostrar alerta de erro
+    noDIAlert.classList.remove('hidden');
+    diDataSection.classList.add('hidden');
+    
+    // Personalizar mensagem baseado no tipo de erro
+    let linkBotao = '../di-processing/di-processor.html';
+    let textoBotao = 'Processar DI';
+    
+    if (tipo === 'FASE1_INCOMPLETA') {
+        linkBotao = '../di-processing/di-processor.html#step2';
+        textoBotao = 'Completar Cálculos';
+    }
+    
+    // Atualizar conteúdo do alerta
+    noDIAlert.innerHTML = `
+        <h6><i class="bi bi-exclamation-triangle"></i> ${titulo}</h6>
+        <p class="mb-2">${descricao}</p>
+        <p class="mb-0">
+            <strong>Para continuar:</strong> 
+            <a href="${linkBotao}" class="btn btn-sm btn-business-secondary ms-2">
+                <i class="bi bi-file-earmark-text"></i> ${textoBotao}
+            </a>
+        </p>
+    `;
+    
+    // Mostrar alert adicional
+    showAlert(titulo + ': ' + descricao, 'danger');
 }
 
 /**
