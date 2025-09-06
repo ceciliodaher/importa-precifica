@@ -545,12 +545,28 @@ class DIProcessor {
             throw new Error('Taxa de câmbio encontrada mas código de moeda não identificado na DI');
         }
         
-        // Associar taxas às moedas
+        // Associar taxas às moedas usando ConfigLoader
         moedasEncontradas.forEach((codigo, index) => {
-            const info = window.CODIGOS_MOEDA_RFB?.[codigo] || {
-                sigla: `MOEDA_${codigo}`,
-                nome: `Moeda código ${codigo}`
-            };
+            // Obter info da moeda via ConfigLoader (fail-fast se não cadastrada)
+            let info;
+            try {
+                // Usar o ConfigLoader criado anteriormente
+                const configLoader = new ConfigLoader();
+                const moedaInfo = configLoader.isLoaded() ? 
+                    configLoader.getCurrencyInfo(codigo) : 
+                    { codigo_iso: `MOEDA_${codigo}`, nome: `Moeda código ${codigo}` };
+                    
+                info = {
+                    nome: moedaInfo.nome,
+                    sigla: moedaInfo.codigo_iso
+                };
+            } catch (error) {
+                console.warn(`Moeda ${codigo} não cadastrada no sistema, usando fallback`);
+                info = {
+                    sigla: `MOEDA_${codigo}`,
+                    nome: `Moeda código ${codigo}`
+                };
+            }
             
             moedas.set(codigo, {
                 codigo,
@@ -565,39 +581,36 @@ class DIProcessor {
     }
 
     /**
-     * Detecta qual moeda foi usada para VMLE/VMLD comparando taxas
+     * Obtem dados da moeda VMLE/VMLD direto da DI (DATA-DRIVEN)
+     * A DI é a fonte da verdade - não validamos, apenas processamos
      */
-    detectarMoedaVmleVmld(vmleDolares, vmleReais, moedas) {
-        if (!vmleDolares || !vmleReais || vmleDolares === 0) {
-            // Se há moedas identificadas, usar a primeira; senão erro
-            if (moedas.size === 0) {
-                throw new Error('Nenhuma moeda identificada na DI para VMLE/VMLD');
-            }
-            return moedas.values().next().value.codigo;
+    obterMoedaVmleVmld(xmlDoc) {
+        const diNode = xmlDoc.querySelector('declaracaoImportacao');
+        
+        // DADOS DIRETOS DA DI - FONTE DA VERDADE
+        const vmleDolares = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalDolares'), 100);
+        const vmleReais = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalReais'), 100);
+        
+        // Obter código da moeda da primeira adição (padrão das DIs brasileiras)
+        const primeiraAdicao = diNode.querySelector('adicao');
+        const codigoMoeda = this.getTextContent(primeiraAdicao, 'condicaoVendaMoedaCodigo');
+        
+        // FAIL-FAST apenas se dados estruturais obrigatórios ausentes
+        if (!vmleDolares || !vmleReais || !codigoMoeda) {
+            throw new Error('Dados estruturais VMLE/VMLD ausentes na DI - DI mal formada');
         }
         
+        // Taxa calculada = FONTE DA VERDADE (não há "validação", apenas cálculo)
         const taxaCalculada = vmleReais / vmleDolares;
-        const tolerancia = 0.02; // 2% de tolerância
         
-        let melhorMoeda = null;
-        let menorDiferenca = Infinity;
+        console.log(`📊 Moeda VMLE/VMLD: ${codigoMoeda}, Taxa: ${taxaCalculada.toFixed(4)} BRL`);
         
-        // Procurar moeda com taxa mais próxima
-        for (const moeda of moedas.values()) {
-            if (moeda.taxa > 0) {
-                const diferenca = Math.abs(moeda.taxa - taxaCalculada) / moeda.taxa;
-                if (diferenca < menorDiferenca && diferenca < tolerancia) {
-                    menorDiferenca = diferenca;
-                    melhorMoeda = moeda.codigo;
-                }
-            }
-        }
-        
-        if (!melhorMoeda) {
-            throw new Error(`Nenhuma moeda com taxa compatível encontrada para VMLE/VMLD (taxa calculada: ${taxaCalculada.toFixed(4)})`);
-        }
-        
-        return melhorMoeda;
+        return {
+            codigo: codigoMoeda,
+            taxa: taxaCalculada,
+            vmle_usd: vmleDolares,
+            vmle_brl: vmleReais
+        };
     }
 
     /**
@@ -618,45 +631,53 @@ class DIProcessor {
     }
 
     /**
-     * Processa múltiplas moedas e taxas de câmbio da DI
+     * Processa moedas da DI de forma DATA-DRIVEN
      */
     processarMultiplasMoedas(xmlDoc) {
-        const infoComplementar = this.diData.informacoes_complementares?.texto_completo || '';
+        // MÉTODO DATA-DRIVEN: Obter dados direto da DI
+        const moedaVmle = this.obterMoedaVmleVmld(xmlDoc);
         
-        // 1. Extrair taxas de câmbio
-        const taxas = this.extrairTaxasCambio(infoComplementar);
+        // Obter informações detalhadas da moeda via ConfigLoader
+        let moedaDetalhada;
+        try {
+            const configLoader = new ConfigLoader();
+            if (configLoader.isLoaded()) {
+                const moedaInfo = configLoader.getCurrencyInfo(moedaVmle.codigo);
+                moedaDetalhada = {
+                    codigo: moedaVmle.codigo,
+                    nome: moedaInfo.nome,
+                    sigla: moedaInfo.codigo_iso,
+                    taxa: moedaVmle.taxa
+                };
+            } else {
+                moedaDetalhada = {
+                    codigo: moedaVmle.codigo,
+                    nome: `Moeda ${moedaVmle.codigo}`,
+                    sigla: moedaVmle.codigo,
+                    taxa: moedaVmle.taxa
+                };
+            }
+        } catch (error) {
+            console.warn(`ConfigLoader não disponível ou moeda ${moedaVmle.codigo} não cadastrada`);
+            moedaDetalhada = {
+                codigo: moedaVmle.codigo,
+                nome: `Moeda ${moedaVmle.codigo}`,
+                sigla: moedaVmle.codigo,
+                taxa: moedaVmle.taxa
+            };
+        }
         
-        // 2. Identificar moedas e associar com taxas
-        const moedas = this.identificarMoedasETaxas(xmlDoc, taxas);
-        
-        // 3. Detectar moeda do VMLE/VMLD
-        const diNode = xmlDoc.querySelector('declaracaoImportacao');
-        const vmleDolares = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalDolares'), 100);
-        const vmleReais = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalReais'), 100);
-        
-        const codigoMoedaVmle = this.detectarMoedaVmleVmld(vmleDolares, vmleReais, moedas);
-        const moedaVmle = moedas.get(codigoMoedaVmle);
-        
-        // 4. Estruturar dados
+        // Estruturar dados da moeda (DATA-DRIVEN - SEM VALIDAÇÕES ARTIFICIAIS)
         this.diData.moedas = {
-            lista: Array.from(moedas.values()),
-            total: moedas.size,
-            vmle_vmld: {
-                codigo: codigoMoedaVmle,
-                nome: moedaVmle?.nome || 'Moeda não identificada',
-                sigla: moedaVmle?.sigla || 'N/A',
-                taxa: moedaVmle?.taxa || 0
-            },
-            validacao: this.validarConversoes(xmlDoc, moedas)
+            lista: [moedaDetalhada], // Por enquanto, só VMLE/VMLD
+            total: 1,
+            vmle_vmld: moedaDetalhada
         };
         
-        // Adicionar taxa de câmbio global (KISS)
-        this.diData.taxa_cambio = vmleReais / vmleDolares;
+        // Taxa de câmbio global = taxa calculada da DI
+        this.diData.taxa_cambio = moedaVmle.taxa;
         
-        // Log se múltiplas moedas
-        if (moedas.size > 1) {
-            console.log('Múltiplas moedas detectadas:', this.diData.moedas);
-        }
+        console.log(`✅ Moeda processada DATA-DRIVEN: ${moedaDetalhada.sigla} (${moedaVmle.taxa.toFixed(4)})`);
     }
 
     /**
