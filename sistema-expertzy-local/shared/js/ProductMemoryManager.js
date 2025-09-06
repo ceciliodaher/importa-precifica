@@ -65,14 +65,14 @@ class ProductMemoryManager {
                 
                 // Custos Base (antes de créditos)
                 base_costs: {
-                    cif_brl: productData.cif_brl || 0,
-                    ii: productData.ii || 0,
-                    ipi: productData.ipi || 0,
-                    pis_import: productData.pis_import || 0,
-                    cofins_import: productData.cofins_import || 0,
-                    cofins_adicional: productData.cofins_adicional || 0,
-                    icms_import: productData.icms_import || 0,
-                    icms_st: productData.icms_st || 0,
+                    cif_brl: this.validateCost(productData.cif_brl, 'CIF BRL'),
+                    ii: this.validateCost(productData.ii, 'II'),
+                    ipi: this.validateCost(productData.ipi, 'IPI'),
+                    pis_import: this.validateCost(productData.pis_import, 'PIS'),
+                    cofins_import: this.validateCost(productData.cofins_import, 'COFINS'),
+                    cofins_adicional: productData.cofins_adicional || 0, // Opcional
+                    icms_import: this.validateCost(productData.icms_import, 'ICMS'),
+                    icms_st: productData.icms_st || 0, // Opcional
                     expenses: {
                         siscomex: productData.expenses?.siscomex || 0,
                         afrmm: productData.expenses?.afrmm || 0,
@@ -93,9 +93,9 @@ class ProductMemoryManager {
                 
                 // Metadados
                 metadata: {
-                    exchange_rate: productData.exchange_rate || 1,
+                    exchange_rate: this.validateExchangeRate(productData.exchange_rate),
                     import_date: productData.import_date || new Date().toISOString(),
-                    state: productData.state || 'GO',
+                    state: this.validateState(productData.state),
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 }
@@ -166,9 +166,9 @@ class ProductMemoryManager {
                         industrial_use: false, // Definido pelo usuário depois
                         
                         // Metadados
-                        exchange_rate: addition.taxa_cambio || 5.39,
+                        exchange_rate: this.validateExchangeRate(addition.taxa_cambio),
                         import_date: addition.data_registro || new Date().toISOString(),
-                        state: calculations?.estado || 'GO'
+                        state: this.validateState(calculations?.estado)
                     };
                     
                     const saved = this.saveProduct(productData);
@@ -435,6 +435,36 @@ class ProductMemoryManager {
         });
 
         return stats;
+    }
+
+    /**
+     * Valida taxa de câmbio - FAIL-FAST conforme CLAUDE.md
+     */
+    validateExchangeRate(taxa_cambio) {
+        if (typeof taxa_cambio !== 'number' || taxa_cambio <= 0) {
+            throw new Error('Taxa de câmbio deve ser numérica e positiva - obrigatória para salvar produto');
+        }
+        return taxa_cambio;
+    }
+
+    /**
+     * Valida estado - FAIL-FAST conforme CLAUDE.md  
+     */
+    validateState(estado) {
+        if (!estado || typeof estado !== 'string') {
+            throw new Error('Estado da DI ausente - obrigatório para salvar produto');
+        }
+        return estado;
+    }
+
+    /**
+     * Valida custos obrigatórios - FAIL-FAST conforme CLAUDE.md
+     */
+    validateCost(cost, costName) {
+        if (typeof cost !== 'number' || cost < 0) {
+            throw new Error(`${costName} deve ser numérico e não-negativo - obrigatório para salvar produto`);
+        }
+        return cost;
     }
 }
 

@@ -540,9 +540,9 @@ class DIProcessor {
             moedasEncontradas.push(codSeguro);
         }
         
-        // 4. Se não encontrou moedas explícitas mas tem taxas, assumir USD como primeira
+        // 4. Se não encontrou moedas explícitas mas tem taxas, erro - moeda obrigatória
         if (moedasEncontradas.length === 0 && taxas.length > 0) {
-            moedasEncontradas.push('220'); // USD
+            throw new Error('Taxa de câmbio encontrada mas código de moeda não identificado na DI');
         }
         
         // Associar taxas às moedas
@@ -569,14 +569,17 @@ class DIProcessor {
      */
     detectarMoedaVmleVmld(vmleDolares, vmleReais, moedas) {
         if (!vmleDolares || !vmleReais || vmleDolares === 0) {
-            // Se há moedas identificadas, usar a primeira; senão USD
-            return moedas.size > 0 ? moedas.values().next().value.codigo : '220';
+            // Se há moedas identificadas, usar a primeira; senão erro
+            if (moedas.size === 0) {
+                throw new Error('Nenhuma moeda identificada na DI para VMLE/VMLD');
+            }
+            return moedas.values().next().value.codigo;
         }
         
         const taxaCalculada = vmleReais / vmleDolares;
         const tolerancia = 0.02; // 2% de tolerância
         
-        let melhorMoeda = '220';
+        let melhorMoeda = null;
         let menorDiferenca = Infinity;
         
         // Procurar moeda com taxa mais próxima
@@ -588,6 +591,10 @@ class DIProcessor {
                     melhorMoeda = moeda.codigo;
                 }
             }
+        }
+        
+        if (!melhorMoeda) {
+            throw new Error(`Nenhuma moeda com taxa compatível encontrada para VMLE/VMLD (taxa calculada: ${taxaCalculada.toFixed(4)})`);
         }
         
         return melhorMoeda;
@@ -668,7 +675,10 @@ class DIProcessor {
         const vmleReais = this.parseNumber(this.getTextContent(diNode, 'localEmbarqueTotalReais'), 100);
         
         if (vmleDolares > 0 && vmleReais > 0) {
-            const codigoMoedaVmle = this.diData.moedas?.vmle_vmld?.codigo || '220';
+            const codigoMoedaVmle = this.diData.moedas?.vmle_vmld?.codigo;
+            if (!codigoMoedaVmle) {
+                throw new Error('Código de moeda VMLE/VMLD não identificado');
+            }
             const valorCalculado = this.converterParaReais(vmleDolares, codigoMoedaVmle, moedas);
             const diferenca = Math.abs(valorCalculado - vmleReais);
             const tolerancia = vmleReais * 0.01; // 1%

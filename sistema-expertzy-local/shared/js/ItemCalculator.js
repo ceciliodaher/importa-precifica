@@ -12,9 +12,9 @@ class ItemCalculator {
     constructor() {
         this.aliquotasCache = null;
         this.icmsConfig = {
-            estado: 'GO',
-            aliquotaPadrao: 19,
-            ncmConfigs: {} // ncm -> aliquota específica
+            estado: null, // Estado vem do contexto
+            aliquotaPadrao: null,
+            ncmConfigs: {}
         };
     }
 

@@ -46,7 +46,7 @@ class StorageManager {
     ensureDefaultConfig() {
         if (!this.getConfig()) {
             this.saveConfig({
-                estado_padrao: 'GO',
+                estado_padrao: null, // Estado vem da DI
                 regime_tributario: 'real',
                 tipo_operacao_padrao: 'interestadual',
                 auto_calculate: true,

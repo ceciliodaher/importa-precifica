@@ -12,7 +12,7 @@
 class ComplianceCalculator {
     constructor() {
         this.configuracoes = null;
-        this.estadoDestino = 'GO'; // Default Goiás
+        this.estadoDestino = null; // Estado deve ser fornecido explicitamente - sem default
         this.calculationMemory = [];
         this.lastCalculation = null;
         this.itemCalculator = new ItemCalculator(); // NOVO: Integração para cálculos por item
@@ -50,6 +50,11 @@ class ComplianceCalculator {
         
         if (!di || !di.adicoes || di.adicoes.length === 0) {
             throw new Error('DI sem adições válidas para cálculo');
+        }
+        
+        // Validar que estado foi configurado (deve ser feito externamente antes de chamar este método)
+        if (!this.estadoDestino) {
+            throw new Error('Estado destino não configurado - ComplianceCalculator requer estado definido via setEstadoDestino()');
         }
         
         // Configurar DI data para ItemCalculator usar em rateios
@@ -802,6 +807,9 @@ class ComplianceCalculator {
      * Define estado de destino
      */
     setEstadoDestino(estado) {
+        if (!estado) {
+            throw new Error('Estado destino é obrigatório');
+        }
         this.estadoDestino = estado;
         console.log(`📍 Estado destino definido: ${estado}`);
     }

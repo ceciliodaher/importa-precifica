@@ -47,10 +47,10 @@ class RegimeConfigManager {
             company_settings: {
                 regime_tributario: 'lucro_real', // lucro_real | lucro_presumido | simples_nacional
                 tipo_empresa: 'comercio', // comercio | industria | servicos | misto
-                estado_sede: 'GO',
+                estado_sede: null, // Estado vem da DI
                 inscricao_estadual: true,
                 substituto_tributario: false,
-                contribuinte_ipi: false, // Só true se indústria
+                contribuinte_ipi: true, // Todo importador é contribuinte de IPI
                 
                 // Configurações específicas da empresa para Simples Nacional
                 simples_config: {

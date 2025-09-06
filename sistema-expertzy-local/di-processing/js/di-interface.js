@@ -663,7 +663,15 @@ function updateExpensePreview() {
     const automaticExpenses = currentDI.despesas_aduaneiras.total_despesas_aduaneiras;
     const baseICMSBefore = automaticExpenses;
     const baseICMSAfter = automaticExpenses + totalExtraICMS;
-    const icmsDifference = (baseICMSAfter - baseICMSBefore) * 0.19 / 0.81; // ICMS GO = 19%
+    // Get ICMS rate for the state from DI (no fallback - fail fast)
+    const estado = currentDI?.importador?.endereco_uf;
+    if (!estado) {
+        throw new Error('Estado do importador não encontrado na DI - obrigatório para cálculo ICMS');
+    }
+    
+    const aliquotaICMSPercent = complianceCalculator.obterAliquotaICMS(estado); // Returns percentage (19.00)
+    const aliquotaICMSDecimal = aliquotaICMSPercent / 100; // Convert to decimal (0.19)
+    const icmsDifference = (baseICMSAfter - baseICMSBefore) * aliquotaICMSDecimal / (1 - aliquotaICMSDecimal);
     
     // Update preview
     document.getElementById('previewTotalExtra').textContent = formatCurrency(totalExtra);
@@ -744,7 +752,10 @@ async function calcularImpostos() {
         }
         
         // Obter estado do importador da DI
-        const estadoImportador = currentDI.importador?.endereco_uf || 'GO';
+        const estadoImportador = currentDI.importador?.endereco_uf;
+        if (!estadoImportador) {
+            throw new Error('Estado do importador não encontrado na DI - campo obrigatório para cálculos fiscais');
+        }
         complianceCalculator.setEstadoDestino(estadoImportador);
         
         // Use the modular method to calculate taxes for ALL additions
@@ -1401,41 +1412,27 @@ function formatUSD(value) {
  * Format currency with specific currency code
  */
 function formatCurrencyWithCode(value, currencyCode) {
-    // Convert currency code to symbol
-    const currencyMap = {
-        '220': 'USD',
-        '978': 'EUR',
-        '826': 'GBP',
-        '156': 'CNY',
-        '392': 'JPY',
-        '124': 'CAD',
-        '036': 'AUD'
-    };
+    // Currency code will be resolved from ConfigLoader when needed
+    // For now, just show the code with value
+    if (!currencyCode) {
+        return formatNumber(value, 2);
+    }
     
-    const currency = currencyMap[currencyCode] || currencyCode;
-    
-    if (currency === 'USD') {
+    // Special handling for known formats
+    if (currencyCode === '220' || currencyCode === 'USD') {
         return formatUSD(value);
     }
     
     // For other currencies, show with code
-    return `${currency} ${formatNumber(value, 2)}`;
+    return `${currencyCode} ${formatNumber(value, 2)}`;
 }
 
 /**
  * Get currency label from currency code
  */
 function getCurrencyLabel(currencyCode) {
-    const currencyMap = {
-        '220': 'USD',
-        '978': 'EUR', 
-        '826': 'GBP',
-        '156': 'CNY',
-        '392': 'JPY',
-        '124': 'CAD',
-        '036': 'AUD'
-    };
-    return currencyMap[currencyCode] || currencyCode;
+    // Return code as-is, will be resolved from ConfigLoader when system loads
+    return currencyCode || 'N/A';
 }
 
 /**
@@ -2352,8 +2349,8 @@ function exportMultiAdditionSummary() {
 
 // Storage para configurações de alíquotas
 let icmsConfig = {
-    estado: 'GO',
-    aliquotaPadrao: 19,
+    estado: null, // Estado será definido quando DI for carregada
+    aliquotaPadrao: null, // Alíquota será obtida do JSON baseada no estado
     ncmConfigs: {} // ncm -> aliquota específica
 };
 
@@ -2398,9 +2395,10 @@ async function preencherSelectEstados() {
             option.textContent += ` + FCP`;
         }
         
-        if (uf === 'GO') {
-            option.selected = true;
-        }
+        // Não definir estado padrão - será selecionado baseado na DI
+        // if (uf === 'GO') {
+        //     option.selected = true;
+        // }
         
         select.appendChild(option);
     });
