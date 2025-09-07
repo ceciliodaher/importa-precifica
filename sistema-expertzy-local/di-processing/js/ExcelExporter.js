@@ -477,9 +477,9 @@ class ExcelExporter {
                 this.formatNumber(adicao.valor_reais),
                 this.formatNumber(adicao.tributos.cofins_valor_devido)],
             ['ICMS', 
-                this.formatNumber(calculo.impostos.icms_aliquota),
-                this.formatNumber(calculo.impostos.icms_base),
-                this.formatNumber(calculo.impostos.icms)],
+                this.formatNumber(this.calculationData?.impostos?.icms?.aliquota),
+                this.formatNumber(calculo.impostos?.icms_base || adicao.valor_reais),
+                this.formatNumber(this.calculationData?.impostos?.icms?.valor_devido)],
             [],
             ['PRODUTOS'],
             ['Código', 'Descrição', 'Quantidade', 'Unidade', 'Valor Unit. USD', 'Valor Total USD', 'Valor Unit. R$', 'Valor Total R$']
@@ -506,25 +506,27 @@ class ExcelExporter {
         data.push(['RATEIO DE DESPESAS']);
         data.push(['Despesa', 'Valor Rateado R$']);
         
-        const despesas = calculo.despesas_rateadas || {};
-        // Validar despesas rateadas antes de exibir
-        this.validateProratedExpenses(despesas, calculo.numero_adicao || 'N/I');
+        // Get expenses from global calculation data instead of per-addition
+        const despesasAutomaticas = this.calculationData?.despesas?.automaticas || {};
+        const proporcao = adicao.valor_reais / (this.calculationData?.valores_base?.valor_aduaneiro_total || 1);
         
-        data.push(['AFRMM Rateado', this.formatNumber(despesas.afrmm)]);
-        data.push(['SISCOMEX Rateado', this.formatNumber(despesas.siscomex)]);
-        data.push(['Capatazia Rateada', this.formatNumber(despesas.capatazia)]);
-        data.push(['Frete Rateado', this.formatNumber(despesas.frete)]);
-        data.push(['Seguro Rateado', this.formatNumber(despesas.seguro)]);
-        data.push(['Total Despesas Rateadas', this.formatNumber(despesas.total)]);
+        data.push(['AFRMM Rateado', this.formatNumber((despesasAutomaticas.afrmm || 0) * proporcao)]);
+        data.push(['SISCOMEX Rateado', this.formatNumber((despesasAutomaticas.siscomex || 0) * proporcao)]);
+        data.push(['Capatazia Rateada', this.formatNumber((despesasAutomaticas.capatazia || 0) * proporcao)]);
+        data.push(['Frete Rateado', this.formatNumber((this.diData.frete_brl || 0) * proporcao)]);
+        data.push(['Seguro Rateado', this.formatNumber((this.diData.seguro_brl || 0) * proporcao)]);
+        
+        const totalDespesasRateadas = ((despesasAutomaticas.afrmm || 0) + (despesasAutomaticas.siscomex || 0) + (despesasAutomaticas.capatazia || 0) + (this.diData.frete_brl || 0) + (this.diData.seguro_brl || 0)) * proporcao;
+        data.push(['Total Despesas Rateadas', this.formatNumber(totalDespesasRateadas)]);
 
         // Add cost summary
         data.push([]);
         data.push(['RESUMO DE CUSTOS']);
         data.push(['Item', 'Valor R$']);
-        data.push(['Valor Aduaneiro', this.formatNumber(adicao.condicao_venda_valor_reais)]);
-        data.push(['Total Impostos', this.formatNumber(calculo.total_impostos)]);
-        data.push(['Total Despesas', this.formatNumber(despesas.total)]);
-        data.push(['CUSTO TOTAL', this.formatNumber(calculo.custo_total)]);
+        data.push(['Valor Aduaneiro', this.formatNumber(adicao.valor_reais)]);
+        data.push(['Total Impostos', this.formatNumber(this.calculationData?.totais?.total_impostos)]);
+        data.push(['Total Despesas', this.formatNumber(totalDespesasRateadas)]);
+        data.push(['CUSTO TOTAL', this.formatNumber(this.calculationData?.totais?.custo_total)]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
         XLSX.utils.book_append_sheet(this.workbook, ws, sheetName);
