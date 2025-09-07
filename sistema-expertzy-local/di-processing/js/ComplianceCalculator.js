@@ -126,6 +126,8 @@ class ComplianceCalculator {
                         produto_index: index + 1,
                         ncm: adicao.ncm,
                         descricao: item.produto.descricao,
+                        codigo: item.produto.codigo,                    // Real code from DI
+                        unidade_medida: item.produto.unidade_medida,   // Real unit from DI
                         valor_unitario_brl: item.produto.valor_unitario,
                         valor_total_brl: item.valorItem,
                         quantidade: item.produto.quantidade,

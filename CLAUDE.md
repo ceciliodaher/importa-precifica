@@ -798,6 +798,289 @@ if (!despesasConsolidadas.automaticas || typeof despesasConsolidadas.automaticas
 
 Use browser dev tools and the built-in log window. The application provides extensive logging through the Logger class, with both console and UI output available.
 
+# Complete Data Structure Reference
+
+## Data Processing Pipeline Field Mapping
+
+### **DIProcessor.js → ComplianceCalculator.js → ExcelExporter.js**
+
+This section provides the definitive field mapping reference to prevent "field name mismatch" errors across modules.
+
+---
+
+## **1. DIProcessor.js Output Structure (`diData`)**
+
+### **Root DI Object:**
+```javascript
+diData = {
+    // Basic DI Information
+    numero_di: string,                     // DI number 
+    data_registro: string,                 // Registration date (DD/MM/YYYY format)
+    urf_despacho_codigo: string,          // Customs office code
+    urf_despacho_nome: string,            // Customs office name
+    modalidade_codigo: string,            // Dispatch mode code
+    modalidade_nome: string,              // Dispatch mode name
+    situacao_entrega: string,             // Delivery situation
+    total_adicoes: number,                // Total number of additions
+    
+    // Objects
+    importador: object,                   // Importer information
+    carga: object,                       // Cargo information  
+    adicoes: array,                      // Array of additions
+    despesas_aduaneiras: object,         // Customs expenses
+    moedas: object,                      // Currency information
+    totais: object,                      // Calculated totals
+    taxa_cambio: number                  // Global exchange rate
+}
+```
+
+### **Importador Object:**
+```javascript
+importador = {
+    nome: string,                        // Company name
+    cnpj: string,                       // CNPJ (formatted XX.XXX.XXX/XXXX-XX)
+    endereco_logradouro: string,        // Street address
+    endereco_numero: string,            // Street number
+    endereco_complemento: string,       // Address complement
+    endereco_bairro: string,            // District/neighborhood
+    endereco_cidade: string,            // City
+    endereco_municipio: string,         // Municipality
+    endereco_uf: string,               // State (UF) - CRITICAL for ICMS calculation
+    endereco_cep: string,              // ZIP code (formatted XXXXX-XXX)
+    endereco_completo: string,         // Complete formatted address
+    representante_nome: string,        // Legal representative name
+    representante_cpf: string,         // Legal representative CPF
+    telefone: string                   // Phone number
+}
+```
+
+### **Adicoes Array Structure:**
+```javascript
+adicao = {
+    numero_adicao: string,             // Addition number (zero-padded, e.g., "001")
+    
+    // ⚠️ CRITICAL: Addition description field
+    descricao_ncm: string,             // NCM description (NOT descricao_mercadoria)
+    ncm: string,                       // NCM code
+    
+    // Values and Currency
+    condicao_venda_valor_moeda: number,    // Value in negotiation currency
+    condicao_venda_valor_reais: number,    // Value in BRL
+    taxa_cambio: number,               // Exchange rate for this addition
+    moeda_negociacao_codigo: string,   // Currency code
+    moeda_negociacao_nome: string,     // Currency name
+    
+    // Incoterm
+    condicao_venda_incoterm: string,   // Incoterm code (for ExcelExporter incoterm field)
+    incoterm_detalhes: object,         // Detailed incoterm information
+    
+    // Weight and Measures
+    peso_liquido: number,              // Net weight (converted to kg)
+    quantidade_estatistica: number,    // Statistical quantity
+    unidade_estatistica: string,       // Statistical unit
+    
+    // Federal Taxes (from DI XML)
+    tributos: {
+        ii_aliquota_ad_valorem: number,   // II rate (%)
+        ii_valor_devido: number,          // II amount due
+        ipi_aliquota_ad_valorem: number,  // IPI rate (%)
+        ipi_valor_devido: number,         // IPI amount due
+        pis_aliquota_ad_valorem: number,  // PIS rate (%)
+        pis_valor_devido: number,         // PIS amount due
+        cofins_aliquota_ad_valorem: number, // COFINS rate (%)
+        cofins_valor_devido: number       // COFINS amount due
+    },
+    
+    // Products Array
+    produtos: array                    // Array of products in this addition
+}
+```
+
+### **Produtos Array Structure (within each addition):**
+```javascript
+produto = {
+    // ⚠️ CRITICAL: Product description field name
+    descricao_mercadoria: string,      // Product description (NOT descricao)
+    codigo: string,                    // Product code from DI
+    unidade_medida: string,           // Unit of measure from DI
+    
+    // Quantity
+    quantidade: number,                // Quantity (converted to proper unit)
+    
+    // Values in USD (original DI currency)
+    valor_unitario_usd: number,       // Unit value in USD
+    valor_total_usd: number,          // Total value in USD
+    
+    // Values in BRL (converted using DI exchange rate)
+    valor_unitario_brl: number,       // Unit value in BRL  
+    valor_total_brl: number,          // Total value in BRL
+    taxa_cambio: number               // Exchange rate used for conversion
+}
+```
+
+---
+
+## **2. ComplianceCalculator.js Output Structure (`calculationData`)**
+
+### **Root Calculation Object:**
+```javascript
+calculationData = {
+    tipo: 'DI_COMPLETA',                    // String - Fixed identifier
+    numero_adicoes: number,                 // Count of processed additions
+    timestamp: string,                      // ISO timestamp
+    estado: string,                         // Destination state (from importador.endereco_uf)
+    ncm: string,                           // Comma-separated list of NCM codes
+    
+    valores_base: object,                   // Base values structure
+    impostos: object,                       // Tax calculations structure  
+    despesas: object,                       // Consolidated expenses structure
+    totais: object,                         // Final totals structure
+    adicoes_detalhes: array,               // Addition summaries
+    calculos_individuais: array,           // Individual calculations per addition
+    produtos_individuais: array            // ⭐ Individual products with taxes
+}
+```
+
+### **Impostos Object:**
+```javascript
+impostos: {
+    ii: { valor_devido: number, detalhamento: string },
+    ipi: { valor_devido: number, detalhamento: string },
+    pis: { valor_devido: number, detalhamento: string },
+    cofins: { valor_devido: number, detalhamento: string },
+    icms: { 
+        valor_devido: number, 
+        aliquota: number,           // ICMS rate for the state
+        detalhamento: string 
+    }
+}
+```
+
+### **⭐ Produtos_individuais Array Structure (CRITICAL for ExcelExporter):**
+```javascript
+produtos_individuais: [
+    {
+        adicao_numero: string,              // Addition number (from adicao.numero_adicao)
+        produto_index: number,              // Product index within addition (1-based)
+        ncm: string,                        // NCM code (from adicao.ncm)
+        descricao: string,                  // Product description (item.produto.descricao)
+        codigo: string,                     // ✅ Product code from DI (item.produto.codigo)
+        unidade_medida: string,             // ✅ Unit from DI (item.produto.unidade_medida)
+        valor_unitario_brl: number,         // Unit value in BRL
+        valor_total_brl: number,            // Total value in BRL
+        quantidade: number,                 // Quantity
+        ii_item: number,                    // II tax for this item
+        ipi_item: number,                   // IPI tax for this item  
+        pis_item: number,                   // PIS tax for this item
+        cofins_item: number,                // COFINS tax for this item
+        icms_item: number,                  // ICMS tax for this item
+        base_icms_item: number              // ICMS tax base for this item
+    }
+]
+```
+
+### **Totais Object:**
+```javascript
+totais: {
+    total_impostos: number,                 // Sum of all tax values
+    custo_total: number,                    // valor_aduaneiro + despesas + total_impostos
+    custo_por_kg: number                    // Cost per kg
+}
+```
+
+---
+
+## **3. ExcelExporter.js Field Usage Guide**
+
+### **✅ CORRECT Field Access Patterns:**
+
+#### **For DI Data (this.diData):**
+```javascript
+// Basic DI info
+this.diData.numero_di                      // DI number
+this.diData.data_registro                  // Already formatted DD/MM/YYYY
+this.diData.importador.cnpj                // Already formatted XX.XXX.XXX/XXXX-XX
+this.diData.importador.endereco_uf         // State for ICMS
+
+// Addition summary (use descricao_ncm for addition)
+adicao.descricao_ncm                       // ✅ CORRECT for addition description
+adicao.ncm                                 // NCM code
+adicao.condicao_venda_valor_reais          // Value in BRL
+adicao.condicao_venda_incoterm             // ✅ CORRECT for incoterm field
+
+// Product details (use descricao_mercadoria for product)  
+produto.descricao_mercadoria               // ✅ CORRECT for product description
+produto.codigo                             // Product code
+produto.unidade_medida                     // Unit of measure
+produto.valor_unitario_brl                 // Unit value in BRL
+```
+
+#### **For Calculation Data (this.calculationData):**
+```javascript
+// Tax totals
+this.calculationData.impostos.ii.valor_devido
+this.calculationData.impostos.icms.valor_devido
+this.calculationData.totais.total_impostos
+
+// Individual products (for Croqui NFe)
+this.calculationData.produtos_individuais[0].codigo          // ✅ Real code from DI
+this.calculationData.produtos_individuais[0].unidade_medida  // ✅ Real unit from DI
+this.calculationData.produtos_individuais[0].ii_item        // Pre-calculated II
+this.calculationData.produtos_individuais[0].icms_item      // Pre-calculated ICMS
+```
+
+### **❌ INCORRECT Field Access Patterns:**
+```javascript
+// WRONG - These fields don't exist or are wrong level
+adicao.descricao_mercadoria                // ❌ Wrong - doesn't exist at addition level
+adicao.incoterm                            // ❌ Wrong - should be condicao_venda_incoterm
+produto.descricao                          // ❌ Wrong - should be descricao_mercadoria  
+adicao.codigo                              // ❌ Wrong - codigo is at product level
+this.formatDate(this.diData.data_registro) // ❌ Wrong - already formatted by DIProcessor
+```
+
+## **4. Field Name Transformation Rules**
+
+### **DIProcessor → ComplianceCalculator:**
+- `adicao.numero_adicao` → `adicao_numero` (in produtos_individuais)
+- `produto.descricao_mercadoria` → `descricao` (in produtos_individuais)
+- `produto.codigo` → `codigo` (in produtos_individuais) 
+- `produto.unidade_medida` → `unidade_medida` (in produtos_individuais)
+
+### **Data Processing Rules:**
+- **Dates**: DIProcessor formats YYYYMMDD → DD/MM/YYYY (use directly)
+- **CNPJ**: DIProcessor formats raw → XX.XXX.XXX/XXXX-XX (use directly)  
+- **Currency**: Explicit USD/BRL separation (use appropriate field)
+- **Taxes**: ComplianceCalculator calculates individual taxes (use pre-calculated values)
+
+## **5. Critical Don'ts for All Modules**
+
+### **❌ NEVER use fallbacks in fiscal calculations:**
+```javascript
+// WRONG - masks missing required data
+const valor = produto.valor_unitario_brl || 0
+const aliquota = impostos.icms.aliquota || 17
+```
+
+### **✅ ALWAYS use fail-fast validation:**
+```javascript  
+// CORRECT - explicit error for missing required data
+if (!produto.valor_unitario_brl) {
+    throw new Error(`Valor unitário BRL ausente no produto ${produto.descricao}`);
+}
+```
+
+### **❌ NEVER reprocess already processed data:**
+```javascript
+// WRONG - DIProcessor already formatted dates
+this.formatDate(this.diData.data_registro)
+
+// CORRECT - use processed data directly  
+this.diData.data_registro
+```
+
+---
+
 ## CRITICAL: Variable Naming Standards (Data Flow)
 
 ### **MANDATORY: Consistent Naming Across Modules**

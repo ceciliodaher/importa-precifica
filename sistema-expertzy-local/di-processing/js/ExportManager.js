@@ -16,8 +16,9 @@ class ExportManager {
      * @param {string} format - Export format ('excel', 'pdf', 'json')
      * @param {Object} diData - DI data
      * @param {Object} calculationData - Calculation results
+     * @param {Object} memoryData - Calculation memory (optional)
      */
-    async export(format, diData, calculationData) {
+    async export(format, diData, calculationData, memoryData = null) {
         // Validate required data
         this.validateExportData(diData, calculationData);
         
@@ -26,7 +27,7 @@ class ExportManager {
         try {
             switch (format) {
                 case 'excel':
-                    return await this.exportExcel(diData, calculationData);
+                    return await this.exportExcel(diData, calculationData, memoryData);
                     
                 case 'pdf':
                     return await this.exportPDF(diData, calculationData);
@@ -46,8 +47,8 @@ class ExportManager {
     /**
      * Export to Excel using specialized module
      */
-    async exportExcel(diData, calculationData) {
-        return this.excelExporter.export(diData, calculationData);
+    async exportExcel(diData, calculationData, memoryData = null) {
+        return this.excelExporter.export(diData, calculationData, memoryData);
     }
 
     /**
