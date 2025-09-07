@@ -335,8 +335,8 @@ class ExcelExporter {
                 adicao.ncm,
                 (adicao.descricao_ncm || 'N/D').substring(0, 30) + '...',  // ✅ Graceful handling for mock data
                 adicao.condicao_venda_incoterm,  // ✅ CORRECTED: Use condicao_venda_incoterm
-                this.formatNumber(adicao.condicao_venda_valor_moeda),
-                this.formatNumber(adicao.condicao_venda_valor_reais),
+                this.formatNumber(adicao.valor_moeda_negociacao),
+                this.formatNumber(adicao.valor_reais),
                 adicao.produtos ? adicao.produtos.length : 0
             ]);
         });
@@ -442,36 +442,39 @@ class ExcelExporter {
      * Create detailed sheet for a single addition
      */
     createAdditionDetailSheet(adicao, calculo, sheetName) {
+        // Use ONLY the correct field names documented in CLAUDE.md
         const data = [
             ['DADOS GERAIS'],
             ['Campo', 'Valor'],
             ['NCM', adicao.ncm],
-            ['NBM', adicao.nbm || adicao.ncm],
-            ['Descrição NCM', adicao.descricao_ncm || 'N/D'],  // ✅ Graceful handling for mock data
-            ['VCMV USD', this.formatNumber(adicao.condicao_venda_valor_moeda)],
-            ['VCMV R$', this.formatNumber(adicao.condicao_venda_valor_reais)],
-            ['INCOTERM', adicao.condicao_venda_incoterm || 'N/D'],  // ✅ Graceful handling for mock data
-            ['Local', adicao.local_descarga],
+            ['Descrição NCM', adicao.descricao_ncm],
+            ['VCMV USD', this.formatNumber(adicao.valor_moeda_negociacao)],
+            ['VCMV R$', this.formatNumber(adicao.valor_reais)],
+            ['INCOTERM', adicao.condicao_venda_incoterm],
+            ['Local', adicao.condicao_venda_local],
             ['Moeda', adicao.moeda_negociacao_nome],
+            ['Peso líq. (kg)', this.formatNumber(adicao.peso_liquido)],
+            ['Quantidade', this.formatNumber(adicao.quantidade_estatistica)],
+            ['Unidade', adicao.unidade_estatistica],
             ['Taxa Câmbio', this.formatNumber(adicao.taxa_cambio, 6)],
             [],
             ['TRIBUTOS'],
             ['Tributo', 'Alíquota %', 'Base Cálculo R$', 'Valor Devido R$'],
             ['II', 
                 this.formatNumber(adicao.tributos.ii_aliquota_ad_valorem), 
-                this.formatNumber(adicao.condicao_venda_valor_reais),
+                this.formatNumber(adicao.valor_reais),
                 this.formatNumber(adicao.tributos.ii_valor_devido)],
             ['IPI', 
                 this.formatNumber(adicao.tributos.ipi_aliquota_ad_valorem),
-                this.formatNumber(adicao.condicao_venda_valor_reais + adicao.tributos.ii_valor_devido),
+                this.formatNumber(adicao.valor_reais + adicao.tributos.ii_valor_devido),
                 this.formatNumber(adicao.tributos.ipi_valor_devido)],
             ['PIS', 
                 this.formatNumber(adicao.tributos.pis_aliquota_ad_valorem),
-                this.formatNumber(adicao.condicao_venda_valor_reais),
+                this.formatNumber(adicao.valor_reais),
                 this.formatNumber(adicao.tributos.pis_valor_devido)],
             ['COFINS', 
                 this.formatNumber(adicao.tributos.cofins_aliquota_ad_valorem),
-                this.formatNumber(adicao.condicao_venda_valor_reais),
+                this.formatNumber(adicao.valor_reais),
                 this.formatNumber(adicao.tributos.cofins_valor_devido)],
             ['ICMS', 
                 this.formatNumber(calculo.impostos.icms_aliquota),
@@ -487,7 +490,7 @@ class ExcelExporter {
             adicao.produtos.forEach(produto => {
                 data.push([
                     produto.codigo,
-                    produto.descricao,
+                    produto.descricao_mercadoria,  // Correct field name from CLAUDE.md
                     this.formatNumber(produto.quantidade),
                     produto.unidade_medida,
                     this.formatNumber(produto.valor_unitario_usd),

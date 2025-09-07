@@ -864,14 +864,15 @@ adicao = {
     ncm: string,                       // NCM code
     
     // Values and Currency
-    condicao_venda_valor_moeda: number,    // Value in negotiation currency
-    condicao_venda_valor_reais: number,    // Value in BRL
+    valor_moeda_negociacao: number,    // Value in negotiation currency (REAL FIELD NAME)
+    valor_reais: number,               // Value in BRL (REAL FIELD NAME)
     taxa_cambio: number,               // Exchange rate for this addition
     moeda_negociacao_codigo: string,   // Currency code
     moeda_negociacao_nome: string,     // Currency name
     
-    // Incoterm
+    // Incoterm and Location
     condicao_venda_incoterm: string,   // Incoterm code (for ExcelExporter incoterm field)
+    condicao_venda_local: string,      // Location of sale condition (e.g., "PORTO DE SANTOS")
     incoterm_detalhes: object,         // Detailed incoterm information
     
     // Weight and Measures
