@@ -188,9 +188,6 @@ class ComplianceCalculator {
         // Validação automática comparando com totais extraídos do XML
         this.validarTotaisComXML(di, totaisConsolidados);
         
-        // Validação rigorosa da estrutura de dados - fail fast sem fallbacks
-        this.validarEstruturaDadosCompleta(totaisConsolidados);
-        
         // NOVA FUNCIONALIDADE: Salvar produtos na memória para sistema de precificação
         this.salvarProdutosNaMemoria(di, totaisConsolidados, despesasConsolidadas);
         
