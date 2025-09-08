@@ -60,6 +60,20 @@ class ComplianceCalculator {
         // Configurar DI data para ItemCalculator usar em rateios
         this.itemCalculator.setDIData(di);
         
+        // Configurar ICMS para ItemCalculator - obrigatório para cálculos por item
+        const aliquotaICMS = this.obterAliquotaICMS(this.estadoDestino);
+        
+        // Verificar se há configurações NCM específicas disponíveis globalmente
+        const ncmConfigs = window.icmsConfig?.ncmConfigs || {};
+        
+        this.itemCalculator.atualizarConfigICMS({
+            estado: this.estadoDestino,
+            aliquotaPadrao: aliquotaICMS,
+            ncmConfigs: ncmConfigs // Usar configurações NCM-específicas se disponíveis
+        });
+        
+        console.log(`📊 ItemCalculator configurado com ICMS: Estado ${this.estadoDestino}, Alíquota padrão ${aliquotaICMS}%, NCMs personalizados: ${Object.keys(ncmConfigs).length}`);
+        
         const totalAdicoes = di.adicoes.length;
         console.log(`  Total de adições a processar: ${totalAdicoes}`);
         
@@ -174,6 +188,9 @@ class ComplianceCalculator {
         // Validação automática comparando com totais extraídos do XML
         this.validarTotaisComXML(di, totaisConsolidados);
         
+        // Validação rigorosa da estrutura de dados - fail fast sem fallbacks
+        this.validarEstruturaDadosCompleta(totaisConsolidados);
+        
         // NOVA FUNCIONALIDADE: Salvar produtos na memória para sistema de precificação
         this.salvarProdutosNaMemoria(di, totaisConsolidados, despesasConsolidadas);
         
@@ -277,7 +294,12 @@ class ComplianceCalculator {
             
             adicoes_detalhes: adicoesComRateioCompleto,
             calculos_individuais: calculosIndividuais,
-            produtos_individuais: produtosIndividuais // NOVO: Produtos com tributos por item
+            produtos_individuais: produtosIndividuais, // NOVO: Produtos com tributos por item
+            
+            // Metadados para rastreabilidade
+            estado: this.estadoDestino,
+            data_calculo: new Date().toISOString(),
+            versao: '2.0'
         };
     }
     

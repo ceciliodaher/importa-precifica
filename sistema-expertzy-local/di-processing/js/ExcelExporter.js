@@ -305,11 +305,11 @@ class ExcelExporter {
             ['Configuração', `Frete: ${this.diData.frete_embutido ? 'Embutido' : 'Separado'}, Seguro: ${this.diData.seguro_embutido ? 'Embutido' : 'Separado'}`],
             [],
             ['Validação de Impostos', ''],
-            ['II Extraído DI', this.diData.total_ii_devido ? this.formatNumber(this.diData.total_ii_devido) : 'N/D'],
+            ['II Extraído DI', this.diData.totais?.tributos_totais?.ii_total ? this.formatNumber(this.diData.totais.tributos_totais.ii_total) : 'N/D'],
             ['II Calculado', this.formatNumber(this.calculationData.impostos.ii.valor_devido)],
-            ['IPI Extraído DI', this.diData.total_ipi_devido ? this.formatNumber(this.diData.total_ipi_devido) : 'N/D'],
+            ['IPI Extraído DI', this.diData.totais?.tributos_totais?.ipi_total ? this.formatNumber(this.diData.totais.tributos_totais.ipi_total) : 'N/D'],
             ['IPI Calculado', this.formatNumber(this.calculationData.impostos.ipi.valor_devido)],
-            ['PIS/COFINS Extraído', (this.diData.total_pis_devido || this.diData.total_cofins_devido) ? this.formatNumber((this.diData.total_pis_devido || 0) + (this.diData.total_cofins_devido || 0)) : 'N/D'],
+            ['PIS/COFINS Extraído', (this.diData.totais?.tributos_totais?.pis_total || this.diData.totais?.tributos_totais?.cofins_total) ? this.formatNumber((this.diData.totais.tributos_totais.pis_total || 0) + (this.diData.totais.tributos_totais.cofins_total || 0)) : 'N/D'],
             ['PIS/COFINS Calculado', this.formatNumber(this.calculationData.impostos.pis.valor_devido + this.calculationData.impostos.cofins.valor_devido)]
         ];
 
