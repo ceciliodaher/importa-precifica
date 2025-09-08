@@ -358,8 +358,12 @@ class ExcelExporter {
      * 06A_Resumo_Custos - Cost summary by addition
      */
     createCostSummarySheet() {
-        // Trust processed data from ComplianceCalculator
-        const adicoes = this.calculationData?.adicoes_detalhes || [];
+        // Usar dados já processados pelo ComplianceCalculator - sem fallbacks
+        const adicoes = this.calculationData.adicoes_detalhes;
+        
+        if (!adicoes) {
+            throw new Error('Adições com rateio não disponíveis - ComplianceCalculator deve ter processado completamente');
+        }
         
         const data = [
             ['Adição', 'NCM', 'INCOTERM', 'Valor Mercadoria R$', 'Frete Rateado R$', 'Seguro Rateado R$', 
@@ -367,32 +371,33 @@ class ExcelExporter {
         ];
 
         adicoes.forEach(adicao => {
-            // Trust processed data structure
-            const despesas = adicao.despesas_rateadas || {};
-            const impostos = adicao.impostos || {};
-            
-            // Validar campos obrigatórios de despesas rateadas
-            this.validateProratedExpenses(despesas, adicao.numero_adicao);
+            // Usar dados já processados - falhar se ausentes
+            if (!adicao.despesas_rateadas) {
+                throw new Error(`Despesas rateadas ausentes na adição ${adicao.numero_adicao}`);
+            }
+            if (!adicao.impostos) {
+                throw new Error(`Impostos ausentes na adição ${adicao.numero_adicao}`);
+            }
             
             data.push([
                 adicao.numero_adicao,
                 adicao.ncm,
                 adicao.incoterm,
                 this.formatNumber(adicao.valor_aduaneiro),
-                this.formatNumber(despesas.frete),
-                this.formatNumber(despesas.seguro),
-                this.formatNumber(despesas.afrmm),
-                this.formatNumber(despesas.siscomex),
-                this.formatNumber(impostos.ii),
-                this.formatNumber(impostos.ipi),
-                this.formatNumber(impostos.pis),
-                this.formatNumber(impostos.cofins),
-                this.formatNumber(impostos.icms),
+                this.formatNumber(adicao.despesas_rateadas.frete),
+                this.formatNumber(adicao.despesas_rateadas.seguro),
+                this.formatNumber(adicao.despesas_rateadas.afrmm),
+                this.formatNumber(adicao.despesas_rateadas.siscomex),
+                this.formatNumber(adicao.impostos.ii),
+                this.formatNumber(adicao.impostos.ipi),
+                this.formatNumber(adicao.impostos.pis),
+                this.formatNumber(adicao.impostos.cofins),
+                this.formatNumber(adicao.impostos.icms),
                 this.formatNumber(adicao.custo_total)
             ]);
         });
 
-        // Add totals row
+        // Add totals row usando valores já calculados
         const totals = this.calculateTotalsByColumn(adicoes);
         data.push([]);
         data.push(['TOTAL', '', '', 
@@ -430,7 +435,11 @@ class ExcelExporter {
         // Criar uma aba para CADA adição existente, seja 1 ou 100+
         adicoes.forEach((adicao, index) => {
             const sheetName = `Add_${String(index + 1).padStart(3, '0')}`;
-            const calculoAdicao = this.calculationData?.adicoes_detalhes?.[index] || {};
+            const calculoAdicao = this.calculationData.adicoes_detalhes[index];
+            
+            if (!calculoAdicao) {
+                throw new Error(`Cálculo da adição ${adicao.numero_adicao} não encontrado em adicoes_detalhes`);
+            }
             
             this.createAdditionDetailSheet(adicao, calculoAdicao, sheetName);
         });
@@ -501,32 +510,33 @@ class ExcelExporter {
             });
         }
 
-        // Add expense allocation
+        // Add expense allocation - usar dados já rateados
         data.push([]);
         data.push(['RATEIO DE DESPESAS']);
         data.push(['Despesa', 'Valor Rateado R$']);
         
-        // Get expenses from global calculation data instead of per-addition
-        const despesasAutomaticas = this.calculationData?.despesas?.automaticas || {};
-        const proporcao = adicao.valor_reais / (this.calculationData?.valores_base?.valor_aduaneiro_total || 1);
+        // Usar despesas já rateadas pelo ComplianceCalculator
+        if (!calculo.despesas_rateadas) {
+            throw new Error(`Despesas rateadas ausentes na adição ${adicao.numero_adicao}`);
+        }
         
-        data.push(['AFRMM Rateado', this.formatNumber((despesasAutomaticas.afrmm || 0) * proporcao)]);
-        data.push(['SISCOMEX Rateado', this.formatNumber((despesasAutomaticas.siscomex || 0) * proporcao)]);
-        data.push(['Capatazia Rateada', this.formatNumber((despesasAutomaticas.capatazia || 0) * proporcao)]);
-        data.push(['Frete Rateado', this.formatNumber((this.diData.frete_brl || 0) * proporcao)]);
-        data.push(['Seguro Rateado', this.formatNumber((this.diData.seguro_brl || 0) * proporcao)]);
-        
-        const totalDespesasRateadas = ((despesasAutomaticas.afrmm || 0) + (despesasAutomaticas.siscomex || 0) + (despesasAutomaticas.capatazia || 0) + (this.diData.frete_brl || 0) + (this.diData.seguro_brl || 0)) * proporcao;
-        data.push(['Total Despesas Rateadas', this.formatNumber(totalDespesasRateadas)]);
+        data.push(['AFRMM Rateado', this.formatNumber(calculo.despesas_rateadas.afrmm)]);
+        data.push(['SISCOMEX Rateado', this.formatNumber(calculo.despesas_rateadas.siscomex)]);
+        data.push(['Capatazia Rateada', this.formatNumber(calculo.despesas_rateadas.capatazia)]);
+        data.push(['Frete Rateado', this.formatNumber(calculo.despesas_rateadas.frete)]);
+        data.push(['Seguro Rateado', this.formatNumber(calculo.despesas_rateadas.seguro)]);
+        data.push(['Total Despesas Rateadas', this.formatNumber(calculo.despesas_rateadas.total)]);
 
-        // Add cost summary
+        // Add cost summary - usar valores já calculados
         data.push([]);
         data.push(['RESUMO DE CUSTOS']);
         data.push(['Item', 'Valor R$']);
-        data.push(['Valor Aduaneiro', this.formatNumber(adicao.valor_reais)]);
-        data.push(['Total Impostos', this.formatNumber(this.calculationData?.totais?.total_impostos)]);
-        data.push(['Total Despesas', this.formatNumber(totalDespesasRateadas)]);
-        data.push(['CUSTO TOTAL', this.formatNumber(this.calculationData?.totais?.custo_total)]);
+        data.push(['Valor Aduaneiro', this.formatNumber(calculo.valor_aduaneiro)]);
+        data.push(['Total Impostos', this.formatNumber(
+            calculo.impostos.ii + calculo.impostos.ipi + calculo.impostos.pis + calculo.impostos.cofins + calculo.impostos.icms
+        )]);
+        data.push(['Total Despesas', this.formatNumber(calculo.despesas_rateadas.total)]);
+        data.push(['CUSTO TOTAL', this.formatNumber(calculo.custo_total)]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
         XLSX.utils.book_append_sheet(this.workbook, ws, sheetName);
@@ -568,33 +578,31 @@ class ExcelExporter {
      * Croqui_NFe_Entrada - Formatted for fiscal document
      */
     createCroquiNFeSheet() {
-        // Use pre-calculated per-product data from ComplianceCalculator
-        const produtosIndividuais = this.calculationData?.produtos_individuais || [];
+        // Usar dados pré-calculados pelo ComplianceCalculator - sem fallbacks
+        const produtosIndividuais = this.calculationData.produtos_individuais;
+        
+        if (!produtosIndividuais) {
+            throw new Error('Produtos individuais não calculados - ComplianceCalculator deve processar produtos por item');
+        }
         
         if (produtosIndividuais.length === 0) {
-            console.warn('Nenhum produto individual encontrado - croqui NFe será vazio');
-            // Create empty sheet instead of failing
-            const emptyData = [['CROQUI PARA NOTA FISCAL DE ENTRADA'], [''], ['Nenhum produto encontrado']];
-            const ws = XLSX.utils.aoa_to_sheet(emptyData);
-            XLSX.utils.book_append_sheet(this.workbook, ws, 'Croqui_NFe_Entrada');
-            return;
+            throw new Error('Nenhum produto individual encontrado para croqui NFe');
         }
         
         console.log(`📊 Usando ${produtosIndividuais.length} produtos pré-calculados para croqui NFe`);
         
         const produtos = produtosIndividuais.map(produto => {
-            // Trust processed data from ComplianceCalculator
-            
+            // Usar dados já processados - sem fallbacks
             return {
                 adicao: produto.adicao_numero,
                 ncm: produto.ncm,
-                codigo: produto.codigo,                          // Real code from DI (no fallbacks)
+                codigo: produto.codigo,
                 descricao: produto.descricao,
                 quantidade: produto.quantidade,
-                unidade: produto.unidade_medida,                 // Real unit from DI (no fallbacks)
+                unidade: produto.unidade_medida,
                 valor_unitario: produto.valor_unitario_brl,
                 valor_total: produto.valor_total_brl,
-                // Use pre-calculated values from ComplianceCalculator exactly as they come
+                // Usar valores pré-calculados exatamente como vêm
                 ii: produto.ii_item,
                 ipi: produto.ipi_item, 
                 pis: produto.pis_item,
@@ -757,14 +765,6 @@ class ExcelExporter {
         });
     }
 
-    /**
-     * Trust processed expense structure from ComplianceCalculator
-     * No validation needed - data already processed
-     */
-    validateProratedExpenses(despesas, numeroAdicao) {
-        // Trust processed data - no validation needed
-        return;
-    }
     
     /**
      * Generate filename with DI number, date, and importer

@@ -160,7 +160,7 @@ class ComplianceCalculator {
         }
         
         // Consolidar totais incluindo produtos individuais e despesas originais
-        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais, despesasConsolidadas);
+        const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais, despesasConsolidadas, di);
         
         console.log('✅ DI processada com sucesso:', {
             adicoes: totalAdicoes,
@@ -184,10 +184,10 @@ class ComplianceCalculator {
     }
     
     /**
-     * Consolidar totais de todas as adições incluindo produtos individuais
+     * Consolidar totais de todas as adições incluindo produtos individuais com rateio completo
      * @private
      */
-    consolidarTotaisDI(calculosIndividuais, resumos, produtosIndividuais = [], despesasConsolidadas = null) {
+    consolidarTotaisDI(calculosIndividuais, resumos, produtosIndividuais = [], despesasConsolidadas = null, di = null) {
         // Somar todos os impostos
         const totais = {
             ii: 0,
@@ -201,17 +201,26 @@ class ComplianceCalculator {
         };
         
         calculosIndividuais.forEach(calc => {
-            totais.ii += calc.impostos.ii?.valor_devido;
-            totais.ipi += calc.impostos.ipi?.valor_devido;
-            totais.pis += calc.impostos.pis?.valor_devido;
-            totais.cofins += calc.impostos.cofins?.valor_devido;
-            totais.icms += calc.impostos.icms?.valor_devido;
-            totais.valor_aduaneiro += calc.valores_base?.cif_brl;
-            totais.despesas += calc.despesas?.total;
-            totais.peso_total += calc.valores_base?.peso_liquido;
+            // Impostos já calculados - devem existir (podem ser zero mas a estrutura deve existir)
+            totais.ii += calc.impostos.ii.valor_devido;
+            totais.ipi += calc.impostos.ipi.valor_devido;
+            totais.pis += calc.impostos.pis.valor_devido;
+            totais.cofins += calc.impostos.cofins.valor_devido;
+            totais.icms += calc.impostos.icms.valor_devido;
+            totais.valor_aduaneiro += calc.valores_base.cif_brl;
+            totais.despesas += calc.despesas.total;
+            totais.peso_total += calc.valores_base.peso_liquido;
         });
         
         const totalImpostos = totais.ii + totais.ipi + totais.pis + totais.cofins + totais.icms;
+        
+        // Criar adicoes_detalhes com rateio hierárquico completo
+        const adicoesComRateioCompleto = this.criarAdicoesComRateioHierarquico(
+            di, 
+            calculosIndividuais, 
+            despesasConsolidadas,
+            resumos
+        );
         
         return {
             tipo: 'DI_COMPLETA',
@@ -266,10 +275,114 @@ class ComplianceCalculator {
                     (totais.valor_aduaneiro + totais.despesas + totalImpostos) / totais.peso_total : 0
             },
             
-            adicoes_detalhes: resumos,
+            adicoes_detalhes: adicoesComRateioCompleto,
             calculos_individuais: calculosIndividuais,
             produtos_individuais: produtosIndividuais // NOVO: Produtos com tributos por item
         };
+    }
+    
+    /**
+     * Criar estrutura de adições com rateio hierárquico completo (DI → Adição → Item)
+     * KISS: Apenas ratear valores já calculados, zero é válido
+     * @private
+     */
+    criarAdicoesComRateioHierarquico(di, calculosIndividuais, despesasConsolidadas, resumos) {
+        const valorTotalDI = di.adicoes.reduce((sum, ad) => sum + ad.valor_reais, 0);
+        
+        // Valores para rateio 
+        const freteTotalDI = di.frete_brl;
+        const seguroTotalDI = di.seguro_brl;
+        const afrmm = despesasConsolidadas.automaticas.afrmm;
+        const siscomex = despesasConsolidadas.automaticas.siscomex;
+        const capatazia = despesasConsolidadas.automaticas.capatazia;
+        
+        return di.adicoes.map((adicao, index) => {
+            const calculoAdicao = calculosIndividuais[index];
+            
+            // RATEIO NÍVEL 1: DI → Adição
+            const proporcaoAdicao = adicao.valor_reais / valorTotalDI;
+            
+            const despesasRateadasAdicao = {
+                frete: freteTotalDI * proporcaoAdicao,
+                seguro: seguroTotalDI * proporcaoAdicao,
+                afrmm: afrmm * proporcaoAdicao,
+                siscomex: siscomex * proporcaoAdicao,
+                capatazia: capatazia * proporcaoAdicao,
+                total: (freteTotalDI + seguroTotalDI + afrmm + siscomex + capatazia) * proporcaoAdicao
+            };
+            
+            // RATEIO NÍVEL 2: Adição → Produtos
+            let produtosComRateio = [];
+            if (adicao.produtos && adicao.produtos.length > 0) {
+                const valorTotalProdutosAdicao = adicao.produtos.reduce(
+                    (sum, p) => sum + p.valor_total_brl, 0
+                );
+                
+                produtosComRateio = adicao.produtos.map(produto => {
+                    const proporcaoProduto = produto.valor_total_brl / valorTotalProdutosAdicao;
+                    
+                    // Rateio das despesas do produto
+                    const despesasProduto = {
+                        frete: despesasRateadasAdicao.frete * proporcaoProduto,
+                        seguro: despesasRateadasAdicao.seguro * proporcaoProduto,
+                        afrmm: despesasRateadasAdicao.afrmm * proporcaoProduto,
+                        siscomex: despesasRateadasAdicao.siscomex * proporcaoProduto,
+                        capatazia: despesasRateadasAdicao.capatazia * proporcaoProduto,
+                        total: despesasRateadasAdicao.total * proporcaoProduto
+                    };
+                    
+                    // Rateio dos impostos (valores já calculados)
+                    const impostosProduto = {
+                        ii: calculoAdicao.impostos.ii.valor_devido * proporcaoProduto,
+                        ipi: calculoAdicao.impostos.ipi.valor_devido * proporcaoProduto,
+                        pis: calculoAdicao.impostos.pis.valor_devido * proporcaoProduto,
+                        cofins: calculoAdicao.impostos.cofins.valor_devido * proporcaoProduto,
+                        icms: calculoAdicao.impostos.icms.valor_devido * proporcaoProduto
+                    };
+                    
+                    const custoTotalItem = produto.valor_total_brl + 
+                                          despesasProduto.total + 
+                                          impostosProduto.ii + 
+                                          impostosProduto.ipi + 
+                                          impostosProduto.pis + 
+                                          impostosProduto.cofins + 
+                                          impostosProduto.icms;
+                    
+                    return {
+                        ...produto,
+                        despesas_rateadas: despesasProduto,
+                        impostos_item: impostosProduto,
+                        custo_total_item: custoTotalItem
+                    };
+                });
+            }
+            
+            const custoTotalAdicao = adicao.valor_reais +
+                                    despesasRateadasAdicao.total +
+                                    calculoAdicao.impostos.ii.valor_devido +
+                                    calculoAdicao.impostos.ipi.valor_devido +
+                                    calculoAdicao.impostos.pis.valor_devido +
+                                    calculoAdicao.impostos.cofins.valor_devido +
+                                    calculoAdicao.impostos.icms.valor_devido;
+            
+            return {
+                numero_adicao: adicao.numero_adicao,
+                ncm: adicao.ncm,
+                incoterm: adicao.condicao_venda_incoterm,
+                valor_aduaneiro: adicao.valor_reais,
+                peso_liquido: adicao.peso_liquido,
+                despesas_rateadas: despesasRateadasAdicao,
+                impostos: {
+                    ii: calculoAdicao.impostos.ii.valor_devido,
+                    ipi: calculoAdicao.impostos.ipi.valor_devido,
+                    pis: calculoAdicao.impostos.pis.valor_devido,
+                    cofins: calculoAdicao.impostos.cofins.valor_devido,
+                    icms: calculoAdicao.impostos.icms.valor_devido
+                },
+                produtos_com_rateio: produtosComRateio,
+                custo_total: custoTotalAdicao
+            };
+        });
     }
     
     /**
