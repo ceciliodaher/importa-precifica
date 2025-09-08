@@ -827,6 +827,12 @@ class DIProcessor {
         });
 
         this.diData.totais = totals;
+        
+        // Mapear totais para campos que ComplianceCalculator/ExportManager esperam
+        this.diData.frete_brl = totals.valor_total_frete_brl;
+        this.diData.seguro_brl = totals.valor_total_seguro_brl;
+        this.diData.frete_usd = totals.valor_total_frete_usd;
+        this.diData.seguro_usd = totals.valor_total_seguro_usd;
     }
 
     // ========== MÉTODOS AUXILIARES ==========
