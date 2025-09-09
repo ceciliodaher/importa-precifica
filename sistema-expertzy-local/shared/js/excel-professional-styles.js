@@ -1,14 +1,14 @@
 /**
  * Excel Professional Styles - Formatação Corporativa Expertzy
- * Sistema de estilos profissionais extraído do importa-di-venda
+ * Migrado para ExcelJS para suporte completo de formatação
  * Cores corporativas, formatação condicional e zebra striping
  */
 
 class ExcelProfessionalStyles {
     constructor() {
-        // Estilos corporativos Expertzy para Excel
+        // Estilos corporativos Expertzy para ExcelJS
         this.estilosExpertzy = {
-            // Cores corporativas
+            // Cores corporativas (formato ExcelJS)
             cores: {
                 vermelhoExpertzy: 'FFFF002D',      // #FF002D
                 azulNaval: 'FF091A30',             // #091A30
@@ -21,208 +21,266 @@ class ExcelProfessionalStyles {
                 azulClaro: 'FFE3F2FD'              // Informativo
             },
             
-            // Estilos de header
+            // Estilos de header principal
             headerPrincipal: {
-                fill: { fgColor: { rgb: 'FF091A30' } },  // Azul naval
-                font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 14 },
-                alignment: { horizontal: 'center', vertical: 'center' },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF091A30' }  // Azul naval
+                },
+                font: {
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' },
+                    size: 14
+                },
+                alignment: {
+                    horizontal: 'center',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'medium', color: { rgb: 'FF000000' } },
-                    bottom: { style: 'medium', color: { rgb: 'FF000000' } },
-                    left: { style: 'medium', color: { rgb: 'FF000000' } },
-                    right: { style: 'medium', color: { rgb: 'FF000000' } }
+                    top: { style: 'medium', color: { argb: 'FF000000' } },
+                    left: { style: 'medium', color: { argb: 'FF000000' } },
+                    bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                    right: { style: 'medium', color: { argb: 'FF000000' } }
                 }
             },
             
+            // Estilos de header secundário
             headerSecundario: {
-                fill: { fgColor: { rgb: 'FF4285F4' } },  // Azul corporativo
-                font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 12 },
-                alignment: { horizontal: 'center', vertical: 'center' },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF4285F4' }  // Azul corporativo
+                },
+                font: {
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' },
+                    size: 12
+                },
+                alignment: {
+                    horizontal: 'center',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FF000000' } },
-                    bottom: { style: 'thin', color: { rgb: 'FF000000' } },
-                    left: { style: 'thin', color: { rgb: 'FF000000' } },
-                    right: { style: 'thin', color: { rgb: 'FF000000' } }
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
                 }
             },
             
             // Estilos de dados
             valorMonetario: {
                 numFmt: '"R$ "#,##0.00_);[Red]("R$ "#,##0.00)',
-                alignment: { horizontal: 'right', vertical: 'center' },
+                alignment: {
+                    horizontal: 'right',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    left: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    right: { style: 'thin', color: { rgb: 'FFD0D0D0' } }
+                    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
                 }
             },
             
             valorPercentual: {
                 numFmt: '0.00%',
-                alignment: { horizontal: 'right', vertical: 'center' },
+                alignment: {
+                    horizontal: 'right',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    left: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    right: { style: 'thin', color: { rgb: 'FFD0D0D0' } }
+                    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
                 }
             },
             
             textoNormal: {
-                alignment: { horizontal: 'left', vertical: 'center' },
+                alignment: {
+                    horizontal: 'left',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    left: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    right: { style: 'thin', color: { rgb: 'FFD0D0D0' } }
+                    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
                 }
             },
             
             ncmMonospace: {
-                font: { name: 'Courier New', sz: 10 },
-                alignment: { horizontal: 'center', vertical: 'center' },
+                font: {
+                    name: 'Courier New',
+                    size: 10
+                },
+                alignment: {
+                    horizontal: 'center',
+                    vertical: 'middle'
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    left: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    right: { style: 'thin', color: { rgb: 'FFD0D0D0' } }
+                    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
                 }
             },
             
-            // Estilos de validação com formatação condicional
+            // Estilos de validação
             validacaoOK: {
-                fill: { fgColor: { rgb: 'FFE8F5E8' } },  // Verde claro
-                font: { color: { rgb: 'FF2E7D32' }, bold: true },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE8F5E8' }  // Verde claro
+                },
+                font: {
+                    color: { argb: 'FF2E7D32' },
+                    bold: true
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FF4CAF50' } },
-                    bottom: { style: 'thin', color: { rgb: 'FF4CAF50' } },
-                    left: { style: 'thin', color: { rgb: 'FF4CAF50' } },
-                    right: { style: 'thin', color: { rgb: 'FF4CAF50' } }
+                    top: { style: 'thin', color: { argb: 'FF4CAF50' } },
+                    left: { style: 'thin', color: { argb: 'FF4CAF50' } },
+                    bottom: { style: 'thin', color: { argb: 'FF4CAF50' } },
+                    right: { style: 'thin', color: { argb: 'FF4CAF50' } }
                 }
             },
             
             validacaoAviso: {
-                fill: { fgColor: { rgb: 'FFFFF8E1' } },  // Amarelo claro
-                font: { color: { rgb: 'FFF57F17' }, bold: true },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFFF8E1' }  // Amarelo claro
+                },
+                font: {
+                    color: { argb: 'FFF57F17' },
+                    bold: true
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFFFC107' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFFFC107' } },
-                    left: { style: 'thin', color: { rgb: 'FFFFC107' } },
-                    right: { style: 'thin', color: { rgb: 'FFFFC107' } }
+                    top: { style: 'thin', color: { argb: 'FFFFC107' } },
+                    left: { style: 'thin', color: { argb: 'FFFFC107' } },
+                    bottom: { style: 'thin', color: { argb: 'FFFFC107' } },
+                    right: { style: 'thin', color: { argb: 'FFFFC107' } }
                 }
             },
             
             validacaoErro: {
-                fill: { fgColor: { rgb: 'FFFFEBEE' } },  // Vermelho claro
-                font: { color: { rgb: 'FFC62828' }, bold: true },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFFEBEE' }  // Vermelho claro
+                },
+                font: {
+                    color: { argb: 'FFC62828' },
+                    bold: true
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFF44336' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFF44336' } },
-                    left: { style: 'thin', color: { rgb: 'FFF44336' } },
-                    right: { style: 'thin', color: { rgb: 'FFF44336' } }
+                    top: { style: 'thin', color: { argb: 'FFF44336' } },
+                    left: { style: 'thin', color: { argb: 'FFF44336' } },
+                    bottom: { style: 'thin', color: { argb: 'FFF44336' } },
+                    right: { style: 'thin', color: { argb: 'FFF44336' } }
                 }
             },
             
-            // Estilos para totais e subtotais
+            // Estilos para totais
             subtotal: {
-                fill: { fgColor: { rgb: 'FFE3F2FD' } },  // Azul claro
-                font: { bold: true, sz: 11 },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE3F2FD' }  // Azul claro
+                },
+                font: {
+                    bold: true,
+                    size: 11
+                },
                 border: {
-                    top: { style: 'medium', color: { rgb: 'FF1976D2' } },
-                    bottom: { style: 'thin', color: { rgb: 'FF1976D2' } },
-                    left: { style: 'thin', color: { rgb: 'FF1976D2' } },
-                    right: { style: 'thin', color: { rgb: 'FF1976D2' } }
+                    top: { style: 'medium', color: { argb: 'FF1976D2' } },
+                    left: { style: 'thin', color: { argb: 'FF1976D2' } },
+                    bottom: { style: 'thin', color: { argb: 'FF1976D2' } },
+                    right: { style: 'thin', color: { argb: 'FF1976D2' } }
                 }
             },
             
             total: {
-                fill: { fgColor: { rgb: 'FF091A30' } },  // Azul naval
-                font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 12 },
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF091A30' }  // Azul naval
+                },
+                font: {
+                    bold: true,
+                    color: { argb: 'FFFFFFFF' },
+                    size: 12
+                },
                 border: {
-                    top: { style: 'medium', color: { rgb: 'FF000000' } },
-                    bottom: { style: 'medium', color: { rgb: 'FF000000' } },
-                    left: { style: 'medium', color: { rgb: 'FF000000' } },
-                    right: { style: 'medium', color: { rgb: 'FF000000' } }
+                    top: { style: 'medium', color: { argb: 'FF000000' } },
+                    left: { style: 'medium', color: { argb: 'FF000000' } },
+                    bottom: { style: 'medium', color: { argb: 'FF000000' } },
+                    right: { style: 'medium', color: { argb: 'FF000000' } }
                 }
             },
             
-            // Zebra striping para tabelas
+            // Zebra striping
             linhaAlternada: {
-                fill: { fgColor: { rgb: 'FFF5F5F5' } },  // Cinza bem claro
+                fill: {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFF5F5F5' }  // Cinza bem claro
+                },
                 border: {
-                    top: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    bottom: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    left: { style: 'thin', color: { rgb: 'FFD0D0D0' } },
-                    right: { style: 'thin', color: { rgb: 'FFD0D0D0' } }
+                    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+                    right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
                 }
             }
         };
     }
     
     /**
-     * Aplicar formatação de header principal
+     * Aplicar formatação de header principal (ExcelJS)
      */
-    applyHeaderStyle(ws, cellRange) {
-        const range = XLSX.utils.decode_range(cellRange);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    ws[cellAddress].s = this.estilosExpertzy.headerPrincipal;
-                }
+    applyHeaderStyle(worksheet, cellRange) {
+        const range = this.parseRange(cellRange);
+        for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+                const cell = worksheet.getCell(row, col);
+                cell.style = this.estilosExpertzy.headerPrincipal;
             }
         }
     }
     
     /**
-     * Aplicar formatação de header secundário
+     * Aplicar formatação de header secundário (ExcelJS)
      */
-    applySecondaryHeaderStyle(ws, cellRange) {
-        const range = XLSX.utils.decode_range(cellRange);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    ws[cellAddress].s = this.estilosExpertzy.headerSecundario;
-                }
+    applySecondaryHeaderStyle(worksheet, cellRange) {
+        const range = this.parseRange(cellRange);
+        for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+                const cell = worksheet.getCell(row, col);
+                cell.style = this.estilosExpertzy.headerSecundario;
             }
         }
     }
     
     /**
-     * Aplicar zebra striping para tabelas
+     * Aplicar zebra striping para tabelas (ExcelJS)
      */
-    applyZebraStriping(ws, startRow, endRow, startCol, endCol) {
-        for (let R = startRow; R <= endRow; R++) {
-            const isZebra = (R % 2) === 0;
-            for (let C = startCol; C <= endCol; C++) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    const baseStyle = ws[cellAddress].s || {};
-                    if (isZebra) {
-                        ws[cellAddress].s = {
-                            ...baseStyle,
-                            fill: { fgColor: { rgb: this.estilosExpertzy.cores.cinzaClaro } }
-                        };
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Aplicar formatação monetária brasileira
-     */
-    applyCurrencyStyle(ws, cellRange) {
-        const range = XLSX.utils.decode_range(cellRange);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    ws[cellAddress].s = {
-                        ...ws[cellAddress].s,
-                        ...this.estilosExpertzy.valorMonetario
+    applyZebraStriping(worksheet, startRow, endRow, startCol, endCol) {
+        for (let row = startRow; row <= endRow; row++) {
+            const isZebra = (row % 2) === 0;
+            if (isZebra) {
+                for (let col = startCol; col <= endCol; col++) {
+                    const cell = worksheet.getCell(row + 1, col + 1); // ExcelJS é 1-indexed
+                    const currentStyle = cell.style || {};
+                    cell.style = {
+                        ...currentStyle,
+                        fill: {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: this.estilosExpertzy.cores.cinzaClaro }
+                        }
                     };
                 }
             }
@@ -230,19 +288,33 @@ class ExcelProfessionalStyles {
     }
     
     /**
-     * Aplicar formatação de percentual
+     * Aplicar formatação monetária brasileira (ExcelJS)
      */
-    applyPercentageStyle(ws, cellRange) {
-        const range = XLSX.utils.decode_range(cellRange);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    ws[cellAddress].s = {
-                        ...ws[cellAddress].s,
-                        ...this.estilosExpertzy.valorPercentual
-                    };
-                }
+    applyCurrencyStyle(worksheet, cellRange) {
+        const range = this.parseRange(cellRange);
+        for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+                const cell = worksheet.getCell(row, col);
+                cell.style = {
+                    ...cell.style,
+                    ...this.estilosExpertzy.valorMonetario
+                };
+            }
+        }
+    }
+    
+    /**
+     * Aplicar formatação de percentual (ExcelJS)
+     */
+    applyPercentageStyle(worksheet, cellRange) {
+        const range = this.parseRange(cellRange);
+        for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+                const cell = worksheet.getCell(row, col);
+                cell.style = {
+                    ...cell.style,
+                    ...this.estilosExpertzy.valorPercentual
+                };
             }
         }
     }
@@ -250,8 +322,8 @@ class ExcelProfessionalStyles {
     /**
      * Aplicar formatação de validação (OK, Aviso, Erro)
      */
-    applyValidationStyle(ws, cellAddress, status) {
-        if (!ws[cellAddress]) return;
+    applyValidationStyle(worksheet, cellAddress, status) {
+        const cell = worksheet.getCell(cellAddress);
         
         let style;
         switch (status.toLowerCase()) {
@@ -271,36 +343,71 @@ class ExcelProfessionalStyles {
                 style = this.estilosExpertzy.textoNormal;
         }
         
-        ws[cellAddress].s = style;
+        cell.style = style;
     }
     
     /**
-     * Aplicar formatação de NCM com fonte monospace
+     * Aplicar formatação de NCM com fonte monospace (ExcelJS)
      */
-    applyNCMStyle(ws, cellRange) {
-        const range = XLSX.utils.decode_range(cellRange);
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (ws[cellAddress]) {
-                    ws[cellAddress].s = this.estilosExpertzy.ncmMonospace;
-                }
+    applyNCMStyle(worksheet, cellRange) {
+        const range = this.parseRange(cellRange);
+        for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+                const cell = worksheet.getCell(row, col);
+                cell.style = this.estilosExpertzy.ncmMonospace;
             }
         }
     }
     
     /**
-     * Configurar larguras de coluna otimizadas
+     * Configurar larguras de coluna otimizadas (ExcelJS)
      */
-    setOptimizedColumnWidths(ws, columnConfigs) {
-        ws['!cols'] = columnConfigs.map(config => ({ wch: config }));
+    setOptimizedColumnWidths(worksheet, columnWidths) {
+        columnWidths.forEach((width, index) => {
+            const column = worksheet.getColumn(index + 1);
+            column.width = width;
+        });
     }
     
     /**
-     * Configurar auto-filter
+     * Configurar auto-filter (ExcelJS)
      */
-    setAutoFilter(ws, range) {
-        ws['!autofilter'] = { ref: range };
+    setAutoFilter(worksheet, range) {
+        worksheet.autoFilter = range;
+    }
+    
+    /**
+     * Parser de range A1:B5 para objeto com coordenadas
+     */
+    parseRange(range) {
+        const [start, end] = range.split(':');
+        const startCoords = this.cellToCoords(start);
+        const endCoords = this.cellToCoords(end);
+        
+        return {
+            startRow: startCoords.row,
+            startCol: startCoords.col,
+            endRow: endCoords.row,
+            endCol: endCoords.col
+        };
+    }
+    
+    /**
+     * Converter célula A1 para coordenadas numéricas
+     */
+    cellToCoords(cell) {
+        const match = cell.match(/([A-Z]+)(\d+)/);
+        if (!match) throw new Error(`Formato de célula inválido: ${cell}`);
+        
+        const colStr = match[1];
+        const rowNum = parseInt(match[2]);
+        
+        let colNum = 0;
+        for (let i = 0; i < colStr.length; i++) {
+            colNum = colNum * 26 + (colStr.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+        }
+        
+        return { row: rowNum, col: colNum };
     }
 }
 

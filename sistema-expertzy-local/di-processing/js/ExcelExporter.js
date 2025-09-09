@@ -31,7 +31,7 @@ class ExcelExporter {
      * @param {Object} calculationData - All calculations from currentCalculation
      * @param {Object} memoryData - Calculation memory trace (optional)
      */
-    export(diData, calculationData, memoryData = null) {
+    async export(diData, calculationData, memoryData = null) {
         if (!diData) {
             throw new Error('DI data é obrigatório para export Excel');
         }
@@ -54,8 +54,12 @@ class ExcelExporter {
             this.calculationData = calculationData;
             this.memoryData = memoryData;
 
-            // Create new workbook
-            this.workbook = XLSX.utils.book_new();
+            // Create new ExcelJS workbook
+            this.workbook = new ExcelJS.Workbook();
+            this.workbook.creator = 'Expertzy - Sistema de Importação e Precificação';
+            this.workbook.lastModifiedBy = 'ExcelExporter';
+            this.workbook.created = new Date();
+            this.workbook.modified = new Date();
             
             // Generate all sheets in order
             this.createCoverSheet();                    // 01_Capa
@@ -75,8 +79,8 @@ class ExcelExporter {
             // Generate filename with DI number and date
             const filename = this.generateFilename(diData.numero_di);
             
-            // Export file with proper formatting preservation
-            const arquivoBuffer = XLSX.write(this.workbook, { bookType: 'xlsx', type: 'array' });
+            // Export file with ExcelJS (full formatting support)
+            const arquivoBuffer = await this.workbook.xlsx.writeBuffer();
             this.downloadArquivo(arquivoBuffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             
             console.log(`✅ ExcelExporter: Export completo realizado com formatação profissional - ${filename}`);
@@ -90,29 +94,28 @@ class ExcelExporter {
     }
 
     /**
-     * 01_Capa - Cover sheet with basic DI information
+     * 01_Capa - Cover sheet with basic DI information (ExcelJS)
      */
     createCoverSheet() {
+        const worksheet = this.workbook.addWorksheet('01_Capa');
+        
         const data = [
             ['Campo', 'Valor'],
             ['DI', this.diData.numero_di],
-            ['Data registro', this.diData.data_registro || 'N/D'], // Already DD/MM/YYYY from DIProcessor
+            ['Data registro', this.diData.data_registro || 'N/D'],
             ['URF despacho', this.diData.urf_despacho],
             ['Modalidade', this.diData.modalidade_despacho],
             ['Qtd. adições', this.diData.adicoes.length],
             ['Situação', this.diData.situacao]
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:B1');
+        // Adicionar dados à planilha
+        worksheet.addRows(data);
         
-        // Aplicar zebra striping nas linhas de dados
-        this.applyZebraStriping(ws, 1, data.length - 1, 0, 1);
-        
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [30, 60]);
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '01_Capa');
+        // Aplicar formatação profissional
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 1);
+        this.styles.setOptimizedColumnWidths(worksheet, [30, 60]);
     }
 
     /**
@@ -891,8 +894,8 @@ class ExcelExporter {
     /**
      * Apply professional header style to worksheet cells
      */
-    applyHeaderStyle(ws, range) {
-        this.styles.applyHeaderStyle(ws, range);
+    applyHeaderStyle(worksheet, range) {
+        this.styles.applyHeaderStyle(worksheet, range);
     }
     
     /**
