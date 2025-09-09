@@ -104,9 +104,9 @@ class ExcelExporter {
             ['DI', this.diData.numero_di],
             ['Data registro', this.diData.data_registro || 'N/D'],
             ['URF despacho', this.diData.urf_despacho_nome],
-            ['Modalidade', this.diData.modalidade_despacho_nome],
+            ['Modalidade', this.diData.modalidade_nome],
             ['Qtd. adições', this.diData.adicoes.length],
-            ['Situação', this.diData.situacao_nome]
+            ['Situação', this.diData.situacao_entrega]
         ];
 
         // Adicionar dados à planilha
@@ -123,14 +123,21 @@ class ExcelExporter {
      */
     createImporterSheet() {
         const importador = this.diData.importador || {};
+        // Construir endereço completo conforme nomenclatura.md
+        const enderecoCompleto = [
+            importador.endereco_logradouro,
+            importador.endereco_numero,
+            importador.endereco_complemento
+        ].filter(Boolean).join(', ');
+        
         const data = [
             ['Campo', 'Valor'],
             ['Nome/Razão Social', importador.nome],
             ['CNPJ', importador.cnpj || 'N/D'], // Already formatted XX.XXX.XXX/XXXX-XX by DIProcessor
-            ['Endereço', importador.endereco],
-            ['Cidade', importador.cidade],
+            ['Endereço', enderecoCompleto],
+            ['Cidade', importador.endereco_cidade],
             ['UF', importador.endereco_uf],
-            ['CEP', importador.cep]
+            ['CEP', importador.endereco_cep]
         ];
 
         const worksheet = this.workbook.addWorksheet('02_Importador');
@@ -150,11 +157,11 @@ class ExcelExporter {
     createCargoSheet() {
         const data = [
             ['Campo', 'Valor'],
-            ['Peso Bruto (kg)', this.formatNumber(this.diData.peso_bruto)],
-            ['Peso Líquido (kg)', this.formatNumber(this.diData.peso_liquido)],
-            ['Via de Transporte', this.diData.via_transporte_nome],
+            ['Peso Bruto (kg)', this.formatNumber(this.diData.carga.peso_bruto)],
+            ['Peso Líquido (kg)', this.formatNumber(this.diData.carga.peso_liquido)],
+            ['Via de Transporte', this.diData.carga.via_transporte_nome],
             ['Tipo de Declaração', this.diData.tipo_declaracao_nome],
-            ['URF Entrada', this.diData.urf_entrada_nome],
+            ['URF Entrada', this.diData.carga.urf_entrada_nome],
             ['Recinto Aduaneiro', this.diData.recinto_aduaneiro]
         ];
 
@@ -171,21 +178,22 @@ class ExcelExporter {
      * 04_Valores - Values and exchange rates
      */
     createValuesSheet() {
-        // Trust processed data structure from DIProcessor
+        // Usar estrutura real conforme DIProcessor.js
         const moedas = this.diData.moedas || {};
         const vmle = moedas.vmle_vmld || {};
+        const totais = this.diData.totais || {};
         
         const data = [
             ['Campo', 'Valor USD', 'Valor R$', 'Taxa Câmbio'],
-            ['VMLE/VMLD', 
-                this.formatNumber(vmle.vmle_usd), 
-                this.formatNumber(vmle.vmle_brl), 
+            ['Taxa Câmbio', 
+                '', 
+                '', 
                 this.formatNumber(vmle.taxa, 6)],
             [],
-            ['Moeda Principal', vmle.codigo, 'USD', ''],
-            ['Total CIF', 
-                this.formatNumber(this.diData.valor_total_usd), 
-                this.formatNumber(this.diData.valor_total_brl), 
+            ['Moeda Principal', vmle.codigo, vmle.sigla || 'USD', ''],
+            ['Total FOB', 
+                this.formatNumber(totais.valor_total_fob_usd), 
+                this.formatNumber(totais.valor_total_fob_brl), 
                 ''],
             ['Frete Internacional', 
                 this.formatNumber(this.diData.frete_usd), 
@@ -393,7 +401,7 @@ this.calculationData.produtos_individuais ? this.calculationData.produtos_indivi
 
         // Add totals row
         const totalUSD = adicoes.reduce((sum, a) => sum + a.condicao_venda_valor_moeda, 0);
-        const totalBRL = adicoes.reduce((sum, a) => sum + a.condicao_venda_valor_reais, 0);
+        const totalBRL = adicoes.reduce((sum, a) => sum + a.valor_reais, 0);
         const totalProducts = this.calculationData.produtos_individuais ? this.calculationData.produtos_individuais.length : 0;
         
         data.push([]);
