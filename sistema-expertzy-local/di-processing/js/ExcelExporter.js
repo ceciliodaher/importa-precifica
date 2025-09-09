@@ -103,10 +103,10 @@ class ExcelExporter {
             ['Campo', 'Valor'],
             ['DI', this.diData.numero_di],
             ['Data registro', this.diData.data_registro || 'N/D'],
-            ['URF despacho', this.diData.urf_despacho],
-            ['Modalidade', this.diData.modalidade_despacho],
+            ['URF despacho', this.diData.urf_despacho_nome],
+            ['Modalidade', this.diData.modalidade_despacho_nome],
             ['Qtd. adições', this.diData.adicoes.length],
-            ['Situação', this.diData.situacao]
+            ['Situação', this.diData.situacao_nome]
         ];
 
         // Adicionar dados à planilha
@@ -152,9 +152,9 @@ class ExcelExporter {
             ['Campo', 'Valor'],
             ['Peso Bruto (kg)', this.formatNumber(this.diData.peso_bruto)],
             ['Peso Líquido (kg)', this.formatNumber(this.diData.peso_liquido)],
-            ['Via de Transporte', this.diData.via_transporte],
-            ['Tipo de Declaração', this.diData.tipo_declaracao],
-            ['URF Entrada', this.diData.urf_entrada],
+            ['Via de Transporte', this.diData.via_transporte_nome],
+            ['Tipo de Declaração', this.diData.tipo_declaracao_nome],
+            ['URF Entrada', this.diData.urf_entrada_nome],
             ['Recinto Aduaneiro', this.diData.recinto_aduaneiro]
         ];
 
@@ -384,17 +384,17 @@ class ExcelExporter {
                 adicao.numero_adicao,
                 adicao.ncm,
                 (adicao.descricao_ncm || 'N/D').substring(0, 30) + '...',  // ✅ Graceful handling for mock data
-                adicao.condicao_venda_incoterm,  // ✅ CORRECTED: Use condicao_venda_incoterm
-                this.formatNumber(adicao.valor_moeda_negociacao),
+                adicao.incoterm,  // ✅ CORRECTED: Use incoterm
+                this.formatNumber(adicao.condicao_venda_valor_moeda),
                 this.formatNumber(adicao.valor_reais),
-                adicao.produtos ? adicao.produtos.length : 0
+this.calculationData.produtos_individuais ? this.calculationData.produtos_individuais.filter(p => p.adicao_numero === adicao.numero_adicao).length : 0
             ]);
         });
 
         // Add totals row
         const totalUSD = adicoes.reduce((sum, a) => sum + a.condicao_venda_valor_moeda, 0);
         const totalBRL = adicoes.reduce((sum, a) => sum + a.condicao_venda_valor_reais, 0);
-        const totalProducts = adicoes.reduce((sum, a) => sum + (a.produtos ? a.produtos.length : 0), 0);
+        const totalProducts = this.calculationData.produtos_individuais ? this.calculationData.produtos_individuais.length : 0;
         
         data.push([]);
         data.push(['TOTAL', '', '', '', this.formatNumber(totalUSD), this.formatNumber(totalBRL), totalProducts]);
@@ -525,9 +525,9 @@ class ExcelExporter {
             ['Campo', 'Valor'],
             ['NCM', adicao.ncm],
             ['Descrição NCM', adicao.descricao_ncm],
-            ['VCMV USD', this.formatNumber(adicao.valor_moeda_negociacao)],
+            ['VCMV USD', this.formatNumber(adicao.condicao_venda_valor_moeda)],
             ['VCMV R$', this.formatNumber(adicao.valor_reais)],
-            ['INCOTERM', adicao.condicao_venda_incoterm],
+            ['INCOTERM', adicao.incoterm],
             ['Local', adicao.condicao_venda_local],
             ['Moeda', adicao.moeda_negociacao_nome],
             ['Peso líq. (kg)', this.formatNumber(adicao.peso_liquido)],
@@ -562,12 +562,13 @@ class ExcelExporter {
             ['Código', 'Descrição', 'Quantidade', 'Unidade', 'Valor Unit. USD', 'Valor Total USD', 'Valor Unit. R$', 'Valor Total R$']
         ];
 
-        // Add products
-        if (adicao.produtos && adicao.produtos.length > 0) {
-            adicao.produtos.forEach(produto => {
+        // Add products using pre-calculated data from ComplianceCalculator
+        const produtosDaAdicao = this.calculationData.produtos_individuais.filter(p => p.adicao_numero === adicao.numero_adicao);
+        if (produtosDaAdicao.length > 0) {
+            produtosDaAdicao.forEach(produto => {
                 data.push([
                     produto.codigo,
-                    produto.descricao_mercadoria,  // Correct field name from CLAUDE.md
+                    produto.descricao,
                     this.formatNumber(produto.quantidade),
                     produto.unidade_medida,
                     this.formatNumber(produto.valor_unitario_usd),
