@@ -133,16 +133,15 @@ class ExcelExporter {
             ['CEP', importador.cep]
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:B1');
+        const worksheet = this.workbook.addWorksheet('02_Importador');
         
-        // Aplicar zebra striping nas linhas de dados
-        this.applyZebraStriping(ws, 1, data.length - 1, 0, 1);
+        // Adicionar dados à planilha
+        worksheet.addRows(data);
         
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [30, 60]);
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '02_Importador');
+        // Aplicar formatação profissional
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 1);
+        this.styles.setOptimizedColumnWidths(worksheet, [30, 60]);
     }
 
     /**
@@ -159,9 +158,13 @@ class ExcelExporter {
             ['Recinto Aduaneiro', this.diData.recinto_aduaneiro]
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:B1');
-        XLSX.utils.book_append_sheet(this.workbook, ws, '03_Carga');
+        const worksheet = this.workbook.addWorksheet('03_Carga');
+        worksheet.addRows(data);
+        
+        // Aplicar formatação profissional
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 1);
+        this.styles.setOptimizedColumnWidths(worksheet, [30, 60]);
     }
 
     /**
@@ -196,9 +199,13 @@ class ExcelExporter {
             ['Data Taxa Câmbio', this.diData.data_taxa_cambio || 'N/D', '', ''] // Already formatted by DIProcessor
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:D1');
-        XLSX.utils.book_append_sheet(this.workbook, ws, '04_Valores');
+        const worksheet = this.workbook.addWorksheet('04_Valores');
+        worksheet.addRows(data);
+        
+        // Aplicar formatação profissional
+        this.styles.applyHeaderStyle(worksheet, 'A1:D1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 2, 0, 3); // -2 para excluir linha vazia
+        this.styles.setOptimizedColumnWidths(worksheet, [25, 20, 20, 20]);
     }
 
     /**
@@ -219,9 +226,12 @@ class ExcelExporter {
             ['Total Base ICMS', this.formatNumber(despesas.total_base_icms), '']
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:C1');
-        XLSX.utils.book_append_sheet(this.workbook, ws, '04B_Despesas_Complementares');
+        const worksheet = this.workbook.addWorksheet('04B_Despesas_Complementares');
+        worksheet.addRows(data);
+        
+        this.styles.applyHeaderStyle(worksheet, 'A1:C1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 2);
+        this.styles.setOptimizedColumnWidths(worksheet, [40, 20, 15]);
     }
 
     /**
@@ -252,9 +262,12 @@ class ExcelExporter {
             ['Data Cálculo', new Date().toLocaleDateString('pt-BR')] // Format new date only
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:B1');
-        XLSX.utils.book_append_sheet(this.workbook, ws, '04A_Config_Custos');
+        const worksheet = this.workbook.addWorksheet('04A_Config_Custos');
+        worksheet.addRows(data);
+        
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 1);
+        this.styles.setOptimizedColumnWidths(worksheet, [40, 25]);
     }
 
     /**
@@ -292,9 +305,13 @@ class ExcelExporter {
             ['CUSTO TOTAL FINAL', this.formatNumber(totais.custo_total), '']
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A1:C1');
-        XLSX.utils.book_append_sheet(this.workbook, ws, '05_Tributos_Totais');
+        const worksheet = this.workbook.addWorksheet('05_Tributos_Totais');
+        worksheet.addRows(data);
+        
+        this.styles.applyHeaderStyle(worksheet, 'A1:C1');
+        this.styles.applyCurrencyStyle(worksheet, 'B2:C' + data.length);
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 1, 0, 2);
+        this.styles.setOptimizedColumnWidths(worksheet, [25, 20, 20]);
     }
 
     /**
@@ -334,23 +351,21 @@ class ExcelExporter {
             ['PIS/COFINS Calculado', this.formatNumber(this.calculationData.impostos.pis.valor_devido + this.calculationData.impostos.cofins.valor_devido)]
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet('05A_Validacao_Custos');
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional
-        this.applyHeaderStyle(ws, 'A1:B1');
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
         
-        // Aplicar formatação condicional baseada na diferença já calculada
+        // Aplicar formatação condicional baseada na diferença
         const validationStatus = Math.abs(percentDiferenca) < 0.5 ? 'OK' : (Math.abs(percentDiferenca) < 5 ? 'AVISO' : 'ERRO');
         
         // Aplicar formatação de validação na linha de status
-        if (ws['B6']) { // Status line (linha 6 é onde está o Status)
-            this.styles.applyValidationStyle(ws, 'B6', validationStatus.toLowerCase());
-        }
+        this.styles.applyValidationStyle(worksheet, 'B6', validationStatus.toLowerCase());
         
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [35, 20]);
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '05A_Validacao_Custos');
+        // Configurar larguras otimizadas e zebra striping
+        this.styles.setOptimizedColumnWidths(worksheet, [35, 20]);
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 2, 0, 1); // Excluir linha vazia
     }
 
     /**
@@ -384,24 +399,16 @@ class ExcelExporter {
         data.push([]);
         data.push(['TOTAL', '', '', '', this.formatNumber(totalUSD), this.formatNumber(totalBRL), totalProducts]);
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet('06_Resumo_Adicoes');
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional
-        this.applyHeaderStyle(ws, 'A1:G1');
-        
-        // Aplicar zebra striping nas linhas de dados
-        this.applyZebraStriping(ws, 1, data.length - 3, 0, 6); // Excluir totais
-        
-        // Aplicar formatação de valores monetários
-        this.applyCurrencyFormatting(ws, 'E2:F' + (data.length - 2));
-        
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [8, 15, 45, 12, 18, 18, 10]);
-        
-        // Configurar auto-filter
-        this.styles.setAutoFilter(ws, 'A1:G' + (data.length - 3));
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '06_Resumo_Adicoes');
+        this.styles.applyHeaderStyle(worksheet, 'A1:G1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 3, 0, 6);
+        this.styles.applyCurrencyStyle(worksheet, 'E2:F' + (data.length - 2));
+        this.styles.applyNCMStyle(worksheet, 'B2:B' + (data.length - 3));
+        this.styles.setOptimizedColumnWidths(worksheet, [8, 15, 45, 12, 18, 18, 10]);
+        this.styles.setAutoFilter(worksheet, 'A1:G' + (data.length - 3));
     }
 
     /**
@@ -464,30 +471,20 @@ class ExcelExporter {
             this.formatNumber(totals.custo_total)
         ]);
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet('06A_Resumo_Custos');
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional
-        this.applyHeaderStyle(ws, 'A1:N1');
-        
-        // Aplicar zebra striping nas linhas de dados
-        this.applyZebraStriping(ws, 1, data.length - 3, 0, 13);
-        
-        // Aplicar formatação monetária para todas as colunas de valores
-        this.applyCurrencyFormatting(ws, 'D2:N' + (data.length - 2));
-        
-        // Aplicar formatação NCM
-        this.applyNCMFormatting(ws, 'B2:B' + (data.length - 3));
+        this.styles.applyHeaderStyle(worksheet, 'A1:N1');
+        this.styles.applyZebraStriping(worksheet, 1, data.length - 3, 0, 13);
+        this.styles.applyCurrencyStyle(worksheet, 'D2:N' + (data.length - 2));
+        this.styles.applyNCMStyle(worksheet, 'B2:B' + (data.length - 3));
         
         // Destacar linha de totais
-        this.styles.applySecondaryHeaderStyle(ws, 'A' + data.length + ':N' + data.length);
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A' + data.length + ':N' + data.length);
         
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [8, 12, 12, 15, 15, 15, 15, 15, 12, 12, 10, 12, 12, 15]);
-        
-        // Configurar auto-filter
-        this.styles.setAutoFilter(ws, 'A1:N' + (data.length - 3));
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '06A_Resumo_Custos');
+        this.styles.setOptimizedColumnWidths(worksheet, [8, 12, 12, 15, 15, 15, 15, 15, 12, 12, 10, 12, 12, 15]);
+        this.styles.setAutoFilter(worksheet, 'A1:N' + (data.length - 3));
     }
 
     /**
@@ -609,40 +606,31 @@ class ExcelExporter {
         data.push(['Total Despesas', this.formatNumber(calculo.despesas_rateadas.total)]);
         data.push(['CUSTO TOTAL', this.formatNumber(calculo.custo_total)]);
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet(sheetName);
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional para adições individuais
-        // Header principal
-        this.applyHeaderStyle(ws, 'A1:B1');
-        
-        // Seção dados gerais
-        this.applyHeaderStyle(ws, 'A2:B2');
+        this.styles.applyHeaderStyle(worksheet, 'A1:B1');
+        this.styles.applyHeaderStyle(worksheet, 'A2:B2');
         
         // Seção tributos
-        this.styles.applySecondaryHeaderStyle(ws, 'A15:A15');
-        this.applyHeaderStyle(ws, 'A16:D16');
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A15:A15');
+        this.styles.applyHeaderStyle(worksheet, 'A16:D16');
         
-        // Formatar percentuais nos tributos
-        this.applyPercentageFormatting(ws, 'B17:B21');
-        
-        // Formatar valores monetários
-        this.applyCurrencyFormatting(ws, 'C17:D21');
-        this.applyCurrencyFormatting(ws, 'B3:B16'); // Valores em dados gerais
+        // Formatar percentuais e monetários
+        this.styles.applyPercentageStyle(worksheet, 'B17:B21');
+        this.styles.applyCurrencyStyle(worksheet, 'C17:D21');
+        this.styles.applyCurrencyStyle(worksheet, 'B3:B16');
         
         // Seção produtos
         const produtosStartRow = data.findIndex(row => row[0] === 'PRODUTOS');
         if (produtosStartRow > -1) {
-            this.styles.applySecondaryHeaderStyle(ws, 'A' + (produtosStartRow + 1) + ':A' + (produtosStartRow + 1));
-            this.applyHeaderStyle(ws, 'A' + (produtosStartRow + 2) + ':H' + (produtosStartRow + 2));
+            this.styles.applySecondaryHeaderStyle(worksheet, 'A' + (produtosStartRow + 1) + ':A' + (produtosStartRow + 1));
+            this.styles.applyHeaderStyle(worksheet, 'A' + (produtosStartRow + 2) + ':H' + (produtosStartRow + 2));
         }
         
-        // Aplicar formatação NCM
-        this.applyNCMFormatting(ws, 'B3:B3');
-        
-        // Configurar larguras otimizadas
-        this.styles.setOptimizedColumnWidths(ws, [25, 40, 15, 15, 18, 18, 18, 18]);
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, sheetName);
+        this.styles.applyNCMStyle(worksheet, 'B3:B3');
+        this.styles.setOptimizedColumnWidths(worksheet, [25, 40, 15, 15, 18, 18, 18, 18]);
     }
 
     /**
@@ -673,18 +661,16 @@ class ExcelExporter {
             [`- Sessão de cálculo: ${this.memoryData ? this.memoryData.sessionId : 'Sessão não disponível'}`]
         ];
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet('99_Complementar');
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional
-        this.applyHeaderStyle(ws, 'A1:A1');
-        this.styles.applySecondaryHeaderStyle(ws, 'A7:A7'); // "DI Processada:"
-        this.styles.applySecondaryHeaderStyle(ws, 'A12:A12'); // "Notas:"
-        this.styles.applySecondaryHeaderStyle(ws, 'A19:A19'); // "Memória de Cálculo:"
+        this.styles.applyHeaderStyle(worksheet, 'A1:A1');
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A7:A7');
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A12:A12');
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A19:A19');
         
-        // Configurar larguras otimizadas para texto longo
-        this.styles.setOptimizedColumnWidths(ws, [150]);
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, '99_Complementar');
+        this.styles.setOptimizedColumnWidths(worksheet, [150]);
     }
 
     /**
@@ -776,31 +762,23 @@ class ExcelExporter {
             this.formatNumber(grandTotal)
         ]);
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
+        const worksheet = this.workbook.addWorksheet('Croqui_NFe_Entrada');
+        worksheet.addRows(data);
         
         // Aplicar formatação profissional estilo nota fiscal
-        this.applyHeaderStyle(ws, 'A1:A1'); // Título principal
-        this.applyHeaderStyle(ws, 'A3:N3'); // Headers da tabela
+        this.styles.applyHeaderStyle(worksheet, 'A1:A1'); // Título principal
+        this.styles.applyHeaderStyle(worksheet, 'A3:N3'); // Headers da tabela
         
-        // Aplicar zebra striping nas linhas de dados
-        this.applyZebraStriping(ws, 3, data.length - 3, 0, 13); // Excluir totais
-        
-        // Aplicar formatação de valores monetários
-        this.applyCurrencyFormatting(ws, 'G4:N' + (data.length - 2));
-        
-        // Aplicar formatação NCM
-        this.applyNCMFormatting(ws, 'B4:B' + (data.length - 3));
+        // Aplicar zebra striping e formatação
+        this.styles.applyZebraStriping(worksheet, 3, data.length - 3, 0, 13);
+        this.styles.applyCurrencyStyle(worksheet, 'G4:N' + (data.length - 2));
+        this.styles.applyNCMStyle(worksheet, 'B4:B' + (data.length - 3));
         
         // Destacar linha de totais
-        this.styles.applySecondaryHeaderStyle(ws, 'A' + data.length + ':N' + data.length);
+        this.styles.applySecondaryHeaderStyle(worksheet, 'A' + data.length + ':N' + data.length);
         
-        // Configurar larguras otimizadas para croqui NFe
-        this.styles.setOptimizedColumnWidths(ws, [6, 12, 15, 40, 8, 6, 15, 15, 12, 12, 10, 12, 12, 18]);
-        
-        // Configurar auto-filter
-        this.styles.setAutoFilter(ws, 'A3:N' + (data.length - 3));
-        
-        XLSX.utils.book_append_sheet(this.workbook, ws, 'Croqui_NFe_Entrada');
+        this.styles.setOptimizedColumnWidths(worksheet, [6, 12, 15, 40, 8, 6, 15, 15, 12, 12, 10, 12, 12, 18]);
+        this.styles.setAutoFilter(worksheet, 'A3:N' + (data.length - 3));
     }
 
     // ========== Helper Methods ==========
