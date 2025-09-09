@@ -20,6 +20,9 @@ class ExcelExporter {
         this.diData = null;
         this.calculationData = null;
         this.memoryData = null;
+        
+        // Sistema de formatação profissional
+        this.styles = new ExcelProfessionalStyles();
     }
 
     /**
@@ -314,7 +317,22 @@ class ExcelExporter {
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Aplicar formatação profissional
         this.applyHeaderStyle(ws, 'A1:B1');
+        
+        // Aplicar formatação condicional baseada na diferença
+        const percentDiferenca = Math.abs(((totalCalculado - totalExtraido) / totalExtraido) * 100);
+        const validationStatus = percentDiferenca < 0.5 ? 'OK' : (percentDiferenca < 5 ? 'AVISO' : 'ERRO');
+        
+        // Aplicar formatação de validação na linha de status
+        if (ws['B8']) { // Status line
+            this.styles.applyValidationStyle(ws, 'B8', validationStatus.toLowerCase());
+        }
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [35, 20]);
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '05A_Validacao_Custos');
     }
 
@@ -350,7 +368,22 @@ class ExcelExporter {
         data.push(['TOTAL', '', '', '', this.formatNumber(totalUSD), this.formatNumber(totalBRL), totalProducts]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Aplicar formatação profissional
         this.applyHeaderStyle(ws, 'A1:G1');
+        
+        // Aplicar zebra striping nas linhas de dados
+        this.applyZebraStriping(ws, 1, data.length - 3, 0, 6); // Excluir totais
+        
+        // Aplicar formatação de valores monetários
+        this.applyCurrencyFormatting(ws, 'E2:F' + (data.length - 2));
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [8, 15, 45, 12, 18, 18, 10]);
+        
+        // Configurar auto-filter
+        this.styles.setAutoFilter(ws, 'A1:G' + (data.length - 3));
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '06_Resumo_Adicoes');
     }
 
@@ -415,7 +448,28 @@ class ExcelExporter {
         ]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Aplicar formatação profissional
         this.applyHeaderStyle(ws, 'A1:N1');
+        
+        // Aplicar zebra striping nas linhas de dados
+        this.applyZebraStriping(ws, 1, data.length - 3, 0, 13);
+        
+        // Aplicar formatação monetária para todas as colunas de valores
+        this.applyCurrencyFormatting(ws, 'D2:N' + (data.length - 2));
+        
+        // Aplicar formatação NCM
+        this.applyNCMFormatting(ws, 'B2:B' + (data.length - 3));
+        
+        // Destacar linha de totais
+        this.styles.applySecondaryHeaderStyle(ws, 'A' + data.length + ':N' + data.length);
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [8, 12, 12, 15, 15, 15, 15, 15, 12, 12, 10, 12, 12, 15]);
+        
+        // Configurar auto-filter
+        this.styles.setAutoFilter(ws, 'A1:N' + (data.length - 3));
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '06A_Resumo_Custos');
     }
 
@@ -539,6 +593,38 @@ class ExcelExporter {
         data.push(['CUSTO TOTAL', this.formatNumber(calculo.custo_total)]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Aplicar formatação profissional para adições individuais
+        // Header principal
+        this.applyHeaderStyle(ws, 'A1:B1');
+        
+        // Seção dados gerais
+        this.applyHeaderStyle(ws, 'A2:B2');
+        
+        // Seção tributos
+        this.styles.applySecondaryHeaderStyle(ws, 'A15:A15');
+        this.applyHeaderStyle(ws, 'A16:D16');
+        
+        // Formatar percentuais nos tributos
+        this.applyPercentageFormatting(ws, 'B17:B21');
+        
+        // Formatar valores monetários
+        this.applyCurrencyFormatting(ws, 'C17:D21');
+        this.applyCurrencyFormatting(ws, 'B3:B16'); // Valores em dados gerais
+        
+        // Seção produtos
+        const produtosStartRow = data.findIndex(row => row[0] === 'PRODUTOS');
+        if (produtosStartRow > -1) {
+            this.styles.applySecondaryHeaderStyle(ws, 'A' + (produtosStartRow + 1) + ':A' + (produtosStartRow + 1));
+            this.applyHeaderStyle(ws, 'A' + (produtosStartRow + 2) + ':H' + (produtosStartRow + 2));
+        }
+        
+        // Aplicar formatação NCM
+        this.applyNCMFormatting(ws, 'B3:B3');
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [25, 40, 15, 15, 18, 18, 18, 18]);
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, sheetName);
     }
 
@@ -571,6 +657,16 @@ class ExcelExporter {
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Aplicar formatação profissional
+        this.applyHeaderStyle(ws, 'A1:A1');
+        this.styles.applySecondaryHeaderStyle(ws, 'A7:A7'); // "DI Processada:"
+        this.styles.applySecondaryHeaderStyle(ws, 'A12:A12'); // "Notas:"
+        this.styles.applySecondaryHeaderStyle(ws, 'A19:A19'); // "Memória de Cálculo:"
+        
+        // Configurar larguras otimizadas para texto longo
+        this.styles.setOptimizedColumnWidths(ws, [150]);
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '99_Complementar');
     }
 
@@ -664,7 +760,29 @@ class ExcelExporter {
         ]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
-        this.applyHeaderStyle(ws, 'A3:N3');
+        
+        // Aplicar formatação profissional estilo nota fiscal
+        this.applyHeaderStyle(ws, 'A1:A1'); // Título principal
+        this.applyHeaderStyle(ws, 'A3:N3'); // Headers da tabela
+        
+        // Aplicar zebra striping nas linhas de dados
+        this.applyZebraStriping(ws, 3, data.length - 3, 0, 13); // Excluir totais
+        
+        // Aplicar formatação de valores monetários
+        this.applyCurrencyFormatting(ws, 'G4:N' + (data.length - 2));
+        
+        // Aplicar formatação NCM
+        this.applyNCMFormatting(ws, 'B4:B' + (data.length - 3));
+        
+        // Destacar linha de totais
+        this.styles.applySecondaryHeaderStyle(ws, 'A' + data.length + ':N' + data.length);
+        
+        // Configurar larguras otimizadas para croqui NFe
+        this.styles.setOptimizedColumnWidths(ws, [6, 12, 15, 40, 8, 6, 15, 15, 12, 12, 10, 12, 12, 18]);
+        
+        // Configurar auto-filter
+        this.styles.setAutoFilter(ws, 'A3:N' + (data.length - 3));
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, 'Croqui_NFe_Entrada');
     }
 
@@ -715,6 +833,34 @@ class ExcelExporter {
     }
 
     /**
+     * Aplicar formatação monetária brasileira
+     */
+    applyCurrencyFormatting(ws, range) {
+        this.styles.applyCurrencyStyle(ws, range);
+    }
+    
+    /**
+     * Aplicar formatação de percentual
+     */
+    applyPercentageFormatting(ws, range) {
+        this.styles.applyPercentageStyle(ws, range);
+    }
+    
+    /**
+     * Aplicar formatação NCM com fonte monospace
+     */
+    applyNCMFormatting(ws, range) {
+        this.styles.applyNCMStyle(ws, range);
+    }
+    
+    /**
+     * Aplicar zebra striping nas tabelas
+     */
+    applyZebraStriping(ws, startRow, endRow, startCol, endCol) {
+        this.styles.applyZebraStriping(ws, startRow, endRow, startCol, endCol);
+    }
+
+    /**
      * Format CNPJ - DIProcessor already formats CNPJs to XX.XXX.XXX/XXXX-XX
      * This method only handles edge cases
      */
@@ -729,12 +875,38 @@ class ExcelExporter {
     }
 
     /**
-     * Apply header style to worksheet cells
+     * Apply professional header style to worksheet cells
      */
     applyHeaderStyle(ws, range) {
-        // Note: XLSX-js has limited styling support in the community edition
-        // For full styling, consider using the Pro version or xlsx-style
-        // This is a placeholder for styling logic
+        this.styles.applyHeaderStyle(ws, range);
+    }
+    
+    /**
+     * Apply secondary header style
+     */
+    applySecondaryHeaderStyle(ws, range) {
+        this.styles.applySecondaryHeaderStyle(ws, range);
+    }
+    
+    /**
+     * Apply zebra striping to table data
+     */
+    applyZebraStriping(ws, startRow, endRow, startCol, endCol) {
+        this.styles.applyZebraStriping(ws, startRow, endRow, startCol, endCol);
+    }
+    
+    /**
+     * Apply professional currency formatting
+     */
+    applyCurrencyFormatting(ws, range) {
+        this.styles.applyCurrencyStyle(ws, range);
+    }
+    
+    /**
+     * Apply percentage formatting
+     */
+    applyPercentageFormatting(ws, range) {
+        this.styles.applyPercentageStyle(ws, range);
     }
 
     /**
