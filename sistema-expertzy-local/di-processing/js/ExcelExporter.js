@@ -160,9 +160,9 @@ class ExcelExporter {
             ['Peso Bruto (kg)', this.formatNumber(this.diData.carga.peso_bruto)],
             ['Peso Líquido (kg)', this.formatNumber(this.diData.carga.peso_liquido)],
             ['Via de Transporte', this.diData.carga.via_transporte_nome],
-            ['Tipo de Declaração', this.diData.tipo_declaracao_nome],
+            ['Tipo de Declaração', this.diData.modalidade_nome],
             ['URF Entrada', this.diData.carga.urf_entrada_nome],
-            ['Recinto Aduaneiro', this.diData.recinto_aduaneiro]
+            ['Recinto Aduaneiro', this.diData.urf_despacho_nome]
         ];
 
         const worksheet = this.workbook.addWorksheet('03_Carga');
@@ -204,7 +204,7 @@ class ExcelExporter {
                 this.formatNumber(this.diData.seguro_brl), 
                 ''],
             [],
-            ['Data Taxa Câmbio', this.diData.data_taxa_cambio || 'N/D', '', ''] // Already formatted by DIProcessor
+            ['Data Taxa Câmbio', this.diData.data_registro || 'N/D', '', ''] // Already formatted by DIProcessor
         ];
 
         const worksheet = this.workbook.addWorksheet('04_Valores');
@@ -220,18 +220,27 @@ class ExcelExporter {
      * 04B_Despesas_Complementares - Additional expenses
      */
     createComplementaryExpensesSheet() {
-        // Trust processed data - use what's available
-        const despesas = this.calculationData?.despesas?.extras || {};
+        // Usar estrutura real conforme ComplianceCalculator analysis
+        const despesasOriginais = this.diData?.despesas?.extras || {};
+        const armazenagem = despesasOriginais.armazenagem_extra || 0;
+        const transporte = despesasOriginais.transporte_interno || 0;
+        const despachante = despesasOriginais.despachante || 0;
+        const outras = (despesasOriginais.outros_portuarios || 0) + 
+                      (despesasOriginais.bancarios || 0) + 
+                      (despesasOriginais.administrativos || 0) + 
+                      (despesasOriginais.outros_extras || 0);
+        const totalExtras = armazenagem + transporte + despachante + outras;
+        const totalBaseIcms = this.calculationData?.despesas?.total_base_icms || 0;
         
         const data = [
             ['Tipo de Despesa', 'Valor R$', 'Compõe Base ICMS'],
-            ['Armazenagem', this.formatNumber(despesas.armazenagem), despesas.armazenagem_icms ? 'Sim' : 'Não'],
-            ['Transporte Interno', this.formatNumber(despesas.transporte), despesas.transporte_icms ? 'Sim' : 'Não'],
-            ['Despachante', this.formatNumber(despesas.despachante), despesas.despachante_icms ? 'Sim' : 'Não'],
-            ['Outras Despesas', this.formatNumber(despesas.outras), despesas.outras_icms ? 'Sim' : 'Não'],
+            ['Armazenagem', this.formatNumber(armazenagem), armazenagem > 0 ? 'Sim' : 'Não'],
+            ['Transporte Interno', this.formatNumber(transporte), transporte > 0 ? 'Sim' : 'Não'],
+            ['Despachante', this.formatNumber(despachante), despachante > 0 ? 'Sim' : 'Não'],
+            ['Outras Despesas', this.formatNumber(outras), outras > 0 ? 'Sim' : 'Não'],
             [],
-            ['Total Extras', this.formatNumber(despesas.total), ''],
-            ['Total Base ICMS', this.formatNumber(despesas.total_base_icms), '']
+            ['Total Extras', this.formatNumber(totalExtras), ''],
+            ['Total Base ICMS', this.formatNumber(totalBaseIcms), '']
         ];
 
         const worksheet = this.workbook.addWorksheet('04B_Despesas_Complementares');
@@ -308,9 +317,9 @@ class ExcelExporter {
                 this.formatNumber(totais.total_impostos),
                 '100,00%'],
             [],
-            ['Valor Aduaneiro', this.formatNumber(totais.valor_aduaneiro), ''],
-            ['Total Despesas', this.formatNumber(totais.total_despesas), ''],
-            ['CUSTO TOTAL FINAL', this.formatNumber(totais.custo_total), '']
+            ['Valor Aduaneiro', this.formatNumber(this.calculationData.valores_base?.valor_aduaneiro_total), ''],
+            ['Total Despesas', this.formatNumber(this.calculationData.valores_base?.despesas_totais), ''],
+            ['CUSTO TOTAL FINAL', this.formatNumber(this.calculationData.totais?.custo_total), '']
         ];
 
         const worksheet = this.workbook.addWorksheet('05_Tributos_Totais');
@@ -392,15 +401,15 @@ class ExcelExporter {
                 adicao.numero_adicao,
                 adicao.ncm,
                 (adicao.descricao_ncm || 'N/D').substring(0, 30) + '...',  // ✅ Graceful handling for mock data
-                adicao.incoterm,  // ✅ CORRECTED: Use incoterm
-                this.formatNumber(adicao.condicao_venda_valor_moeda),
+                adicao.condicao_venda_incoterm,
+                this.formatNumber(adicao.valor_moeda_negociacao),
                 this.formatNumber(adicao.valor_reais),
 this.calculationData.produtos_individuais ? this.calculationData.produtos_individuais.filter(p => p.adicao_numero === adicao.numero_adicao).length : 0
             ]);
         });
 
         // Add totals row
-        const totalUSD = adicoes.reduce((sum, a) => sum + a.condicao_venda_valor_moeda, 0);
+        const totalUSD = adicoes.reduce((sum, a) => sum + a.valor_moeda_negociacao, 0);
         const totalBRL = adicoes.reduce((sum, a) => sum + a.valor_reais, 0);
         const totalProducts = this.calculationData.produtos_individuais ? this.calculationData.produtos_individuais.length : 0;
         
@@ -447,7 +456,7 @@ this.calculationData.produtos_individuais ? this.calculationData.produtos_indivi
             data.push([
                 adicao.numero_adicao,
                 adicao.ncm,
-                adicao.incoterm,
+                adicao.condicao_venda_incoterm,
                 this.formatNumber(adicao.valor_aduaneiro),
                 this.formatNumber(adicao.despesas_rateadas.frete),
                 this.formatNumber(adicao.despesas_rateadas.seguro),
@@ -533,9 +542,9 @@ this.calculationData.produtos_individuais ? this.calculationData.produtos_indivi
             ['Campo', 'Valor'],
             ['NCM', adicao.ncm],
             ['Descrição NCM', adicao.descricao_ncm],
-            ['VCMV USD', this.formatNumber(adicao.condicao_venda_valor_moeda)],
+            ['VCMV USD', this.formatNumber(adicao.valor_moeda_negociacao)],
             ['VCMV R$', this.formatNumber(adicao.valor_reais)],
-            ['INCOTERM', adicao.incoterm],
+            ['INCOTERM', adicao.condicao_venda_incoterm],
             ['Local', adicao.condicao_venda_local],
             ['Moeda', adicao.moeda_negociacao_nome],
             ['Peso líq. (kg)', this.formatNumber(adicao.peso_liquido)],
