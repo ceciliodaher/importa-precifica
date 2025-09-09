@@ -321,13 +321,12 @@ class ExcelExporter {
         // Aplicar formatação profissional
         this.applyHeaderStyle(ws, 'A1:B1');
         
-        // Aplicar formatação condicional baseada na diferença
-        const percentDiferenca = Math.abs(((totalCalculado - totalExtraido) / totalExtraido) * 100);
-        const validationStatus = percentDiferenca < 0.5 ? 'OK' : (percentDiferenca < 5 ? 'AVISO' : 'ERRO');
+        // Aplicar formatação condicional baseada na diferença já calculada
+        const validationStatus = Math.abs(percentDiferenca) < 0.5 ? 'OK' : (Math.abs(percentDiferenca) < 5 ? 'AVISO' : 'ERRO');
         
         // Aplicar formatação de validação na linha de status
-        if (ws['B8']) { // Status line
-            this.styles.applyValidationStyle(ws, 'B8', validationStatus.toLowerCase());
+        if (ws['B6']) { // Status line (linha 6 é onde está o Status)
+            this.styles.applyValidationStyle(ws, 'B6', validationStatus.toLowerCase());
         }
         
         // Configurar larguras otimizadas
