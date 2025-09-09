@@ -75,10 +75,11 @@ class ExcelExporter {
             // Generate filename with DI number and date
             const filename = this.generateFilename(diData.numero_di);
             
-            // Export file
-            XLSX.writeFile(this.workbook, filename);
+            // Export file with proper formatting preservation
+            const arquivoBuffer = XLSX.write(this.workbook, { bookType: 'xlsx', type: 'array' });
+            this.downloadArquivo(arquivoBuffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             
-            console.log(`✅ ExcelExporter: Export completo realizado - ${filename}`);
+            console.log(`✅ ExcelExporter: Export completo realizado com formatação profissional - ${filename}`);
             console.log(`📊 Total de ${this.workbook.SheetNames.length} abas criadas`);
             return { success: true, filename };
             
@@ -104,6 +105,13 @@ class ExcelExporter {
 
         const ws = XLSX.utils.aoa_to_sheet(data);
         this.applyHeaderStyle(ws, 'A1:B1');
+        
+        // Aplicar zebra striping nas linhas de dados
+        this.applyZebraStriping(ws, 1, data.length - 1, 0, 1);
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [30, 60]);
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '01_Capa');
     }
 
@@ -124,6 +132,13 @@ class ExcelExporter {
 
         const ws = XLSX.utils.aoa_to_sheet(data);
         this.applyHeaderStyle(ws, 'A1:B1');
+        
+        // Aplicar zebra striping nas linhas de dados
+        this.applyZebraStriping(ws, 1, data.length - 1, 0, 1);
+        
+        // Configurar larguras otimizadas
+        this.styles.setOptimizedColumnWidths(ws, [30, 60]);
+        
         XLSX.utils.book_append_sheet(this.workbook, ws, '02_Importador');
     }
 
@@ -956,5 +971,25 @@ class ExcelExporter {
         
         const date = dataRegistro.replace(/\//g, '-');
         return `ExtratoDI_COMPLETO_${numeroDI}_${date}_${nomeImportador}.xlsx`;
+    }
+
+    /**
+     * Download arquivo com formatação preservada (baseado no sistema original)
+     */
+    downloadArquivo(conteudo, nomeArquivo, mimeType) {
+        const blob = new Blob([conteudo], { type: mimeType });
+        const url = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nomeArquivo;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpar URL para evitar vazamentos de memória
+        window.URL.revokeObjectURL(url);
     }
 }
