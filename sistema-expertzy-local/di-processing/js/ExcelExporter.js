@@ -84,7 +84,7 @@ class ExcelExporter {
             this.downloadArquivo(arquivoBuffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             
             console.log(`✅ ExcelExporter: Export completo realizado com formatação profissional - ${filename}`);
-            console.log(`📊 Total de ${this.workbook.SheetNames.length} abas criadas`);
+            console.log(`📊 Total de ${this.workbook.worksheets.length} abas criadas`);
             return { success: true, filename };
             
         } catch (error) {

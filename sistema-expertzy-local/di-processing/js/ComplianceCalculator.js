@@ -222,7 +222,7 @@ class ComplianceCalculator {
             totais.cofins += calc.impostos.cofins.valor_devido;
             totais.icms += calc.impostos.icms.valor_devido;
             totais.valor_aduaneiro += calc.valores_base.cif_brl;
-            totais.despesas += calc.despesas.total;
+            totais.despesas += calc.despesas.total_custos;
             totais.peso_total += calc.valores_base.peso_liquido;
         });
         
