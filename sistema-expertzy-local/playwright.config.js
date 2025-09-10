@@ -30,10 +30,10 @@ module.exports = defineConfig({
     },
   ],
 
-  // Configuração para servidor local
-  webServer: {
-    command: 'npm run start',
-    port: 8080,
-    reuseExistingServer: !process.env.CI,
-  },
+  // Configuração para servidor local (desabilitado - usando file://)
+  // webServer: {
+  //   command: 'npm run start',
+  //   port: 8080,
+  //   reuseExistingServer: !process.env.CI,
+  // },
 });

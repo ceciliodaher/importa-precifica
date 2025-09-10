@@ -11,10 +11,12 @@ let diProcessor = null;
 let complianceCalculator = null;
 let validator = null;
 let exportManager = null;
+let databaseConnector = null;
 let currentDI = null;
 let currentStep = 1;
 let expenseCounter = 0;
 let currencyMasks = [];
+let currentDatabasePage = 1;
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -33,6 +35,9 @@ async function initializeSystem() {
         complianceCalculator = new ComplianceCalculator();
         validator = new CalculationValidator();
         exportManager = new ExportManager();
+        
+        // Initialize database connector
+        initDatabaseConnector();
         
         // Load tax configurations
         await complianceCalculator.carregarConfiguracoes();
@@ -209,6 +214,9 @@ async function processarDI() {
         
         // Show all additions (not just first one)
         populateAllAdditions(currentDI);
+        
+        // Salvar automaticamente no banco de dados
+        await salvarDINoDatabase(currentDI);
         
         // Move to step 2
         hideLoading();
@@ -770,6 +778,9 @@ async function calcularImpostos() {
         
         // Populate step 3 with results
         populateStep3Results(taxCalculation);
+        
+        // Atualizar DI no banco com cálculos
+        await atualizarDINoDatabase(currentDI, taxCalculation);
         
         // Move to step 3
         hideLoading();
@@ -1631,6 +1642,404 @@ window.carregarArquivoSalvo = carregarArquivoSalvo;
 window.mostrarResultadosCalculo = mostrarResultadosCalculo;
 window.prepararParaPrecificacao = prepararParaPrecificacao;
 window.addExpenseRow = addExpenseRow;
+
+// ===== INTEGRAÇÃO COM BANCO DE DADOS =====
+
+/**
+ * Initialize database connector
+ */
+function initDatabaseConnector() {
+    try {
+        // Inicializar conexão com API
+        databaseConnector = new DatabaseConnector('/importa-precifica/api/');
+        
+        // Configurar event listeners
+        databaseConnector.on('connectionChange', (data) => {
+            updateDatabaseStatus(data.online);
+        });
+        
+        databaseConnector.on('apiStatus', (data) => {
+            if (data.status === 'healthy') {
+                updateDatabaseStatus(true);
+                updateDatabaseCount();
+            } else {
+                updateDatabaseStatus(false);
+            }
+        });
+        
+        console.log('✅ DatabaseConnector inicializado');
+        
+        // Verificar status inicial
+        setTimeout(() => {
+            updateDatabaseCount();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Erro ao inicializar DatabaseConnector:', error);
+        updateDatabaseStatus(false);
+    }
+}
+
+/**
+ * Update database connection status indicator
+ */
+function updateDatabaseStatus(isConnected) {
+    const indicator = document.getElementById('dbStatusIndicator');
+    if (indicator) {
+        const icon = indicator.querySelector('i');
+        if (isConnected) {
+            icon.className = 'bi bi-circle-fill text-success';
+            indicator.title = 'Banco de dados conectado';
+        } else {
+            icon.className = 'bi bi-circle-fill text-danger';
+            indicator.title = 'Banco de dados desconectado';
+        }
+    }
+}
+
+/**
+ * Update database count badge
+ */
+async function updateDatabaseCount() {
+    try {
+        if (!databaseConnector) return;
+        
+        const response = await databaseConnector.listarDIs(1, 1); // Buscar apenas 1 para pegar o total
+        if (response && response.total) {
+            const badge = document.getElementById('dbCountBadge');
+            if (badge) {
+                badge.textContent = response.total;
+                badge.style.display = response.total > 0 ? 'inline-block' : 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar contador do banco:', error);
+    }
+}
+
+/**
+ * Show database modal
+ */
+function showDatabaseModal() {
+    const modal = new bootstrap.Modal(document.getElementById('modalBancoDados'));
+    modal.show();
+    
+    // Carregar dados na primeira vez
+    loadDIsFromDatabase();
+}
+
+/**
+ * Load DIs from database
+ */
+async function loadDIsFromDatabase(page = 1) {
+    const tbody = document.getElementById('tbodyDIsBanco');
+    const loading = document.getElementById('loadingBanco');
+    const mensagemSem = document.getElementById('mensagemSemDadosBanco');
+    
+    // Mostrar loading
+    loading.classList.remove('d-none');
+    tbody.innerHTML = '';
+    mensagemSem.classList.add('d-none');
+    
+    try {
+        // Coletar filtros
+        const filters = {
+            numero_di: document.getElementById('filterNumeroDI')?.value || '',
+            data_inicio: document.getElementById('filterDataInicio')?.value || '',
+            data_fim: document.getElementById('filterDataFim')?.value || ''
+        };
+        
+        // Buscar dados
+        const response = await databaseConnector.listarDIs(page, 10, filters);
+        
+        if (response && response.data && response.data.length > 0) {
+            // Preencher tabela
+            response.data.forEach(di => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${di.numero_di}</strong></td>
+                    <td>${formatarData(di.data_registro)}</td>
+                    <td>${di.importador_nome || 'N/D'}</td>
+                    <td class="text-center">${di.total_adicoes || 0}</td>
+                    <td class="text-end">${formatarMoeda(di.valor_total || 0)}</td>
+                    <td>
+                        <span class="badge ${di.calculos_salvos ? 'bg-success' : 'bg-warning'}">
+                            ${di.calculos_salvos ? 'Calculado' : 'Apenas XML'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="loadDIFromDatabase('${di.numero_di}')" title="Carregar e continuar">
+                            <i class="bi bi-download"></i> Carregar
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewDIDetails('${di.numero_di}')" title="Ver detalhes">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Atualizar total
+            document.getElementById('totalDIsBanco').textContent = response.total || 0;
+            
+            // Criar paginação
+            createPagination(response.page, response.pages);
+            
+        } else {
+            mensagemSem.classList.remove('d-none');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao carregar DIs do banco:', error);
+        showAlert('Erro ao carregar dados do banco. Verifique a conexão.', 'danger');
+        mensagemSem.classList.remove('d-none');
+        
+    } finally {
+        loading.classList.add('d-none');
+    }
+}
+
+/**
+ * Load specific DI from database and restore state
+ */
+async function loadDIFromDatabase(numeroDI) {
+    try {
+        showLoading('Carregando DI do banco...', 'Recuperando dados salvos');
+        
+        // Buscar DI completa do banco
+        const response = await databaseConnector.buscarDI(numeroDI);
+        
+        if (!response || !response.data) {
+            throw new Error('DI não encontrada no banco');
+        }
+        
+        const diData = response.data;
+        
+        // Restaurar dados na memória
+        currentDI = diData;
+        
+        // Atualizar DIProcessor
+        if (diProcessor) {
+            diProcessor.diData = diData;
+        }
+        
+        // Verificar se há cálculos salvos
+        if (diData.calculos && diData.calculos.length > 0) {
+            // Restaurar cálculos no ComplianceCalculator
+            if (complianceCalculator && diData.calculos[0]) {
+                complianceCalculator.lastCalculation = diData.calculos[0];
+            }
+            
+            // Ir direto para Step 3 (resultados)
+            avancarStep(3);
+            updateDIInfo();
+            mostrarResultadosCalculo();
+            
+            showAlert(`✅ DI ${numeroDI} carregada com cálculos - Pronta para exportação ou recálculo`, 'success');
+            
+        } else {
+            // Ir para Step 2 (adicionar despesas)
+            avancarStep(2);
+            updateDIInfo();
+            
+            showAlert(`✅ DI ${numeroDI} carregada - Continue adicionando despesas e calculando impostos`, 'info');
+        }
+        
+        // Fechar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalBancoDados'));
+        if (modal) modal.hide();
+        
+        hideLoading();
+        
+    } catch (error) {
+        console.error('Erro ao carregar DI do banco:', error);
+        showAlert(`Erro ao carregar DI: ${error.message}`, 'danger');
+        hideLoading();
+    }
+}
+
+/**
+ * View DI details
+ */
+async function viewDIDetails(numeroDI) {
+    try {
+        const response = await databaseConnector.buscarDI(numeroDI);
+        
+        if (response && response.data) {
+            // Criar modal temporário com detalhes
+            console.log('Detalhes da DI:', response.data);
+            
+            // TODO: Implementar modal de visualização detalhada
+            alert(`DI ${numeroDI}\n\nImportador: ${response.data.importador?.nome}\nAdições: ${response.data.total_adicoes}\nValor: ${formatarMoeda(response.data.adicoes?.reduce((sum, a) => sum + a.valor_reais, 0) || 0)}`);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao buscar detalhes:', error);
+        showAlert('Erro ao buscar detalhes da DI', 'danger');
+    }
+}
+
+/**
+ * Create pagination controls
+ */
+function createPagination(currentPage, totalPages) {
+    const pagination = document.getElementById('paginationDIs');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadDIsFromDatabase(${currentPage - 1}); return false;">Anterior</a>`;
+    pagination.appendChild(prevLi);
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadDIsFromDatabase(${i}); return false;">${i}</a>`;
+        pagination.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadDIsFromDatabase(${currentPage + 1}); return false;">Próximo</a>`;
+    pagination.appendChild(nextLi);
+}
+
+/**
+ * Sync current DI to database after processing
+ */
+async function syncCurrentDIToDatabase() {
+    try {
+        if (!currentDI || !databaseConnector) return;
+        
+        // Preparar dados para salvar
+        const dadosParaSalvar = {
+            di: currentDI,
+            calculos: complianceCalculator?.lastCalculation || null,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Salvar no banco
+        await databaseConnector.salvarDI(currentDI.numero_di, dadosParaSalvar);
+        
+        console.log('✅ DI sincronizada com banco de dados');
+        
+        // Atualizar contador
+        updateDatabaseCount();
+        
+    } catch (error) {
+        console.error('Erro ao sincronizar com banco:', error);
+    }
+}
+
+/**
+ * Salvar DI no banco de dados após processamento do XML
+ */
+async function salvarDINoDatabase(diData) {
+    try {
+        if (!databaseConnector || !diData) return;
+        
+        // Preparar dados para salvar
+        const dadosParaSalvar = {
+            numero_di: diData.numero_di,
+            data_registro: diData.data_registro,
+            importador: diData.importador,
+            adicoes: diData.adicoes,
+            carga: diData.carga,
+            totais: diData.totais,
+            timestamp_processamento: new Date().toISOString()
+        };
+        
+        // Salvar via API
+        const response = await databaseConnector.salvarDI(diData.numero_di, dadosParaSalvar);
+        
+        if (response && response.success) {
+            console.log('✅ DI salva no banco de dados automaticamente');
+            
+            // Atualizar contador
+            updateDatabaseCount();
+            
+            // Mostrar notificação discreta
+            const toast = document.createElement('div');
+            toast.className = 'toast position-fixed bottom-0 end-0 m-3';
+            toast.innerHTML = `
+                <div class="toast-body bg-success text-white">
+                    💾 DI ${diData.numero_di} salva no banco
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+            
+            setTimeout(() => toast.remove(), 4000);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao salvar DI no banco:', error);
+        // Não interromper o fluxo se falhar o salvamento
+    }
+}
+
+/**
+ * Atualizar DI no banco com cálculos
+ */
+async function atualizarDINoDatabase(diData, calculos) {
+    try {
+        if (!databaseConnector || !diData || !calculos) return;
+        
+        // Preparar dados dos cálculos seguindo estrutura DIProcessor
+        const dadosCalculo = {
+            numero_di: diData.numero_di,
+            tipo_calculo: 'CONFORMIDADE',
+            dados_entrada: {
+                importador_uf: diData.importador?.endereco_uf
+            },
+            dados_calculo: calculos,
+            resultados: {
+                impostos: calculos.impostos || {},
+                totais: calculos.totais || {},
+                produtos_individuais: calculos.produtos_individuais || []
+            }
+        };
+        
+        // Salvar cálculos via API
+        const response = await databaseConnector.salvarCalculo(dadosCalculo);
+        
+        if (response && response.success) {
+            console.log('✅ Cálculos salvos no banco de dados');
+            
+            // Mostrar notificação discreta
+            const toast = document.createElement('div');
+            toast.className = 'toast position-fixed bottom-0 end-0 m-3';
+            toast.innerHTML = `
+                <div class="toast-body bg-info text-white">
+                    📊 Cálculos da DI ${diData.numero_di} salvos
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+            
+            setTimeout(() => toast.remove(), 4000);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao salvar cálculos no banco:', error);
+        // Não interromper o fluxo se falhar o salvamento
+    }
+}
+
+// Adicionar funções ao escopo global
+window.showDatabaseModal = showDatabaseModal;
+window.loadDIsFromDatabase = loadDIsFromDatabase;
+window.loadDIFromDatabase = loadDIFromDatabase;
+window.viewDIDetails = viewDIDetails;
+window.salvarDINoDatabase = salvarDINoDatabase;
+window.atualizarDINoDatabase = atualizarDINoDatabase;
 
 // ===== MEMÓRIA DE CÁLCULO DETALHADA =====
 

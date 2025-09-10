@@ -52,6 +52,17 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link text-white" href="#" onclick="showDatabaseModal(); return false;">
+                            <i class="bi bi-database"></i> Banco de Dados
+                            <span class="badge bg-success ms-1" id="dbCountBadge" style="display:none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="navbar-text text-white me-3" id="dbStatusIndicator" title="Status da conexão com banco">
+                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.5rem;"></i>
+                        </span>
+                    </li>
+                    <li class="nav-item">
                         <a class="btn btn-compliance ms-3" href="#step1">
                             <i class="bi bi-play-fill"></i> Começar
                         </a>
@@ -605,6 +616,87 @@
         </div>
     </div>
 
+    <!-- Modal Banco de Dados -->
+    <div class="modal fade" id="modalBancoDados" tabindex="-1" aria-labelledby="modalBancoDadosLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-compliance">
+                    <h5 class="modal-title text-white" id="modalBancoDadosLabel">
+                        <i class="bi bi-database"></i> Declarações de Importação Armazenadas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filtros -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="filterNumeroDI" placeholder="Buscar por número DI...">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" id="filterDataInicio" placeholder="Data início">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" id="filterDataFim" placeholder="Data fim">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-compliance w-100" onclick="loadDIsFromDatabase()">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de DIs -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Número DI</th>
+                                    <th>Data Registro</th>
+                                    <th>Importador</th>
+                                    <th>Adições</th>
+                                    <th>Valor Total</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyDIsBanco">
+                                <!-- Dados serão inseridos dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginação -->
+                    <nav aria-label="Navegação de páginas">
+                        <ul class="pagination justify-content-center" id="paginationDIs">
+                            <!-- Será preenchido dinamicamente -->
+                        </ul>
+                    </nav>
+
+                    <!-- Mensagem quando não há dados -->
+                    <div id="mensagemSemDadosBanco" class="text-center text-muted d-none">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p>Nenhuma DI encontrada no banco de dados</p>
+                        <p class="small">Importe arquivos XML usando o sistema de povoamento ou processe novas DIs</p>
+                    </div>
+
+                    <!-- Loading -->
+                    <div id="loadingBanco" class="text-center d-none">
+                        <div class="spinner-border text-compliance" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2">Buscando dados do banco...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="me-auto text-muted">
+                        <i class="bi bi-info-circle"></i> Total: <strong id="totalDIsBanco">0</strong> registros
+                    </span>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="expertzy-footer">
         <div class="container">
@@ -761,6 +853,7 @@
     <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
     
     <!-- Shared Scripts -->
+    <script src="../shared/js/Logger.js"></script>
     <script src="../shared/js/storage.js"></script>
     <!-- Config removed - using embedded configurations in modules -->
     <script src="../shared/js/ItemCalculator.js"></script>
@@ -774,6 +867,9 @@
     
     <!-- Product Memory System (before ComplianceCalculator init) -->
     <script src="../shared/js/ProductMemoryManager.js"></script>
+    
+    <!-- Database Connector for MySQL Integration -->
+    <script src="../shared/js/DatabaseConnector.js"></script>
     
     <!-- Configuration Loader (after core classes) -->
     <script src="../shared/js/ConfigLoader.js"></script>
