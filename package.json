@@ -1,0 +1,31 @@
+{
+  "name": "importa-precifica",
+  "version": "1.0.0",
+  "description": "## 📋 Sobre o Projeto",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceciliodaher/importa-precifica.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ceciliodaher/importa-precifica/issues"
+  },
+  "homepage": "https://github.com/ceciliodaher/importa-precifica#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  },
+  "dependencies": {
+    "form-data": "^4.0.4",
+    "node-fetch": "^3.3.2"
+  }
+}

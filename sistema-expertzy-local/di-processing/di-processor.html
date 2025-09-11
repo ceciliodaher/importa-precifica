@@ -115,78 +115,135 @@
             </div>
         </div>
 
-        <!-- Step 1: Upload DI -->
+        <!-- Step 1: Select DI from Database -->
         <div id="step1" class="process-step active">
             <div class="step-number">1</div>
-            <h3 class="text-center mb-4"><i class="bi bi-file-earmark-check"></i> Iniciar Processamento de DI</h3>
+            <h3 class="text-center mb-4"><i class="bi bi-list-task"></i> Selecionar DI para Cálculo de Impostos</h3>
             
-            <div class="row">
-                <div class="col-md-6">
-                    <!-- Opção 1: Nova Importação -->
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title text-center mb-3">
-                                <i class="bi bi-cloud-upload"></i> Nova Importação
-                            </h5>
-                            
-                            <!-- Drag & Drop Upload Area -->
-                            <div class="upload-area mb-3" id="dropZone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                                <div class="upload-content text-center">
-                                    <i class="bi bi-file-earmark-xml" style="font-size: 3rem; color: var(--expertzy-red);"></i>
-                                    <h6 class="mt-3">Arraste o arquivo XML aqui</h6>
-                                    <p class="text-muted mb-3">ou clique para selecionar</p>
-                                    <input type="file" id="xmlFile" accept=".xml" style="display: none;" onchange="handleFileSelection(event)">
-                                    <button type="button" class="btn btn-compliance" onclick="document.getElementById('xmlFile').click()">
-                                        <i class="bi bi-folder2-open"></i> Selecionar XML
-                                    </button>
-                                </div>
-                            </div>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Como usar este módulo</h6>
+                        <p class="mb-2">Este módulo calcula impostos (especialmente ICMS) para DIs já importadas no sistema.</p>
+                        <p class="mb-0"><strong>Pré-requisito:</strong> A DI deve ter sido importada primeiro no <a href="../xml-import/import-dashboard.html" target="_blank">Módulo de Importação XML</a></p>
+                    </div>
+                </div>
+            </div>
 
-                            <!-- File Info Display -->
-                            <div class="file-info mt-3 d-none" id="fileInfo">
-                                <div class="alert alert-success">
-                                    <h6><i class="bi bi-check-circle"></i> Arquivo Selecionado:</h6>
-                                    <p class="mb-1"><strong>Nome:</strong> <span id="fileName">-</span></p>
-                                    <p class="mb-1"><strong>Tamanho:</strong> <span id="fileSize">-</span></p>
-                                    <p class="mb-0"><strong>Tipo:</strong> <span id="fileType">-</span></p>
+            <!-- Connection Status -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-database"></i> Status do Banco de Dados</h6>
+                            <div id="connectionStatus" class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status" aria-label="Verificando conexão"></div>
+                                <span>Verificando conexão com o banco...</span>
+                            </div>
+                            <div id="databaseStats" class="mt-2 d-none">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="totalDIsBanco">0</div>
+                                            <div class="stat-label">DIs Disponíveis</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="totalAdicoes">0</div>
+                                            <div class="stat-label">Total Adições</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="totalMercadorias">0</div>
+                                            <div class="stat-label">Total Mercadorias</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="ultimaImportacao">-</div>
+                                            <div class="stat-label">Última Importação</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-compliance btn-lg w-100" onclick="processarDI()">
-                                    <i class="bi bi-play-fill"></i> Processar DI
-                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-md-6">
-                    <!-- Opção 2: Recuperar Trabalho Salvo -->
-                    <div class="card h-100">
+            </div>
+
+            <!-- DI Selection Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="card-title mb-0"><i class="bi bi-table"></i> Selecionar DI para Processamento</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadDIsFromDatabase()">
+                                <i class="bi bi-arrow-clockwise"></i> Atualizar Lista
+                            </button>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title text-center mb-3">
-                                <i class="bi bi-folder-open"></i> Continuar Trabalho
-                            </h5>
-                            
-                            <div class="text-center p-4">
-                                <i class="bi bi-archive" style="font-size: 3rem; color: var(--bs-info);"></i>
-                                <p class="mt-3">Carregue um arquivo .expertzy salvo anteriormente para continuar de onde parou</p>
-                                
-                                <input type="file" id="loadSavedFile" accept=".json,.expertzy" style="display: none;" onchange="carregarArquivoSalvo(this)">
-                                <button type="button" class="btn btn-info btn-lg w-100 mt-3" onclick="document.getElementById('loadSavedFile').click()">
-                                    <i class="bi bi-upload"></i> Carregar Arquivo Salvo
-                                </button>
-                                
-                                <small class="text-muted d-block mt-2">Formatos aceitos: .expertzy.json</small>
+                            <!-- Filters -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Número da DI</label>
+                                    <input type="text" class="form-control" id="filterNumeroDI" placeholder="Ex: 2518173187">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Data Início</label>
+                                    <input type="date" class="form-control" id="filterDataInicio">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Data Fim</label>
+                                    <input type="date" class="form-control" id="filterDataFim">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-primary w-100" onclick="loadDIsFromDatabase()">
+                                        <i class="bi bi-search"></i> Filtrar
+                                    </button>
+                                </div>
                             </div>
-                            
-                            <div class="alert alert-info mt-3">
-                                <h6><i class="bi bi-lightbulb"></i> Benefícios</h6>
-                                <ul class="mb-0 small">
-                                    <li>Continue exatamente de onde parou</li>
-                                    <li>Todos os cálculos preservados</li>
-                                    <li>Sem necessidade de reprocessar XML</li>
-                                    <li>Pronto para fase de precificação</li>
+
+                            <!-- Loading State -->
+                            <div id="loadingDIs" class="text-center p-4 d-none">
+                                <div class="spinner-border" role="status" aria-label="Carregando DIs"></div>
+                                <p class="mt-2 text-muted">Carregando DIs disponíveis...</p>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="emptyState" class="text-center p-4 d-none">
+                                <i class="bi bi-inbox" style="font-size: 4rem; color: var(--bs-secondary);"></i>
+                                <h5 class="mt-3">Nenhuma DI Encontrada</h5>
+                                <p class="text-muted">Importe XMLs primeiro no <a href="../xml-import/import-dashboard.html">Módulo de Importação</a></p>
+                            </div>
+
+                            <!-- DI Table -->
+                            <div class="table-responsive" id="diTableContainer">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Número DI</th>
+                                            <th>Data Registro</th>
+                                            <th>Importador</th>
+                                            <th width="100" class="text-center">Adições</th>
+                                            <th width="130" class="text-end">Valor Total</th>
+                                            <th width="100" class="text-center">Status</th>
+                                            <th width="150" class="text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="diTableBody">
+                                        <!-- Preenchido dinamicamente via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <nav aria-label="DI pagination" id="diPagination" class="d-none">
+                                <ul class="pagination justify-content-center mb-0" id="diPaginationList">
+                                    <!-- Preenchido dinamicamente -->
                                 </ul>
-                            </div>
+                            </nav>
                         </div>
                     </div>
                 </div>
@@ -195,8 +252,8 @@
             <div class="row mt-3">
                 <div class="col-12">
                     <div class="alert alert-secondary">
-                        <h6><i class="bi bi-info-circle"></i> Sobre o Sistema</h6>
-                        <p class="mb-0 small">O sistema processa Declarações de Importação (DI) do SISCOMEX, calcula impostos e permite salvar o trabalho para continuação posterior ou integração com o módulo de precificação.</p>
+                        <h6><i class="bi bi-info-circle"></i> Próximos Passos</h6>
+                        <p class="mb-0 small">Após selecionar uma DI, você poderá configurar despesas manuais, calcular ICMS por estado e gerar relatórios de compliance.</p>
                     </div>
                 </div>
             </div>
@@ -873,6 +930,9 @@
     
     <!-- Configuration Loader (after core classes) -->
     <script src="../shared/js/ConfigLoader.js"></script>
+    
+    <!-- Data Loader (replaces DIProcessor.js) -->
+    <script src="js/DataLoader.js"></script>
     
     <!-- Multi-Addition Exporter -->
     <script src="js/MultiAdditionExporter.js"></script>

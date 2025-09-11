@@ -10,8 +10,14 @@
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 require_once __DIR__ . '/../services/database-service.php';
 
@@ -38,12 +44,12 @@ try {
 
     $numero_di = trim($_GET['numero_di']);
     
-    // Validar formato do número da DI (11 ou 12 dígitos)
-    if (!preg_match('/^\d{11,12}$/', $numero_di)) {
+    // Validar formato do número da DI (8 a 12 dígitos para flexibilidade)
+    if (!preg_match('/^\d{8,12}$/', $numero_di)) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'error' => 'Formato inválido para número da DI. Deve conter 11 ou 12 dígitos.'
+            'error' => 'Formato inválido para número da DI. Deve conter entre 8 e 12 dígitos.'
         ]);
         exit;
     }

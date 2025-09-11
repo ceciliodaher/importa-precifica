@@ -25,6 +25,9 @@ class DatabaseService {
      */
     public function listarDIs($page = 1, $limit = 50, $filters = []) {
         try {
+            // Desabilitar temporariamente ONLY_FULL_GROUP_BY para compatibilidade
+            $this->db->exec("SET sql_mode = (SELECT REPLACE(@@sql_mode, 'ONLY_FULL_GROUP_BY', ''))");
+            
             $offset = ($page - 1) * $limit;
             
             // Query base
@@ -80,7 +83,7 @@ class DatabaseService {
 
             $sql .= " GROUP BY di.numero_di, di.data_registro, imp.nome, imp.endereco_uf,
                      di.total_adicoes, di.carga_peso_bruto, di.carga_peso_liquido,
-                     di.carga_pais_procedencia_nome, di.created_at, di.updated_at
+                     di.carga_pais_procedencia_nome, di.created_at, di.updated_at, imp.id
                      ORDER BY di.data_registro DESC, di.created_at DESC
                      LIMIT ? OFFSET ?";
 
@@ -101,7 +104,8 @@ class DatabaseService {
             $count_params = array_slice($params, 0, -2); // Remove LIMIT e OFFSET
             $count_stmt = $this->db->prepare($count_sql);
             $count_stmt->execute($count_params);
-            $total_registros = $count_stmt->fetch()['total'];
+            $count_result = $count_stmt->fetch();
+            $total_registros = $count_result['total'] ?? 0;
 
             return [
                 'success' => true,

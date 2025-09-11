@@ -6,8 +6,8 @@
  * Manages workflow steps and user experience
  */
 
-// Global instances
-let diProcessor = null;
+// Global instances  
+let dataLoader = null;
 let complianceCalculator = null;
 let validator = null;
 let exportManager = null;
@@ -1410,6 +1410,36 @@ function formatCurrency(valor) {
 }
 
 /**
+ * Função formatarData - formata data para exibição brasileira
+ */
+function formatarData(dateString) {
+    if (!dateString) return 'N/D';
+    
+    try {
+        // Se já está formatada (DD/MM/YYYY), retornar diretamente
+        if (dateString.includes('/')) {
+            return dateString;
+        }
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/D';
+        
+        return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+        return 'N/D';
+    }
+}
+
+/**
+ * Função formatarMoeda - alias para formatCurrency (compatibilidade)
+ */
+function formatarMoeda(valor) {
+    // Garantir que valor é número
+    const numericValue = typeof valor === 'string' ? parseFloat(valor) : valor;
+    return formatCurrency(numericValue);
+}
+
+/**
  * Format USD currency values
  */
 function formatUSD(value) {
@@ -1651,7 +1681,7 @@ window.addExpenseRow = addExpenseRow;
 function initDatabaseConnector() {
     try {
         // Inicializar conexão com API
-        databaseConnector = new DatabaseConnector('/importa-precifica/api/');
+        databaseConnector = new DatabaseConnector();
         
         // Configurar event listeners
         databaseConnector.on('connectionChange', (data) => {
@@ -1803,25 +1833,22 @@ async function loadDIsFromDatabase(page = 1) {
  * Load specific DI from database and restore state
  */
 async function loadDIFromDatabase(numeroDI) {
+    if (!numeroDI) {
+        // Carregar lista de DIs
+        return await loadDIsFromDatabase();
+    }
+    
     try {
-        showLoading('Carregando DI do banco...', 'Recuperando dados salvos');
+        showLoading('Carregando DI do banco...', 'Recuperando dados processados');
         
-        // Buscar DI completa do banco
-        const response = await databaseConnector.buscarDI(numeroDI);
+        // Usar DataLoader para carregar DI
+        const diData = await dataLoader.loadDI(numeroDI);
         
-        if (!response || !response.data) {
-            throw new Error('DI não encontrada no banco');
-        }
-        
-        const diData = response.data;
+        // Validar dados carregados
+        dataLoader.validateLoadedDI();
         
         // Restaurar dados na memória
-        currentDI = diData;
-        
-        // Atualizar DIProcessor
-        if (diProcessor) {
-            diProcessor.diData = diData;
-        }
+        currentDI = dataLoader.getFormattedData();
         
         // Verificar se há cálculos salvos
         if (diData.calculos && diData.calculos.length > 0) {
@@ -1855,6 +1882,135 @@ async function loadDIFromDatabase(numeroDI) {
         console.error('Erro ao carregar DI do banco:', error);
         showAlert(`Erro ao carregar DI: ${error.message}`, 'danger');
         hideLoading();
+    }
+}
+
+/**
+ * Carrega lista de DIs do banco para seleção (NOVA FUNÇÃO)
+ */
+async function loadDIsFromDatabase(page = 1) {
+    const loading = document.getElementById('loadingDIs');
+    const tbody = document.getElementById('diTableBody');
+    const mensagemSem = document.getElementById('emptyState');
+    const tableContainer = document.getElementById('diTableContainer');
+    
+    // Se elementos não existem, sair silenciosamente (compatibilidade)
+    if (!loading || !tbody) {
+        console.log('⚠️ Elementos da nova interface não encontrados - modo compatibilidade');
+        return;
+    }
+    
+    try {
+        // Mostrar loading
+        loading.classList.remove('d-none');
+        tableContainer.classList.add('d-none');
+        mensagemSem.classList.add('d-none');
+        
+        // Coletar filtros
+        const filters = {
+            numero_di: document.getElementById('filterNumeroDI')?.value || '',
+            data_inicio: document.getElementById('filterDataInicio')?.value || '',
+            data_fim: document.getElementById('filterDataFim')?.value || ''
+        };
+        
+        // Buscar dados via DataLoader
+        const response = await dataLoader.listDIs(page, 10, filters);
+        
+        loading.classList.add('d-none');
+        
+        if (response && response.data && response.data.length > 0) {
+            // Limpar tabela
+            tbody.innerHTML = '';
+            
+            // Preencher tabela
+            response.data.forEach(di => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${di.numero_di}</strong></td>
+                    <td>${di.data_registro_formatada || formatarData(di.data_registro)}</td>
+                    <td>${di.importador_nome || 'N/D'}</td>
+                    <td class="text-center">${di.total_adicoes || 0}</td>
+                    <td class="text-end">${formatarMoeda(di.valor_total_reais || 0)}</td>
+                    <td class="text-center">
+                        <span class="badge ${di.calculos_salvos ? 'bg-success' : 'bg-info'}">
+                            ${di.calculos_salvos ? 'Calculado' : 'Aguardando Cálculo'}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary" onclick="selectDIForProcessing('${di.numero_di}')" title="Selecionar para processamento">
+                            <i class="bi bi-calculator"></i> Processar
+                        </button>
+                        <button class="btn btn-sm btn-info ms-1" onclick="viewDIDetails('${di.numero_di}')" title="Ver detalhes">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Atualizar estatísticas
+            if (document.getElementById('totalDIsBanco')) {
+                document.getElementById('totalDIsBanco').textContent = response.total || 0;
+            }
+            
+            // Mostrar tabela
+            tableContainer.classList.remove('d-none');
+            
+            // Criar paginação se necessário
+            if (response.pages > 1) {
+                createPagination(response.page, response.pages);
+            }
+            
+        } else {
+            // Mostrar estado vazio
+            mensagemSem.classList.remove('d-none');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar DIs:', error);
+        loading.classList.add('d-none');
+        
+        // Mostrar erro
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-danger p-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Erro ao carregar DIs: ${error.message}
+                </td>
+            </tr>
+        `;
+        tableContainer.classList.remove('d-none');
+    }
+}
+
+/**
+ * Seleciona DI para processamento e avança para Step 2
+ */
+async function selectDIForProcessing(numeroDI) {
+    try {
+        showLoading('Carregando DI selecionada...', 'Preparando para cálculo de impostos');
+        
+        // Carregar DI via DataLoader
+        await dataLoader.loadDI(numeroDI);
+        
+        // Validar dados
+        dataLoader.validateLoadedDI();
+        
+        // Atualizar estado global
+        currentDI = dataLoader.getFormattedData();
+        
+        hideLoading();
+        
+        // Avançar para Step 2 (configuração)
+        avancarStep(2);
+        updateDIInfo();
+        
+        showAlert(`✅ DI ${numeroDI} carregada! Configure as despesas e calcule os impostos.`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao selecionar DI:', error);
+        hideLoading();
+        showAlert(`Erro ao carregar DI ${numeroDI}: ${error.message}`, 'danger');
     }
 }
 
@@ -2967,6 +3123,9 @@ function getAliquotaICMSParaNCM(ncm) {
  * Configurar listeners do modal de alíquotas
  */
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar sistema com DataLoader
+    initializeSystem();
+    
     // Listener para o botão de salvar alíquotas
     const salvarBtn = document.getElementById('salvarAliquotasBtn');
     if (salvarBtn) {
@@ -2979,6 +3138,73 @@ document.addEventListener('DOMContentLoaded', function() {
         estadoSelect.addEventListener('change', atualizarAliquotaPadrao);
     }
 });
+
+/**
+ * Inicializa o sistema com DataLoader
+ */
+async function initializeSystem() {
+    try {
+        console.log('🚀 Inicializando sistema Module 2...');
+        
+        // Criar instâncias
+        dataLoader = new DataLoader();
+        complianceCalculator = new ComplianceCalculator();
+        databaseConnector = new DatabaseConnector();
+        
+        // Verificar conectividade
+        await checkDatabaseConnection();
+        
+        // Carregar lista inicial de DIs  
+        await loadDIsFromDatabase();
+        
+        console.log('✅ Sistema inicializado com sucesso');
+        
+    } catch (error) {
+        console.error('❌ Erro ao inicializar sistema:', error);
+        showAlert('Erro ao conectar com o banco de dados. Verifique se o módulo de importação está funcionando.', 'danger');
+    }
+}
+
+/**
+ * Verifica conectividade com banco e exibe estatísticas
+ */
+async function checkDatabaseConnection() {
+    const statusDiv = document.getElementById('connectionStatus');
+    const statsDiv = document.getElementById('databaseStats');
+    
+    try {
+        statusDiv.innerHTML = `
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <span>Verificando conexão...</span>
+        `;
+        
+        const stats = await dataLoader.getStats();
+        
+        // Atualizar status
+        statusDiv.innerHTML = `
+            <div class="text-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <span>Conectado ao banco de dados</span>
+            </div>
+        `;
+        
+        // Exibir estatísticas
+        document.getElementById('totalDIsBanco').textContent = stats.total_dis || 0;
+        document.getElementById('totalAdicoes').textContent = stats.total_adicoes || 0;
+        document.getElementById('totalMercadorias').textContent = stats.total_mercadorias || 0;
+        document.getElementById('ultimaImportacao').textContent = stats.last_import || 'Nunca';
+        
+        statsDiv.classList.remove('d-none');
+        
+    } catch (error) {
+        statusDiv.innerHTML = `
+            <div class="text-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span>Erro de conexão com banco</span>
+            </div>
+        `;
+    }
+}
 
 // Exportar funções para uso global
 window.mostrarModalICMS = mostrarModalICMS;

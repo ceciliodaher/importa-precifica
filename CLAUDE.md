@@ -21,6 +21,13 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 - **Solução**: Desabilitado processamento ICMS do XML (é calculado no frontend)
 - **Status**: ✅ Importação XML funcionando sem erros
 
+### **🔄 REFATORAÇÃO ARQUITETURAL MODULE 2 (NOVA)**
+- **Descoberta**: Dados da API já vêm processados (`valor_reais: "4819.22"`)
+- **Problema**: Module 2 ainda tinha lógica de processamento XML desnecessária
+- **Solução**: Module 2 vira **SELETOR DE DI + CALCULADOR ICMS**
+- **Princípio**: KISS - uma função por módulo, sem duplicação
+- **Status**: 🔄 Implementação em andamento
+
 ### **✅ Sistema de Log Implementado**
 - **Classe ImportLogger** para logs detalhados em JSON
 - **Captura completa** de sucessos, erros, duplicatas com contexto
@@ -41,14 +48,22 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 
 **Localização**: `sistema-expertzy-local/`
 
-**Fase 1: Processador de Conformidade DI** (`/di-processing/`) ✅ **TOTALMENTE FUNCIONAL**
-- ✅ Exibição completa de dados DI com múltiplas adições
-- ✅ Formatação brasileira (R$ 33.112,20)
-- ✅ Upload de XML via drag & drop
-- ✅ Cálculos de impostos usando dados extraídos da DI
-- ✅ Funções de exportação (Excel, PDF, JSON)
-- ✅ **NOVO**: Persistência em banco MySQL
-- ✅ **NOVO**: Processamento de qualquer XML DI brasileiro
+**Módulo 1: Importador XML** (`/xml-import/`) ✅ **TOTALMENTE FUNCIONAL**
+- ✅ Dashboard visual com drag & drop
+- ✅ Processamento completo de XMLs DI brasileiros
+- ✅ Conversão automática (centavos → reais, pesos, etc.)
+- ✅ Validação e persistência em MySQL
+- ✅ Sistema de logs estruturado com exportação
+- ✅ **RESPONSABILIDADE**: Única fonte de entrada de dados XML
+
+**Módulo 2: Calculador de Impostos** (`/di-processing/`) 🔄 **REFATORADO**
+- 🔄 **NOVA FUNÇÃO**: Seletor de DI + Calculador ICMS
+- ✅ Lista DIs do banco com filtros e busca
+- ✅ Carregamento de dados processados via API
+- ✅ Cálculo ICMS por estado (único imposto não na DI)
+- ✅ Configuração de despesas manuais
+- ✅ Exportações de compliance (Excel, PDF, JSON)
+- ❌ **REMOVIDO**: Upload XML, processamento, conversões
 
 **Fase 2: Sistema de Estratégia de Precificação** (`/pricing-strategy/`)
 - Análise de precificação multi-cenário
@@ -135,10 +150,11 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 
 ## Regras de Processamento de Dados
 
-### **Princípio de Centralização XMLParser.js**
-- XMLParser.js é a ÚNICA FONTE DE VERDADE para processamento de dados DI
-- NENHUM outro módulo deve realizar conversões ou cálculos em dados DI
-- Módulos consumidores devem APENAS consumir dados processados
+### **Princípio de Separação de Responsabilidades (ATUALIZADO)**
+- **Módulo 1** é a ÚNICA FONTE DE VERDADE para processamento XML → Banco
+- **Módulo 2** trabalha EXCLUSIVAMENTE com dados processados da API
+- **NUNCA** processar XML em mais de um local
+- **NUNCA** converter dados já processados
 
 ### **Política Zero Fallbacks (OBRIGATÓRIA)**
 ```javascript

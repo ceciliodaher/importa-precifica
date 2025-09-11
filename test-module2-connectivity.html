@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conectividade Module 2</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Conectividade Module 2 - DI Processing</h1>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8889/api/endpoints/';
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function testAPI(endpoint, description) {
+            try {
+                log(`Testando ${description}...`, 'info');
+                const response = await fetch(API_BASE + endpoint);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`✅ ${description} - Sucesso`, 'success');
+                    return data;
+                } else {
+                    log(`❌ ${description} - Erro: ${data.error}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                log(`❌ ${description} - Erro de rede: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function runTests() {
+            log('🚀 Iniciando testes de conectividade do Module 2...', 'info');
+            
+            // Test 1: API Status
+            const status = await testAPI('status.php', 'Status da API');
+            if (status) {
+                log(`Banco: ${status.banco_dados.status}, DIs: ${status.estatisticas.total_dis}`, 'info');
+            }
+            
+            // Test 2: List DIs
+            const listar = await testAPI('listar-dis.php?page=1&limit=10', 'Listar DIs');
+            if (listar && listar.data) {
+                log(`Total de DIs encontradas: ${listar.data.length}`, 'success');
+                listar.data.forEach(di => {
+                    log(`DI ${di.numero_di} - ${di.importador_nome} (${di.total_adicoes} adições)`, 'info');
+                });
+            }
+            
+            // Test 3: Get specific DI
+            const di1 = await testAPI('buscar-di.php?numero_di=2518173187', 'Buscar DI 2518173187');
+            if (di1 && di1.data) {
+                const diData = di1.data;
+                log(`DI carregada: ${diData.numero_di}, Importador: ${diData.importador_nome}`, 'success');
+                log(`Adições: ${diData.adicoes?.length || 0}, Data: ${diData.data_registro}`, 'info');
+            }
+            
+            // Test 4: Get second DI
+            const di2 = await testAPI('buscar-di.php?numero_di=2300120746', 'Buscar DI 2300120746');
+            if (di2 && di2.data) {
+                const diData = di2.data;
+                log(`DI carregada: ${diData.numero_di}, Importador: ${diData.importador_nome}`, 'success');
+                log(`Adições: ${diData.adicoes?.length || 0}, Data: ${diData.data_registro}`, 'info');
+            }
+            
+            // Test 5: DatabaseConnector Simulation
+            log('🔧 Simulando DatabaseConnector...', 'info');
+            try {
+                // Simulate the DatabaseConnector class behavior
+                const dbConnector = {
+                    apiBaseUrl: API_BASE,
+                    async listarDIs(page = 1, limit = 50) {
+                        const response = await fetch(`${this.apiBaseUrl}listar-dis.php?page=${page}&limit=${limit}`);
+                        return await response.json();
+                    },
+                    async buscarDI(numeroDI) {
+                        const response = await fetch(`${this.apiBaseUrl}buscar-di.php?numero_di=${numeroDI}`);
+                        return await response.json();
+                    }
+                };
+                
+                const disSimulation = await dbConnector.listarDIs(1, 10);
+                if (disSimulation.success) {
+                    log(`✅ DatabaseConnector simulation - ${disSimulation.data.length} DIs carregadas`, 'success');
+                } else {
+                    log(`❌ DatabaseConnector simulation falhou: ${disSimulation.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro na simulação do DatabaseConnector: ${error.message}`, 'error');
+            }
+            
+            log('🎉 Testes de conectividade concluídos!', 'success');
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
