@@ -186,4 +186,272 @@ class DataLoader {
         
         return formatted;
     }
+
+    /**
+     * Consolidar despesas automáticas + extras (migrado do DIProcessor)
+     * @param {Object} despesasExtras - Despesas extras informadas pelo usuário
+     * @returns {Object} Despesas consolidadas com classificação tributária
+     */
+    consolidarDespesasCompletas(despesasExtras = {}) {
+        console.log('🔄 Consolidando despesas automáticas + extras...');
+        
+        const despesasAutomaticas = this.diData.despesas_aduaneiras || {};
+        
+        const despesasConsolidadas = {
+            // Despesas automáticas da DI (sempre tributáveis para ICMS)
+            automaticas: {
+                siscomex: despesasAutomaticas.calculadas?.siscomex || 0,
+                afrmm: despesasAutomaticas.calculadas?.afrmm || 0,
+                capatazia: despesasAutomaticas.calculadas?.capatazia || 0,
+                total: (despesasAutomaticas.calculadas?.siscomex || 0) + 
+                       (despesasAutomaticas.calculadas?.afrmm || 0) + 
+                       (despesasAutomaticas.calculadas?.capatazia || 0)
+            },
+            
+            // Despesas extras informadas pelo usuário
+            extras: {
+                armazenagem_extra: despesasExtras.armazenagem_extra || 0,
+                transporte_interno: despesasExtras.transporte_interno || 0,
+                despachante: despesasExtras.despachante || 0,
+                outros_portuarios: despesasExtras.outros_portuarios || 0,
+                bancarios: despesasExtras.bancarios || 0,
+                administrativos: despesasExtras.administrativos || 0,
+                outros_extras: despesasExtras.outros_extras || 0
+            },
+            
+            // Classificação tributária (definida pelo usuário)
+            classificacao: {
+                tributaveis_icms: despesasExtras.tributaveis_icms || {},
+                apenas_custeio: despesasExtras.apenas_custeio || {}
+            }
+        };
+        
+        // Calcular totais por classificação
+        let totalTributavel = despesasConsolidadas.automaticas.total; // DI sempre tributável
+        let totalCusteio = 0;
+        
+        // Processar despesas extras conforme classificação
+        Object.keys(despesasConsolidadas.extras).forEach(key => {
+            const valor = despesasConsolidadas.extras[key];
+            if (valor > 0) {
+                if (despesasConsolidadas.classificacao.tributaveis_icms[key]) {
+                    totalTributavel += valor;
+                } else {
+                    totalCusteio += valor;
+                }
+            }
+        });
+        
+        despesasConsolidadas.totais = {
+            automaticas: despesasConsolidadas.automaticas.total,
+            extras: Object.values(despesasConsolidadas.extras).reduce((sum, val) => sum + val, 0),
+            tributavel_icms: totalTributavel,
+            apenas_custeio: totalCusteio,
+            geral: totalTributavel + totalCusteio
+        };
+        
+        console.log('✅ Despesas consolidadas:', despesasConsolidadas);
+        return despesasConsolidadas;
+    }
+
+    /**
+     * Obtém despesas automáticas já extraídas da DI
+     * @returns {Object} Despesas automáticas da DI
+     */
+    getDespesasAutomaticas() {
+        return this.diData.despesas_aduaneiras || {};
+    }
+
+    /**
+     * Retorna dados da DI processados
+     * @returns {Object} Dados da DI
+     */
+    getData() {
+        return this.diData;
+    }
+
+    /**
+     * Formata data AAAAMMDD para DD/MM/AAAA
+     * @param {string} dateString - Data no formato AAAAMMDD
+     * @returns {string} Data formatada DD/MM/AAAA
+     */
+    formatDate(dateString) {
+        if (!dateString || dateString.length !== 8) return dateString;
+        return `${dateString.substring(6,8)}/${dateString.substring(4,6)}/${dateString.substring(0,4)}`;
+    }
+
+    /**
+     * Formata CNPJ com máscara brasileira
+     * @param {string} cnpj - CNPJ sem formatação
+     * @returns {string} CNPJ formatado XX.XXX.XXX/XXXX-XX
+     */
+    formatCNPJ(cnpj) {
+        if (!cnpj) return '';
+        const clean = cnpj.replace(/\D/g, '');
+        return clean.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    }
+
+    /**
+     * Formata CPF com máscara brasileira
+     * @param {string} cpf - CPF sem formatação
+     * @returns {string} CPF formatado XXX.XXX.XXX-XX
+     */
+    formatCPF(cpf) {
+        if (!cpf) return '';
+        const clean = cpf.replace(/\D/g, '');
+        return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+    }
+
+    /**
+     * Formata CEP com máscara brasileira
+     * @param {string} cep - CEP sem formatação
+     * @returns {string} CEP formatado XXXXX-XXX
+     */
+    formatCEP(cep) {
+        if (!cep) return '';
+        const clean = cep.replace(/\D/g, '');
+        return clean.replace(/^(\d{5})(\d{3})$/, '$1-$2');
+    }
+
+    /**
+     * Monta endereço completo formatado
+     * @param {Object} endereco - Objeto com dados do endereço
+     * @returns {string} Endereço completo formatado
+     */
+    buildEnderecoCompleto(endereco) {
+        const partes = [
+            endereco.endereco_logradouro,
+            endereco.endereco_numero,
+            endereco.endereco_complemento,
+            endereco.endereco_bairro,
+            endereco.endereco_cidade,
+            endereco.endereco_uf,
+            endereco.endereco_cep
+        ].filter(parte => parte && parte.trim());
+
+        return partes.join(', ');
+    }
+
+    /**
+     * Converte valores por tipo (migrado do DIProcessor)
+     * @param {string} rawValue - Valor bruto
+     * @param {string} type - Tipo de conversão
+     * @returns {number} Valor convertido
+     */
+    convertValue(rawValue, type = 'integer') {
+        if (!rawValue || rawValue === '0'.repeat(rawValue.length)) {
+            return 0;
+        }
+        
+        const value = parseInt(rawValue);
+        
+        switch(type) {
+            case 'monetary':
+                // Valores monetários em centavos: 10120 → 101.20
+                return value / 100;
+                
+            case 'weight':
+                // Pesos com 5 decimais: 20000 → 0.20000 kg (conforme DI oficial)
+                return value / 100000;
+                
+            case 'unit_value':
+                // Valor unitário com 7 decimais: 44682000000 → 4468.20
+                return value / 10000000;
+                
+            case 'percentage':
+                // Alíquotas em centésimos: 650 → 6.50%
+                return value / 100;
+                
+            case 'integer':
+            default:
+                return value;
+        }
+    }
+
+    /**
+     * Parse de número com divisor específico
+     * @param {string} value - Valor a ser parseado
+     * @param {number} divisor - Divisor a aplicar
+     * @returns {number} Valor parseado
+     */
+    parseNumber(value, divisor = 1) {
+        if (!value || value === '0'.repeat(value.length)) return 0;
+        return parseInt(value) / divisor;
+    }
+
+    /**
+     * Parse de valor monetário de string
+     * @param {string} valueString - String com valor monetário
+     * @returns {number} Valor numérico
+     */
+    parseValueFromString(valueString) {
+        const cleanValue = valueString.replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleanValue);
+    }
+
+    /**
+     * Retorna descrição do incoterm
+     * @param {string} incoterm - Código do incoterm
+     * @returns {string} Descrição do incoterm
+     */
+    getIncotermDescription(incoterm) {
+        const incoterms = {
+            'EXW': 'Ex Works - Na fábrica',
+            'FCA': 'Free Carrier - Transportador livre',
+            'CPT': 'Carriage Paid To - Transporte pago até',
+            'CIP': 'Carriage and Insurance Paid - Transporte e seguro pagos',
+            'DAT': 'Delivered at Terminal - Entregue no terminal',
+            'DAP': 'Delivered at Place - Entregue no local',
+            'DDP': 'Delivered Duty Paid - Entregue com direitos pagos',
+            'FAS': 'Free Alongside Ship - Livre ao lado do navio',
+            'FOB': 'Free on Board - Livre a bordo',
+            'CFR': 'Cost and Freight - Custo e frete',
+            'CIF': 'Cost, Insurance and Freight - Custo, seguro e frete'
+        };
+        
+        return incoterms[incoterm] || `Incoterm ${incoterm}`;
+    }
+
+    /**
+     * Verifica se o frete está incluído no incoterm
+     * @param {string} incoterm - Código do incoterm
+     * @returns {boolean} True se frete incluído
+     */
+    isFreteIncluidoIncoterm(incoterm) {
+        const incotermComFrete = ['CPT', 'CIP', 'DAT', 'DAP', 'DDP', 'CFR', 'CIF'];
+        return incotermComFrete.includes(incoterm);
+    }
+
+    /**
+     * Verifica se o seguro está incluído no incoterm
+     * @param {string} incoterm - Código do incoterm
+     * @returns {boolean} True se seguro incluído
+     */
+    isSeguroIncluidoIncoterm(incoterm) {
+        const incotermComSeguro = ['CIP', 'DDP', 'CIF'];
+        return incotermComSeguro.includes(incoterm);
+    }
+
+    /**
+     * Retorna responsabilidades do importador baseado no incoterm
+     * @param {string} incoterm - Código do incoterm
+     * @returns {string} Descrição das responsabilidades
+     */
+    getResponsabilidadeImportador(incoterm) {
+        const responsabilidades = {
+            'EXW': 'Máxima responsabilidade - Importador assume todos os custos e riscos',
+            'FCA': 'Alta responsabilidade - Importador assume custos de transporte principal',
+            'CPT': 'Responsabilidade moderada - Frete pago pelo exportador',
+            'CIP': 'Responsabilidade moderada - Frete e seguro pagos pelo exportador',
+            'DAT': 'Baixa responsabilidade - Entrega no terminal de destino',
+            'DAP': 'Baixa responsabilidade - Entrega no local acordado',
+            'DDP': 'Mínima responsabilidade - Exportador assume praticamente tudo',
+            'FAS': 'Alta responsabilidade - Importador assume frete marítimo e seguros',
+            'FOB': 'Responsabilidade moderada-alta - Importador assume frete e seguro marítimo',
+            'CFR': 'Responsabilidade moderada - Frete pago pelo exportador, seguro por conta do importador',
+            'CIF': 'Responsabilidade moderada - Frete e seguro básico pagos pelo exportador'
+        };
+        
+        return responsabilidades[incoterm] || 'Responsabilidade conforme acordo';
+    }
 }
