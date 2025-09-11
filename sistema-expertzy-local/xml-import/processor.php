@@ -657,27 +657,93 @@ class XMLImportProcessor {
     }
     
     /**
-     * Limpa banco de dados
+     * Limpa banco de dados com tratamento de erro robusto
      */
     public function clearDatabase() {
+        $this->logger->log('info', 'Iniciando limpeza do banco de dados');
+        
         try {
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
             
+            // Tabelas em ordem de dependência (filhas primeiro)
             $tables = [
                 'mercadorias', 'tributos', 'adicoes', 'icms', 
                 'pagamentos', 'acrescimos', 'declaracoes_importacao',
                 'fornecedores', 'fabricantes', 'importadores',
-                'importacoes_log', 'calculos_realizados'
+                'importacoes_log'
             ];
             
+            $cleared_tables = [];
+            $failed_tables = [];
+            
             foreach ($tables as $table) {
-                $this->pdo->exec("TRUNCATE TABLE $table");
+                try {
+                    // Tentar TRUNCATE primeiro (mais rápido)
+                    $this->pdo->exec("TRUNCATE TABLE `$table`");
+                    $cleared_tables[] = $table;
+                    $this->logger->log('info', "Tabela truncada com sucesso", ['table' => $table]);
+                    
+                } catch (Exception $truncateError) {
+                    // Fallback para DELETE se TRUNCATE falhar
+                    try {
+                        $this->pdo->exec("DELETE FROM `$table`");
+                        $cleared_tables[] = $table;
+                        $this->logger->log('warning', "Tabela limpa com DELETE (TRUNCATE falhou)", [
+                            'table' => $table,
+                            'truncate_error' => $truncateError->getMessage()
+                        ]);
+                        
+                    } catch (Exception $deleteError) {
+                        $failed_tables[] = [
+                            'table' => $table,
+                            'truncate_error' => $truncateError->getMessage(),
+                            'delete_error' => $deleteError->getMessage()
+                        ];
+                        
+                        $this->logger->log('error', "Falha ao limpar tabela", [
+                            'table' => $table,
+                            'truncate_error' => $truncateError->getMessage(),
+                            'delete_error' => $deleteError->getMessage()
+                        ]);
+                    }
+                }
             }
             
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
             
-            return ['success' => true];
+            if (empty($failed_tables)) {
+                $this->logger->log('success', 'Banco de dados limpo com sucesso', [
+                    'tables_cleared' => count($cleared_tables),
+                    'cleared_tables' => $cleared_tables
+                ]);
+                
+                return [
+                    'success' => true,
+                    'tables_cleared' => count($cleared_tables),
+                    'details' => $cleared_tables
+                ];
+            } else {
+                $this->logger->log('error', 'Limpeza parcial do banco - algumas tabelas falharam', [
+                    'tables_cleared' => count($cleared_tables),
+                    'tables_failed' => count($failed_tables),
+                    'failed_details' => $failed_tables
+                ]);
+                
+                return [
+                    'success' => false,
+                    'error' => 'Falha ao limpar algumas tabelas',
+                    'tables_cleared' => count($cleared_tables),
+                    'tables_failed' => count($failed_tables),
+                    'failed_tables' => array_column($failed_tables, 'table')
+                ];
+            }
+            
         } catch (Exception $e) {
+            $this->logger->log('error', 'Erro geral na limpeza do banco de dados', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return [
                 'success' => false,
                 'error' => $e->getMessage()
