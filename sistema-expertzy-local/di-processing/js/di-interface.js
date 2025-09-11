@@ -63,12 +63,6 @@ async function initializeSystem() {
  * Setup event listeners for form inputs
  */
 function setupEventListeners() {
-    // File input change
-    document.getElementById('xmlFile').addEventListener('change', handleFileSelection);
-    
-    // ===== DRAG & DROP FUNCIONAL (copiado do sistema legado) =====
-    setupDragAndDrop();
-    
     // Initialize currency masks for predefined expenses
     initializeCurrencyMasks();
     
@@ -745,8 +739,8 @@ async function calcularImpostos() {
             }
         });
         
-        // Get consolidated expenses using legacy method
-        const despesasConsolidadas = diProcessor.consolidarDespesasCompletas(extraExpenses);
+        // Get consolidated expenses using dataLoader method
+        const despesasConsolidadas = dataLoader.consolidarDespesasCompletas(extraExpenses);
         
         // Add custom expenses to consolidated total if needed
         if (extraExpenses.outras_despesas.length > 0) {

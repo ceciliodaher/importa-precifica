@@ -93,7 +93,7 @@ class DataLoader {
         
         try {
             // Usar endpoint de status que já existe
-            const response = await this.databaseConnector.checkConnection();
+            const response = await this.databaseConnector.checkAPIStatus();
             
             if (response && response.stats) {
                 return response.stats;
