@@ -6,9 +6,24 @@ Este arquivo fornece orientações ao Claude Code para trabalho com código nest
 
 Sistema brasileiro de tributação e precificação de importação (Sistema de Importação e Precificação Expertzy) para processar arquivos XML de Declarações de Importação (DI), calcular impostos de importação e otimizar estratégias de precificação com incentivos fiscais em diferentes estados brasileiros.
 
+## Atualizações Recentes (11/09/2025)
+
+### **✅ Módulo de Importação XML Implementado**
+- **Dashboard visual** de importação em `sistema-expertzy-local/xml-import/`
+- **Gate de continuação** que bloqueia sistema se banco estiver vazio
+- **Detecção automática** de status do banco via API REST
+- **Interface KISS** com drag & drop e progresso em tempo real
+
+### **✅ Conformidade com Nomenclatura Atingida**
+- **Análise com Serena MCP** identificou inconsistências XML vs Banco
+- **100% de conformidade** após correções aplicadas
+- **Campos adicionados**: `frete_valor_moeda_negociada`, `seguro_valor_moeda_negociada`
+- **Funcionalidades implementadas**: Cálculo automático de `valor_unitario_brl`, extração de `codigo_produto`
+- **Scripts de migração** criados para dados existentes
+
 ## Sistema de Produção Atual
 
-### **Arquitetura de Duas Fases** (JavaScript)
+### **Arquitetura Híbrida** (JavaScript + MySQL)
 
 **Localização**: `sistema-expertzy-local/`
 
@@ -18,11 +33,21 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 - ✅ Upload de XML via drag & drop
 - ✅ Cálculos de impostos usando dados extraídos da DI
 - ✅ Funções de exportação (Excel, PDF, JSON)
+- ✅ **NOVO**: Persistência em banco MySQL
+- ✅ **NOVO**: Processamento de qualquer XML DI brasileiro
 
 **Fase 2: Sistema de Estratégia de Precificação** (`/pricing-strategy/`)
 - Análise de precificação multi-cenário
 - Otimização de incentivos fiscais por estado
 - Interface focada em negócios (tema verde)
+- **NOVO**: Histórico completo de análises
+
+**Fase 3: Sistema de Banco de Dados** (`/api/` + MySQL) ✅ **IMPLEMENTADO**
+- 🗄️ Banco MySQL com estrutura completa DI
+- 📡 API REST PHP para integração
+- 🔄 Sincronização automática localStorage ↔ MySQL
+- 📊 Suporte a upload múltiplo de XMLs
+- 🔍 Sistema de busca e filtros avançados
 
 ### **Protótipo Python Legado**
 - Interface GUI usando Tkinter
@@ -32,21 +57,63 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 ## Estrutura de Diretórios
 
 ```
-/sistema-expertzy-local/
-├── index.html                    # Página inicial com navegação
-├── di-processing/                # FASE 1: Sistema de Conformidade
-│   ├── di-processor.html         # Interface de processamento DI
-│   └── js/
-│       ├── DIProcessor.js        # Parser XML
-│       ├── ComplianceCalculator.js  # Cálculos de impostos
-│       └── di-interface.js       # Lógica da UI
-├── pricing-strategy/             # FASE 2: Sistema de Negócios  
-│   └── pricing-system.html      # Interface de precificação
-├── shared/                       # Recursos compartilhados
-│   ├── css/                      # Temas e estilos
-│   ├── js/                       # Módulos compartilhados
-│   └── data/                     # Configurações JSON
-└── samples/                      # Arquivos XML de teste
+/
+├── api/                          # Backend PHP
+├── sistema-expertzy-local/       # Frontend JavaScript
+│   ├── xml-import/               # NOVO: Módulo de Importação XML
+│   │   ├── import-dashboard.html # Dashboard visual de importação
+│   │   ├── processor.php         # Processador XML reutilizando lógica
+│   │   ├── js/ImportDashboard.js # Controller do dashboard
+│   │   ├── css/import-dashboard.css # Estilos específicos
+│   │   └── api/                  # APIs REST do módulo
+│   │       ├── import.php        # Upload e processamento
+│   │       ├── stats.php         # Estatísticas do banco
+│   │       ├── validate.php      # Validação de conexão
+│   │       └── clear.php         # Limpeza do banco
+├── api/                          # FASE 3: Backend PHP
+│   ├── config/
+│   │   ├── database.php          # Configuração MySQL
+│   │   └── .env                  # Variáveis ambiente
+│   ├── services/
+│   │   ├── database-service.php  # Serviços base de dados
+│   │   └── xml-parser.php        # Parser universal XML DI
+│   └── endpoints/
+│       ├── upload-xml.php        # Upload e processamento
+│       ├── listar-dis.php        # Listar DIs com paginação
+│       ├── buscar-di.php         # Buscar DI específica
+│       └── salvar-calculo.php    # Persistir cálculos
+├── sql/
+│   └── create_database_importa_precifica.sql  # Schema completo
+├── povoar_importa_precifica.php  # Interface de importação XML
+├── sistema-expertzy-local/       # Frontend JavaScript
+│   ├── index.html                # Página inicial com navegação
+│   ├── di-processing/            # FASE 1: Sistema de Conformidade
+│   │   ├── di-processor.html     # Interface de processamento DI
+│   │   └── js/
+│   │       ├── DIProcessor.js    # Parser XML + integração banco
+│   │       ├── ComplianceCalculator.js  # Cálculos de impostos
+│   │       └── di-interface.js   # Lógica da UI + sync
+│   ├── pricing-strategy/         # FASE 2: Sistema de Negócios  
+│   │   └── pricing-system.html  # Interface de precificação
+│   ├── shared/                   # Recursos compartilhados
+│   │   ├── css/                  # Temas e estilos
+│   │   ├── js/                   # Módulos compartilhados
+│   │   │   └── DatabaseConnector.js  # Connector API REST
+│   │   └── data/                 # Configurações JSON
+│   └── samples/                  # Arquivos XML de teste
+├── sql/                          # Scripts SQL
+│   ├── create_database_importa_precifica.sql  # Schema completo
+│   ├── fix_nomenclatura_compliance.sql  # NOVO: Correções de conformidade
+│   └── migrate_existing_data.sql        # NOVO: Migração de dados
+├── docs/                         # Documentação
+│   ├── PLANO-IMPLEMENTACAO-BANCO-MYSQL.md
+│   ├── registro_da_criacao_e_carga_db.md
+│   ├── nomenclatura.md           # Mapeamento XML → Sistema
+│   └── nomenclatura-conformidade-relatorio.md  # NOVO: Relatório de conformidade
+└── orientacoes/                  # XMLs exemplo e documentos
+    ├── 2300120746.xml
+    ├── 2518173187.xml
+    └── ...
 ```
 
 ## Regras de Processamento de Dados
@@ -151,11 +218,41 @@ calculationData = {
 
 ### **Executar Sistema Web**
 ```bash
-# Sistema principal
+# Sistema principal (com detecção de banco vazio)
 open sistema-expertzy-local/index.html
 
-# Processador DI diretamente  
+# Dashboard de importação XML
+open sistema-expertzy-local/xml-import/import-dashboard.html
+
+# Processador DI (requer banco populado)
 open sistema-expertzy-local/di-processing/di-processor.html
+
+# Interface de importação legada
+open povoar_importa_precifica.php
+```
+
+### **Aplicar Correções de Conformidade**
+```bash
+# 1. Atualizar estrutura do banco
+mysql -u root -p importa_precificacao < sql/fix_nomenclatura_compliance.sql
+
+# 2. Migrar dados existentes
+mysql -u root -p importa_precificacao < sql/migrate_existing_data.sql
+
+# 3. Validar conformidade
+php test_nomenclatura_compliance.php
+```
+
+### **Configurar Banco de Dados MySQL**
+```bash
+# Executar script de criação do banco
+mysql -u root -p < sql/create_database_importa_precifica.sql
+
+# Verificar tabelas criadas
+mysql -u root -p importa_precificacao -e "SHOW TABLES;"
+
+# Configurar variáveis de ambiente
+cp api/config/.env.example api/config/.env
 ```
 
 ### **Protótipo Python Legado**
@@ -179,14 +276,57 @@ python orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py
 
 | **Módulo** | **Tipo de Dado** | **Nome da Variável** | **Ordem do Fluxo** |
 |------------|------------------|---------------------|-------------------|
-| DIProcessor.js | Dados DI | `this.diData` | 1 |
-| DIProcessor.js | Totais Extraídos | `this.diData.totais.tributos_totais.*` | 1.5 |
-| di-interface.js | DI Global | `currentDI` | 2 |
-| di-interface.js | Config ICMS | `window.icmsConfig` | 2.5 |
-| ComplianceCalculator.js | Cálculo | `this.lastCalculation` | 3 |
-| ComplianceCalculator.js | Produtos Individuais | `produtos_individuais[]` | 3.5 |
-| exportCroquiNF.js | Export Cálculo | `this.calculos` | 4 |
-| ExcelExporter.js | Export Excel | `this.calculationData` | 4 |
+| XML DI | Dados Brutos | `<declaracaoImportacao>` | 0 |
+| xml-parser.php | Dados Convertidos | `$diData` | 0.5 |
+| MySQL | Dados Persistidos | tabelas `declaracoes_importacao` | 1 |
+| DIProcessor.js | Dados DI | `this.diData` | 1.5 |
+| DIProcessor.js | Totais Extraídos | `this.diData.totais.tributos_totais.*` | 2 |
+| di-interface.js | DI Global | `currentDI` | 2.5 |
+| di-interface.js | Config ICMS | `window.icmsConfig` | 3 |
+| ComplianceCalculator.js | Cálculo | `this.lastCalculation` | 3.5 |
+| ComplianceCalculator.js | Produtos Individuais | `produtos_individuais[]` | 4 |
+| DatabaseConnector.js | Sync Banco | `this.cache` | 4.5 |
+| exportCroquiNF.js | Export Cálculo | `this.calculos` | 5 |
+| ExcelExporter.js | Export Excel | `this.calculationData` | 5.5 |
+
+## Sistema de Banco de Dados
+
+### **Estrutura das Tabelas Principais**
+
+**declaracoes_importacao**
+- `numero_di` (PRIMARY KEY)
+- `data_registro`, `importador_id`, `carga_id`
+- Relacionamentos: 1:N com adições
+
+**adicoes**
+- `id` (AUTO_INCREMENT), `numero_di` (FK)
+- `numero_adicao`, `ncm`, `valor_reais`
+- Relacionamentos: 1:N com mercadorias e tributos
+
+**mercadorias**
+- `id` (AUTO_INCREMENT), `adicao_id` (FK)
+- `descricao_mercadoria`, `quantidade`, `valor_unitario`
+
+### **API REST Endpoints**
+
+| Endpoint | Método | Descrição | Parâmetros |
+|----------|--------|-----------|------------|
+| `/api/upload-xml.php` | POST | Upload e processa XML DI | `file`, `overwrite` |
+| `/api/listar-dis.php` | GET | Lista DIs com paginação | `page`, `limit`, `search` |
+| `/api/buscar-di.php` | GET | Busca DI específica | `numero_di` |
+| `/api/buscar-adicoes.php` | GET | Busca adições de DI | `numero_di`, `adicao` |
+| `/api/salvar-calculo.php` | POST | Salva cálculo realizado | `numero_di`, `dados_calculo` |
+
+### **Sincronização Dados**
+
+```javascript
+// DatabaseConnector.js - Fluxo de sincronização
+1. Verificar conectividade com API
+2. Cache local (localStorage) como fallback
+3. Sync bidirecional: localStorage ↔ MySQL
+4. Queue de operações offline
+5. Resolução de conflitos por timestamp
+```
 
 ## Debugging
 

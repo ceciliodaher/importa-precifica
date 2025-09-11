@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Importação XML - Sistema Expertzy</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Expertzy Brand System -->
+    <link href="../shared/css/expertzy-brand.css" rel="stylesheet">
+    <link href="css/import-dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg expertzy-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="../index.html">
+                <img src="../shared/images/logo-expertzy.png" alt="Expertzy" height="40" class="me-2">
+                <span>Sistema Expertzy</span>
+            </a>
+            <div class="navbar-text">
+                <span class="badge bg-warning text-dark">
+                    <i class="bi bi-database"></i> Importação de Dados
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-cloud-arrow-up-fill text-primary"></i>
+                            Dashboard de Importação XML
+                        </h2>
+                        <p class="text-muted mb-0">
+                            Importe arquivos XML de Declaração de Importação para popular o banco de dados
+                        </p>
+                    </div>
+                    <button class="btn btn-outline-secondary" onclick="window.location.href='../index.html'">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4" id="statsCards">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">DIs no Banco</h6>
+                                <h3 class="mb-0" id="statTotalDIs">0</h3>
+                            </div>
+                            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Adições</h6>
+                                <h3 class="mb-0" id="statTotalAdicoes">0</h3>
+                            </div>
+                            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-box-seam"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Mercadorias</h6>
+                                <h3 class="mb-0" id="statTotalMercadorias">0</h3>
+                            </div>
+                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Última Importação</h6>
+                                <h6 class="mb-0 text-truncate" id="statLastImport">-</h6>
+                            </div>
+                            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Upload Section -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-upload"></i> Upload de Arquivos XML
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Drop Zone -->
+                        <div class="drop-zone" id="dropZone">
+                            <div class="drop-zone-content">
+                                <i class="bi bi-cloud-arrow-up drop-zone-icon"></i>
+                                <h5>Arraste arquivos XML aqui</h5>
+                                <p class="text-muted mb-3">ou clique para selecionar</p>
+                                <button class="btn btn-primary" id="selectFilesBtn">
+                                    <i class="bi bi-folder2-open"></i> Selecionar Arquivos
+                                </button>
+                                <input type="file" id="fileInput" multiple accept=".xml" style="display: none;">
+                                <p class="text-muted small mt-3 mb-0">
+                                    Formatos aceitos: XML • Tamanho máximo: 50MB por arquivo
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Files List -->
+                        <div id="filesList" class="mt-3" style="display: none;">
+                            <h6>Arquivos Selecionados:</h6>
+                            <div id="filesContainer"></div>
+                            <div class="mt-3">
+                                <button class="btn btn-success" id="startImportBtn">
+                                    <i class="bi bi-play-fill"></i> Iniciar Importação
+                                </button>
+                                <button class="btn btn-outline-secondary" id="clearFilesBtn">
+                                    <i class="bi bi-x-circle"></i> Limpar Lista
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Progress Section -->
+                        <div id="progressSection" class="mt-4" style="display: none;">
+                            <h6>Progresso da Importação:</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                            <div id="currentFileInfo" class="text-muted small"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Log -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-terminal"></i> Log de Processamento
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="log-container" id="logContainer">
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-1"></i>
+                                <p class="mt-2">Aguardando importação...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="col-lg-4">
+                <!-- Import Status -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle"></i> Status da Importação
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="importStatus">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-indicator status-idle"></div>
+                                <span class="ms-2">Aguardando arquivos</span>
+                            </div>
+                            
+                            <div class="stats-summary" style="display: none;">
+                                <hr>
+                                <h6>Resumo da Sessão:</h6>
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="bi bi-check-circle text-success"></i> 
+                                        <span id="sessionSuccess">0</span> DIs importadas</li>
+                                    <li><i class="bi bi-exclamation-circle text-warning"></i> 
+                                        <span id="sessionDuplicates">0</span> duplicadas</li>
+                                    <li><i class="bi bi-x-circle text-danger"></i> 
+                                        <span id="sessionErrors">0</span> erros</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-lightning"></i> Ações Rápidas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" id="validateDBBtn">
+                                <i class="bi bi-database-check"></i> Verificar Banco de Dados
+                            </button>
+                            <button class="btn btn-outline-danger" id="clearDBBtn" disabled>
+                                <i class="bi bi-trash3"></i> Limpar Banco de Dados
+                            </button>
+                            <hr>
+                            <button class="btn btn-success" id="continueToSystemBtn" disabled>
+                                <i class="bi bi-arrow-right-circle"></i> Continuar para o Sistema
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-question-circle"></i> Ajuda
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Como importar:</h6>
+                        <ol class="small mb-0">
+                            <li>Selecione ou arraste arquivos XML de DI</li>
+                            <li>Verifique a lista de arquivos</li>
+                            <li>Clique em "Iniciar Importação"</li>
+                            <li>Aguarde o processamento</li>
+                            <li>Continue para o sistema principal</li>
+                        </ol>
+                        <hr>
+                        <p class="small text-muted mb-0">
+                            <i class="bi bi-info-circle"></i> 
+                            O sistema detecta automaticamente duplicatas e as ignora.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/ImportDashboard.js"></script>
+</body>
+</html>
