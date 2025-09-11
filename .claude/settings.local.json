@@ -22,7 +22,22 @@
       "Bash(git commit:*)",
       "Bash(mkdir:*)",
       "Bash(cp:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(/Applications/ServBay/bin/mysql:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(touch:*)",
+      "Bash(curl:*)",
+      "Bash(php:*)",
+      "Bash(open sistema-expertzy-local/di-processing/di-processor.html)",
+      "Bash(open /Users/ceciliodaher/Documents/git/importa-precifica/sistema-expertzy-local/di-processing/di-processor.html)",
+      "Bash(ln:*)",
+      "Bash(chmod:*)",
+      "Bash(/Users/ceciliodaher/Documents/git/importa-precifica/start_api_server.sh)",
+      "Bash(timeout 60 npx playwright test tests/xml-import.test.js --headed --timeout=60000)",
+      "Bash(open playwright-report/index.html)",
+      "Bash(git checkout:*)",
+      "Bash(open /Users/ceciliodaher/Documents/git/importa-precifica/sistema-expertzy-local/xml-import/import-dashboard.html)"
     ],
     "deny": [],
     "ask": []

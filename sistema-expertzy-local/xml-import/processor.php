@@ -19,8 +19,50 @@ $db_config = [
     'charset' => 'utf8mb4'
 ];
 
+class ImportLogger {
+    private $logFile;
+    
+    public function __construct() {
+        $logDir = __DIR__ . '/logs';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        $this->logFile = $logDir . '/import-log-' . date('Y-m-d') . '.json';
+    }
+    
+    public function log($level, $message, $context = []) {
+        $entry = [
+            'timestamp' => date('c'),
+            'level' => $level,
+            'message' => $message,
+            'context' => $context
+        ];
+        
+        $logs = $this->getLogs();
+        $logs[] = $entry;
+        file_put_contents($this->logFile, json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    }
+    
+    public function getLogs() {
+        if (!file_exists($this->logFile)) {
+            return [];
+        }
+        $content = file_get_contents($this->logFile);
+        return json_decode($content, true) ?: [];
+    }
+    
+    public function exportLogs() {
+        return [
+            'filename' => basename($this->logFile),
+            'logs' => $this->getLogs(),
+            'total_entries' => count($this->getLogs())
+        ];
+    }
+}
+
 class XMLImportProcessor {
     private $pdo;
+    private $logger;
     private $stats = [
         'dis_processadas' => 0,
         'adicoes_inseridas' => 0,
@@ -29,6 +71,8 @@ class XMLImportProcessor {
     ];
     
     public function __construct($db_config) {
+        $this->logger = new ImportLogger();
+        
         try {
             $dsn = "mysql:host={$db_config['host']};dbname={$db_config['dbname']};charset={$db_config['charset']}";
             $this->pdo = new PDO($dsn, $db_config['username'], $db_config['password'], [
@@ -36,7 +80,17 @@ class XMLImportProcessor {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$db_config['charset']} COLLATE {$db_config['charset']}_unicode_ci"
             ]);
+            
+            $this->logger->log('info', 'Conexão com banco de dados estabelecida', [
+                'host' => $db_config['host'],
+                'database' => $db_config['dbname']
+            ]);
         } catch (PDOException $e) {
+            $this->logger->log('error', 'Erro ao conectar com banco de dados', [
+                'error' => $e->getMessage(),
+                'host' => $db_config['host'],
+                'database' => $db_config['dbname']
+            ]);
             throw new Exception("Erro ao conectar com banco de dados: " . $e->getMessage());
         }
     }
@@ -44,26 +98,55 @@ class XMLImportProcessor {
     /**
      * Processa um arquivo XML de DI
      */
-    public function processXML($xmlContent) {
+    public function processXML($xmlContent, $filename = 'unknown.xml') {
+        $this->logger->log('info', 'Iniciando processamento de XML', [
+            'filename' => $filename,
+            'xml_size' => strlen($xmlContent)
+        ]);
+        
         try {
             // Parse XML
             $xml = simplexml_load_string($xmlContent);
             if ($xml === false) {
+                $this->logger->log('error', 'XML inválido ou mal formado', [
+                    'filename' => $filename,
+                    'xml_preview' => substr($xmlContent, 0, 200)
+                ]);
                 throw new Exception("XML inválido ou mal formado");
             }
             
             // Verificar estrutura DI
             if (!isset($xml->declaracaoImportacao)) {
+                $this->logger->log('error', 'XML não contém declaração de importação', [
+                    'filename' => $filename,
+                    'root_elements' => array_keys((array)$xml)
+                ]);
                 throw new Exception("XML não contém declaração de importação");
             }
             
             $result = [];
+            $total_dis = count($xml->declaracaoImportacao);
+            
+            $this->logger->log('info', 'Processando DIs do XML', [
+                'filename' => $filename,
+                'total_dis' => $total_dis
+            ]);
             
             // Processar cada DI no arquivo
             foreach ($xml->declaracaoImportacao as $declaracao) {
                 $diResult = $this->processDeclaracaoImportacao($declaracao, $xmlContent);
                 $result[] = $diResult;
             }
+            
+            $this->logger->log('success', 'XML processado com sucesso', [
+                'filename' => $filename,
+                'stats' => [
+                    'dis_processadas' => $this->stats['dis_processadas'],
+                    'adicoes' => $this->stats['adicoes_inseridas'],
+                    'mercadorias' => $this->stats['mercadorias_inseridas'],
+                    'erros' => $this->stats['erros']
+                ]
+            ]);
             
             return [
                 'success' => true,
@@ -76,6 +159,13 @@ class XMLImportProcessor {
             ];
             
         } catch (Exception $e) {
+            $this->stats['erros']++;
+            $this->logger->log('error', 'Erro no processamento de XML', [
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+                'stats_at_error' => $this->stats
+            ]);
+            
             return [
                 'success' => false,
                 'error' => $e->getMessage()
@@ -93,11 +183,21 @@ class XMLImportProcessor {
             // Extrair número da DI
             $numero_di = $this->getFirstValue($declaracao, ['numeroDI', 'numero_di']);
             
+            $this->logger->log('info', 'Processando DI individual', [
+                'numero_di' => $numero_di
+            ]);
+            
             // Verificar se DI já existe
             $stmt = $this->pdo->prepare("SELECT numero_di FROM declaracoes_importacao WHERE numero_di = ?");
             $stmt->execute([$numero_di]);
             if ($stmt->fetch()) {
                 $this->pdo->rollback();
+                
+                $this->logger->log('warning', 'DI duplicada encontrada', [
+                    'numero_di' => $numero_di,
+                    'action' => 'skipped'
+                ]);
+                
                 return [
                     'numero_di' => $numero_di,
                     'status' => 'duplicate',
@@ -114,8 +214,8 @@ class XMLImportProcessor {
             // Processar adições
             $adicoes_count = $this->processAdicoes($declaracao, $numero_di);
             
-            // Processar ICMS se presente
-            $this->processICMS($declaracao, $numero_di);
+            // ICMS não é processado da DI - calculado no frontend via aliquotas.json
+            // $this->processICMS($declaracao, $numero_di);
             
             // Processar pagamentos e acréscimos
             $this->processPagamentos($declaracao, $numero_di);
@@ -123,6 +223,12 @@ class XMLImportProcessor {
             
             $this->pdo->commit();
             $this->stats['dis_processadas']++;
+            
+            $this->logger->log('success', 'DI processada com sucesso', [
+                'numero_di' => $numero_di,
+                'adicoes_inseridas' => $adicoes_count,
+                'importador_id' => $importador_id
+            ]);
             
             return [
                 'numero_di' => $numero_di,
@@ -132,6 +238,14 @@ class XMLImportProcessor {
             
         } catch (Exception $e) {
             $this->pdo->rollback();
+            $this->stats['erros']++;
+            
+            $this->logger->log('error', 'Erro ao processar DI', [
+                'numero_di' => $numero_di ?? 'desconhecido',
+                'error' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString()
+            ]);
+            
             throw $e;
         }
     }
@@ -432,31 +546,13 @@ class XMLImportProcessor {
     }
     
     /**
-     * Processa ICMS
+     * ICMS não é processado da DI - mantido para referência
+     * ICMS é calculado no frontend usando aliquotas.json por estado
      */
     private function processICMS($declaracao, $numero_di) {
-        if (!isset($declaracao->icms)) return;
-        
-        foreach ($declaracao->icms as $icms) {
-            $sql = "INSERT INTO icms (
-                numero_di, numero_sequencial, uf_icms, tipo_recolhimento_codigo,
-                tipo_recolhimento_nome, valor_total_icms, data_registro, hora_registro, cpf_responsavel
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE valor_total_icms = VALUES(valor_total_icms)";
-            
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                $numero_di,
-                $this->getFirstValue($icms, ['numeroSequencialIcms']),
-                $this->getFirstValue($icms, ['ufIcms']),
-                $this->getFirstValue($icms, ['codigoTipoRecolhimentoIcms']),
-                $this->getFirstValue($icms, ['nomeTipoRecolhimentoIcms']),
-                $this->convertValue($this->getFirstValue($icms, ['valorTotalIcms']), 'monetary'),
-                $this->getFirstValue($icms, ['dataRegistro']),
-                $this->getFirstValue($icms, ['horaRegistro']),
-                $this->getFirstValue($icms, ['cpfResponsavelRegistro'])
-            ]);
-        }
+        // DESABILITADO: ICMS vem de aliquotas.json, não da DI
+        // DI contém apenas <icms/> vazio - isso é normal
+        return;
     }
     
     /**
@@ -496,6 +592,13 @@ class XMLImportProcessor {
                 $this->convertValue($this->getFirstValue($acrescimo, ['valorReais']), 'monetary')
             ]);
         }
+    }
+    
+    /**
+     * Obtém instância do logger
+     */
+    public function getLogger() {
+        return $this->logger;
     }
     
     /**

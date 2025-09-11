@@ -50,6 +50,7 @@ class ImportDashboard {
         
         // Action buttons
         this.validateDBBtn = document.getElementById('validateDBBtn');
+        this.exportLogBtn = document.getElementById('exportLogBtn');
         this.clearDBBtn = document.getElementById('clearDBBtn');
         this.continueToSystemBtn = document.getElementById('continueToSystemBtn');
     }
@@ -68,6 +69,7 @@ class ImportDashboard {
         this.startImportBtn.addEventListener('click', () => this.startImport());
         this.clearFilesBtn.addEventListener('click', () => this.clearFiles());
         this.validateDBBtn.addEventListener('click', () => this.validateDatabase());
+        this.exportLogBtn.addEventListener('click', () => this.exportLog());
         this.clearDBBtn.addEventListener('click', () => this.clearDatabase());
         this.continueToSystemBtn.addEventListener('click', () => this.continueToSystem());
     }
@@ -367,6 +369,52 @@ class ImportDashboard {
             }
         } catch (error) {
             this.addLog('✗ Erro na operação de limpeza', 'error');
+        }
+    }
+
+    async exportLog() {
+        this.addLog('Exportando logs...', 'info');
+        
+        try {
+            const response = await fetch('api/export-log.php?format=json&download=true');
+            
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
+            
+            // Criar download do arquivo JSON
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `import-logs-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            this.addLog('✓ Log exportado com sucesso', 'success');
+            
+        } catch (error) {
+            this.addLog('✗ Erro ao exportar log: ' + error.message, 'error');
+        }
+    }
+    
+    async viewLogReport() {
+        try {
+            const response = await fetch('api/export-log.php?format=html');
+            
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
+            
+            const html = await response.text();
+            const newWindow = window.open('', '_blank', 'width=1000,height=700');
+            newWindow.document.write(html);
+            newWindow.document.close();
+            
+        } catch (error) {
+            this.addLog('✗ Erro ao abrir relatório: ' + error.message, 'error');
         }
     }
 

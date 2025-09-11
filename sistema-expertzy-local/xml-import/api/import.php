@@ -47,7 +47,7 @@ try {
     
     // Processar XML
     global $processor;
-    $result = $processor->processXML($xmlContent);
+    $result = $processor->processXML($xmlContent, $arquivo['name']);
     
     if (!$result['success']) {
         // Verificar se é DI duplicada
