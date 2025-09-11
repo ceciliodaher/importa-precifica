@@ -8,11 +8,25 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 
 ## Atualizações Recentes (11/09/2025)
 
-### **✅ Módulo de Importação XML Implementado**
+### **✅ Sistema de Importação XML Totalmente Funcional**
 - **Dashboard visual** de importação em `sistema-expertzy-local/xml-import/`
 - **Gate de continuação** que bloqueia sistema se banco estiver vazio
 - **Detecção automática** de status do banco via API REST
 - **Interface KISS** com drag & drop e progresso em tempo real
+- **Sistema de logs estruturado** com exportação JSON/HTML
+
+### **✅ Correção Crítica: Erro ICMS Resolvido**
+- **Problema**: Erro SQL `uf_icms cannot be null` ao processar XMLs DI
+- **Causa identificada**: ICMS não vem da DI - vem do arquivo `aliquotas.json`
+- **Solução**: Desabilitado processamento ICMS do XML (é calculado no frontend)
+- **Status**: ✅ Importação XML funcionando sem erros
+
+### **✅ Sistema de Log Implementado**
+- **Classe ImportLogger** para logs detalhados em JSON
+- **Captura completa** de sucessos, erros, duplicatas com contexto
+- **Endpoint export-log.php** para download de logs (JSON/HTML)
+- **Botão "Exportar Log"** integrado no dashboard de importação
+- **Localização**: Logs salvos em `xml-import/logs/import-log-YYYY-MM-DD.json`
 
 ### **✅ Conformidade com Nomenclatura Atingida**
 - **Análise com Serena MCP** identificou inconsistências XML vs Banco
@@ -62,14 +76,17 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 ├── sistema-expertzy-local/       # Frontend JavaScript
 │   ├── xml-import/               # NOVO: Módulo de Importação XML
 │   │   ├── import-dashboard.html # Dashboard visual de importação
-│   │   ├── processor.php         # Processador XML reutilizando lógica
+│   │   ├── processor.php         # Processador XML + Sistema de Log
 │   │   ├── js/ImportDashboard.js # Controller do dashboard
 │   │   ├── css/import-dashboard.css # Estilos específicos
+│   │   ├── logs/                 # NOVO: Logs estruturados
+│   │   │   └── import-log-*.json # Logs diários de importação
 │   │   └── api/                  # APIs REST do módulo
 │   │       ├── import.php        # Upload e processamento
 │   │       ├── stats.php         # Estatísticas do banco
 │   │       ├── validate.php      # Validação de conexão
-│   │       └── clear.php         # Limpeza do banco
+│   │       ├── clear.php         # Limpeza do banco
+│   │       └── export-log.php    # NOVO: Exportação de logs
 ├── api/                          # FASE 3: Backend PHP
 │   ├── config/
 │   │   ├── database.php          # Configuração MySQL
@@ -140,6 +157,15 @@ if (aliquota === undefined) {
 - ItemCalculator usa `window.icmsConfig?.ncmConfigs` para NCMs específicos
 - Alíquota padrão vem de `obterAliquotaICMS(estado)` no ComplianceCalculator
 - ICMS pode ser zero (isenção) mas NUNCA null/undefined
+- **IMPORTANTE**: ICMS NÃO VEM DA DI - usar apenas `aliquotas.json`
+
+### **Sistema de Log Estruturado**
+- **ImportLogger** captura todas as operações de importação
+- **Localização**: `xml-import/logs/import-log-YYYY-MM-DD.json`
+- **Níveis**: info, success, warning, error
+- **Contexto**: Timestamp, arquivo, DI, erros detalhados
+- **Exportação**: JSON para download, HTML para visualização
+- **Acesso**: Botão "Exportar Log" no dashboard de importação
 
 ## Estruturas de Dados Principais
 
@@ -330,7 +356,28 @@ python orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py
 
 ## Debugging
 
-Use ferramentas dev do browser e janela de log integrada. A aplicação fornece logging extensivo através da classe Logger.
+### **Sistema de Log Integrado**
+- **Logs de importação**: `xml-import/logs/import-log-YYYY-MM-DD.json`
+- **Níveis de log**: info, success, warning, error
+- **Exportação visual**: Dashboard → Botão "Exportar Log" → Relatório HTML
+- **Debug via console**: Ferramentas dev do browser + janela de log integrada
+
+### **Comandos de Debug**
+```bash
+# Testar importação específica
+php test_import_fix.php
+
+# Verificar logs recentes
+tail -f sistema-expertzy-local/xml-import/logs/import-log-$(date +%Y-%m-%d).json
+
+# Abrir dashboard de importação
+open sistema-expertzy-local/xml-import/import-dashboard.html
+```
+
+### **Problemas Comuns**
+- **ICMS null**: ICMS não vem da DI - usar `aliquotas.json`
+- **Dados truncados**: Verificar tamanhos de campo no banco MySQL
+- **XML mal formado**: Usar logs para identificar estrutura específica
 
 ---
 
