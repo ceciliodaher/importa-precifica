@@ -13,7 +13,7 @@
  */
 
 class DatabaseConnector {
-    constructor(apiBaseUrl = 'http://localhost:8889/') {
+    constructor(apiBaseUrl = 'http://localhost:8890/endpoints/') {
         this.apiBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl : apiBaseUrl + '/';
         this.cache = new Map();
         this.offlineQueue = [];
