@@ -1,0 +1,304 @@
+/* Dashboard de Estatísticas - CSS Específico */
+
+/* KPI Cards */
+.stat-card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.15s ease-in-out;
+    border-radius: 0.5rem;
+    height: 100%;
+}
+
+.stat-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Charts */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 1rem 0;
+}
+
+canvas {
+    max-height: 300px !important;
+}
+
+/* Table Enhancements */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.075);
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Expandable Rows */
+.expandable-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.expandable-row:hover {
+    background-color: #f8f9fa;
+}
+
+.row-details {
+    background-color: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+}
+
+.row-details table {
+    margin-bottom: 0;
+}
+
+/* Loading States */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Filters */
+.filter-section {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Badges */
+.badge-ncm {
+    background-color: #6f42c1;
+}
+
+.badge-estado {
+    background-color: #20c997;
+}
+
+.badge-tributo {
+    background-color: #fd7e14;
+}
+
+/* Top NCMs List */
+.ncm-item {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s ease;
+}
+
+.ncm-item:hover {
+    background-color: #f8f9fa;
+}
+
+.ncm-item:last-child {
+    border-bottom: none;
+}
+
+.ncm-code {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-right: 0.75rem;
+    min-width: 80px;
+    text-align: center;
+}
+
+.ncm-description {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.ncm-value {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 0.9rem;
+}
+
+/* Alerts */
+.alert-dismissible .btn-close {
+    padding: 0.75rem 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+    }
+}
+
+/* Status Indicators */
+.status-success {
+    color: #198754;
+}
+
+.status-warning {
+    color: #f57c00;
+}
+
+.status-danger {
+    color: #dc3545;
+}
+
+.status-info {
+    color: #0dcaf0;
+}
+
+/* Currency Formatting */
+.currency {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.currency-positive {
+    color: #198754;
+}
+
+.currency-negative {
+    color: #dc3545;
+}
+
+/* Taxa de Câmbio Display */
+.taxa-cambio {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    background-color: #e3f2fd;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+/* Pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: #0d6efd;
+}
+
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Footer */
+.footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa !important;
+}
+
+/* Error States */
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.no-data {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem;
+}
+
+/* Future Features */
+.future-feature {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.future-feature input,
+.future-feature select,
+.future-feature button {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 300px;
+    }
+}

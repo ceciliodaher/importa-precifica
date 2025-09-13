@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Estatísticas - Sistema Expertzy</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Expertzy Brand System -->
+    <link href="../shared/css/expertzy-brand.css" rel="stylesheet">
+    <link href="css/statistics.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg expertzy-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="../index.html">
+                <img src="../shared/images/logo-expertzy.png" alt="Expertzy" height="40" class="me-2">
+                <span>Sistema Expertzy</span>
+            </a>
+            <div class="navbar-text">
+                <span class="badge bg-info text-dark">
+                    <i class="bi bi-graph-up"></i> Dashboard de Estatísticas
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-bar-chart-fill text-primary"></i>
+                            Dashboard de Estatísticas Pós-Importação
+                        </h2>
+                        <p class="text-muted mb-0">
+                            Análise completa dos dados importados do XML
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" onclick="dashboardController.refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Atualizar
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="window.location.href='../index.html'">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2 text-muted">Carregando dados...</p>
+        </div>
+
+        <!-- KPI Cards Row -->
+        <div class="row mb-4" id="kpiCards">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Total de DIs</h6>
+                                <h3 class="mb-0" id="kpiTotalDIs">-</h3>
+                            </div>
+                            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-file-earmark-text" style="font-size: 1.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Valor Total (BRL)</h6>
+                                <h3 class="mb-0" id="kpiValorTotal">-</h3>
+                            </div>
+                            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-currency-dollar" style="font-size: 1.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Taxa Câmbio Média</h6>
+                                <h3 class="mb-0" id="kpiTaxaCambio">-</h3>
+                            </div>
+                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-currency-exchange" style="font-size: 1.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Tributos</h6>
+                                <h3 class="mb-0" id="kpiTotalTributos">-</h3>
+                            </div>
+                            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="bi bi-calculator" style="font-size: 1.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-funnel"></i> Filtros
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Período</label>
+                                <select class="form-select" id="filterPeriodo">
+                                    <option value="7d">Últimos 7 dias</option>
+                                    <option value="30d" selected>Últimos 30 dias</option>
+                                    <option value="90d">Últimos 90 dias</option>
+                                    <option value="1y">Último ano</option>
+                                    <option value="all">Todos</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado (UF)</label>
+                                <select class="form-select" id="filterEstado">
+                                    <option value="">Todos</option>
+                                    <!-- Populado dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Importador</label>
+                                <select class="form-select" id="filterImportador">
+                                    <option value="">Todos</option>
+                                    <!-- Populado dinamicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">NCM</label>
+                                <input type="text" class="form-control" id="filterNCM" placeholder="Ex: 8501">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button class="btn btn-primary" onclick="dashboardController.applyFilters()">
+                                    <i class="bi bi-search"></i> Aplicar Filtros
+                                </button>
+                                <button class="btn btn-outline-secondary ms-2" onclick="dashboardController.resetFilters()">
+                                    <i class="bi bi-x-circle"></i> Limpar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up"></i> Evolução Temporal
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartEvolucao" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-pie-chart"></i> Distribuição de Tributos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartTributos" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-table"></i> Declarações de Importação
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="dashboardController.exportData()">
+                            <i class="bi bi-download"></i> Exportar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tableDIs">
+                                <thead>
+                                    <tr>
+                                        <th width="30"></th>
+                                        <th>Número DI</th>
+                                        <th>Data Registro</th>
+                                        <th>Importador</th>
+                                        <th>UF</th>
+                                        <th>Adições</th>
+                                        <th>Valor (BRL)</th>
+                                        <th>Taxa Câmbio</th>
+                                        <th>Total Tributos</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableDIsBody">
+                                    <!-- Populado dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <nav aria-label="Paginação">
+                            <ul class="pagination justify-content-center" id="pagination">
+                                <!-- Populado dinamicamente -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top NCMs -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ol"></i> Top 10 NCMs
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="topNCMs">
+                            <!-- Populado dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-map"></i> Distribuição por Estado
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartEstados" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Despesas Extras Section (Preparado para Futuro) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info bg-opacity-10">
+                        <h5 class="mb-0">
+                            <i class="bi bi-calculator-fill"></i> Sistema de Despesas Extras
+                            <span class="badge bg-warning ms-2">Em Desenvolvimento</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Esta seção permitirá adicionar despesas extras (armazenagem, transporte interno, despachante) 
+                            para cálculo completo do custo de importação por item.
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Armazenagem</label>
+                                <input type="number" class="form-control" id="despesaArmazenagem" placeholder="0,00" disabled>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Transporte Interno</label>
+                                <input type="number" class="form-control" id="despesaTransporte" placeholder="0,00" disabled>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Despachante</label>
+                                <input type="number" class="form-control" id="despesaDespachante" placeholder="0,00" disabled>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Outros</label>
+                                <input type="number" class="form-control" id="despesaOutros" placeholder="0,00" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 text-center text-muted">
+                    <small>© 2025 Expertzy Inteligência Tributária - Dashboard de Estatísticas v1.0</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/StatisticsDashboard.js"></script>
+    <script src="js/ChartRenderer.js"></script>
+    <script src="js/DataValidator.js"></script>
+    <script>
+        // Inicialização do Dashboard
+        let dashboardController;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            dashboardController = new StatisticsDashboard();
+            dashboardController.init();
+        });
+    </script>
+</body>
+</html>
