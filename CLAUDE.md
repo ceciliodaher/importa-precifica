@@ -370,6 +370,92 @@ python orientacoes/importador-xml-di-nf-entrada-perplexity-aprimorado-venda.py
 5. Resolução de conflitos por timestamp
 ```
 
+## Dashboard de Estatísticas Pós-Importação
+
+### **Estrutura Implementada**
+- **Localização**: `/sistema-expertzy-local/statistics/` - Dashboard visual de análise
+- **Arquitetura**: Dados organizados em 3 camadas: Extraídos → Calculados → Preditivos
+- **Interface**: Dashboard dinâmico que se adapta aos dados disponíveis
+
+### **Nomenclatura OBRIGATÓRIA (Convergente com Sistema)**
+Usar EXATAMENTE os nomes definidos em `docs/nomenclatura.md`:
+- `numero_di` (não numeroDI ou num_di)
+- `valor_reais` (não valorReais ou valor_brl)
+- `valor_moeda_negociacao` (não valorMoeda ou vmle)
+- `frete_valor_reais`, `seguro_valor_reais`
+- `ii_valor_devido`, `ipi_valor_devido`, `pis_valor_devido`, `cofins_valor_devido`
+- `taxa_cambio` (sempre calculada, nunca extraída)
+
+### **Regras Críticas para Dashboard**
+
+#### **1. Zero Fallbacks em Dados Obrigatórios**
+```javascript
+// Dashboard deve FALHAR se dados críticos faltarem
+if (!di.numero_di) {
+    throw new Error('DI sem número - dados corrompidos');
+}
+if (di.valor_reais === undefined || di.valor_reais === null) {
+    throw new Error(`Valor reais ausente na DI ${di.numero_di}`);
+}
+// NUNCA usar || 0 para dados obrigatórios
+```
+
+#### **2. Taxa de Câmbio SEMPRE Calculada**
+```javascript
+// NUNCA extrair ou hardcode taxa de câmbio
+const taxaCambio = di.valor_reais / di.valor_moeda_negociacao;
+// Validar resultado
+if (!isFinite(taxaCambio) || taxaCambio <= 0) {
+    throw new Error(`Taxa de câmbio inválida para DI ${di.numero_di}`);
+}
+// PROIBIDO: const taxaCambio = 5.20;
+```
+
+#### **3. Despesas Extras São Opcionais**
+```javascript
+// Despesas extras PODEM ter fallback para 0
+const armazenagem = despesasExtras?.armazenagem || 0; // OK
+const transporte = despesasExtras?.transporte_interno || 0; // OK
+
+// Mas despesas da DI são obrigatórias
+const siscomex = despesas.siscomex; // SEM fallback
+if (siscomex === undefined) {
+    throw new Error('Taxa SISCOMEX não encontrada na DI');
+}
+```
+
+#### **4. Estrutura de Dados do Dashboard**
+```javascript
+dashboardData = {
+  // Camada 1: Dados Extraídos
+  import_data: {
+    numero_di: string, // obrigatório
+    valor_reais: number, // obrigatório
+    valor_moeda_negociacao: number, // obrigatório
+    taxa_cambio: calculated, // calculado, nunca hardcoded
+    tributos: {
+      ii_valor_devido: number,
+      ipi_valor_devido: number,
+      pis_valor_devido: number,
+      cofins_valor_devido: number
+    }
+  },
+  
+  // Camada 2: Cálculos (preparado)
+  calculations: {
+    despesas_extras: optional,
+    custo_por_item: future,
+    base_icms_recalculada: future
+  },
+  
+  // Camada 3: Análises (futuro)
+  analytics: {
+    cenarios: future,
+    indicadores: future
+  }
+}
+```
+
 ## Debugging
 
 ### **Sistema de Log Integrado**
@@ -388,12 +474,42 @@ tail -f sistema-expertzy-local/xml-import/logs/import-log-$(date +%Y-%m-%d).json
 
 # Abrir dashboard de importação
 open sistema-expertzy-local/xml-import/import-dashboard.html
+
+# Abrir dashboard de estatísticas
+open sistema-expertzy-local/statistics/import-statistics.html
 ```
 
 ### **Problemas Comuns**
 - **ICMS null**: ICMS não vem da DI - usar `aliquotas.json`
 - **Dados truncados**: Verificar tamanhos de campo no banco MySQL
 - **XML mal formado**: Usar logs para identificar estrutura específica
+- **Taxa câmbio zero**: Verificar valores moeda estrangeira vs reais
+- **Dashboard vazio**: Verificar se há DIs importadas no banco
+
+## Implementação com Subagentes
+
+### **Estrutura de Desenvolvimento**
+```yaml
+# Fase 1: Análise
+subagent: comprehensive-researcher
+task: Mapear estruturas de dados e APIs necessárias
+
+# Fase 2: Backend
+subagent: backend-architect
+task: Criar endpoints /api/statistics/*
+
+# Fase 3: Frontend
+subagent: frontend-developer
+task: Implementar dashboard visual
+
+# Fase 4: Testes
+subagent: test-automator
+task: Validar cálculos e nomenclatura
+
+# Fase 5: Documentação
+subagent: technical-researcher
+task: Documentar sistema completo
+```
 
 ---
 

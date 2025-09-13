@@ -205,17 +205,22 @@ class ProductMemoryManager {
         try {
             if (calculations?.calculos_individuais?.[additionIndex]) {
                 const calc = calculations.calculos_individuais[additionIndex];
+                let value = 0;
                 
                 switch(taxType) {
-                    case 'ii': return calc.impostos?.ii?.valor_devido || 0;
-                    case 'ipi': return calc.impostos?.ipi?.valor_devido || 0;
-                    case 'pis': return calc.impostos?.pis?.valor_devido || 0;
-                    case 'cofins': return calc.impostos?.cofins?.valor_devido || 0;
-                    case 'cofins_adicional': return calc.impostos?.cofins?.adicional || 0;
-                    case 'icms': return calc.impostos?.icms?.valor_devido || 0;
-                    case 'icms_st': return calc.impostos?.icms?.st_valor || 0;
+                    case 'ii': value = calc.impostos?.ii?.valor_devido; break;
+                    case 'ipi': value = calc.impostos?.ipi?.valor_devido; break;
+                    case 'pis': value = calc.impostos?.pis?.valor_devido; break;
+                    case 'cofins': value = calc.impostos?.cofins?.valor_devido; break;
+                    case 'cofins_adicional': value = calc.impostos?.cofins?.adicional; break;
+                    case 'icms': value = calc.impostos?.icms?.valor_devido; break;
+                    case 'icms_st': value = calc.impostos?.icms?.st_valor; break;
                     default: return 0;
                 }
+                
+                // Garantir que sempre retorna número
+                const numValue = parseFloat(value);
+                return isNaN(numValue) ? 0 : numValue;
             }
             return 0;
         } catch (error) {

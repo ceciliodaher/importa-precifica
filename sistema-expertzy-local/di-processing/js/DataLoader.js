@@ -168,7 +168,9 @@ class DataLoader {
         }
         
         // Os dados da API já estão no formato correto
-        // Apenas garantir alguns campos necessários
+        // Apenas garantir alguns campos necessários e calcular taxa de câmbio
+        const taxaCambio = this.calcularTaxaCambio();
+        
         const formatted = {
             ...this.diData,
             
@@ -181,10 +183,71 @@ class DataLoader {
             },
             
             // Garantir totais calculados
-            totais: this.diData.resumo || {}
+            totais: this.diData.resumo || {},
+            
+            // CRÍTICO: Adicionar taxa de câmbio na DI e em cada adição
+            taxa_cambio: taxaCambio,
+            adicoes: this.diData.adicoes?.map(adicao => ({
+                ...adicao,
+                taxa_cambio: taxaCambio,
+                // Garantir conversão numérica de valores críticos
+                valor_reais: parseFloat(adicao.valor_reais),
+                valor_moeda_negociacao: parseFloat(adicao.valor_moeda_negociacao),
+                peso_liquido: parseFloat(adicao.peso_liquido),
+                quantidade_estatistica: parseFloat(adicao.quantidade_estatistica),
+                // Garantir tributos também sejam numéricos
+                tributos: adicao.tributos ? {
+                    ...adicao.tributos,
+                    ii_aliquota_ad_valorem: parseFloat(adicao.tributos.ii_aliquota_ad_valorem),
+                    ii_valor_devido: parseFloat(adicao.tributos.ii_valor_devido),
+                    ipi_aliquota_ad_valorem: parseFloat(adicao.tributos.ipi_aliquota_ad_valorem),
+                    ipi_valor_devido: parseFloat(adicao.tributos.ipi_valor_devido),
+                    pis_aliquota_ad_valorem: parseFloat(adicao.tributos.pis_aliquota_ad_valorem),
+                    pis_valor_devido: parseFloat(adicao.tributos.pis_valor_devido),
+                    cofins_aliquota_ad_valorem: parseFloat(adicao.tributos.cofins_aliquota_ad_valorem),
+                    cofins_valor_devido: parseFloat(adicao.tributos.cofins_valor_devido)
+                } : null
+            }))
         };
         
         return formatted;
+    }
+
+    /**
+     * Calcula taxa de câmbio da DI baseada nos totais da DI
+     * @returns {number} Taxa de câmbio calculada
+     */
+    calcularTaxaCambio() {
+        if (!this.diData.adicoes || this.diData.adicoes.length === 0) {
+            throw new Error('Sem adições para calcular taxa de câmbio');
+        }
+        
+        // Calcular totais de toda a DI (não por adição individual)
+        let totalReais = 0;
+        let totalMoedaEstrangeira = 0;
+        
+        for (const adicao of this.diData.adicoes) {
+            const valorReais = parseFloat(adicao.valor_reais);
+            const valorMoedaNegociacao = parseFloat(adicao.valor_moeda_negociacao);
+            
+            if (!isNaN(valorReais)) {
+                totalReais += valorReais;
+            }
+            
+            if (!isNaN(valorMoedaNegociacao)) {
+                totalMoedaEstrangeira += valorMoedaNegociacao;
+            }
+        }
+        
+        if (totalMoedaEstrangeira <= 0 || totalReais <= 0) {
+            throw new Error(`Taxa de câmbio não pode ser calculada - totais inválidos: totalReais=${totalReais}, totalMoedaEstrangeira=${totalMoedaEstrangeira}`);
+        }
+        
+        // Taxa única da DI = Total em Reais / Total em Moeda Estrangeira
+        const taxa = totalReais / totalMoedaEstrangeira;
+        console.log(`💱 Taxa de câmbio DI calculada: ${taxa.toFixed(4)} (Total R$ ${totalReais} / Total $ ${totalMoedaEstrangeira})`);
+        
+        return taxa;
     }
 
     /**

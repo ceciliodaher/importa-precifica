@@ -304,11 +304,10 @@ class CroquiNFExporter {
         // Extrair dados do fornecedor das adições (baseado na análise XML)
         if (this.di.adicoes && this.di.adicoes.length > 0) {
             const primeiraAdicao = this.di.adicoes[0];
-            const fornecedor = primeiraAdicao.fornecedor;
             return {
-                nome: fornecedor?.nome,
-                endereco: `${fornecedor?.logradouro}, ${fornecedor?.cidade}`.trim(),
-                pais: primeiraAdicao.pais_aquisicao_nome,
+                nome: primeiraAdicao.fornecedor_nome,
+                endereco: `${primeiraAdicao.fornecedor_cidade}, ${primeiraAdicao.fornecedor_pais}`.trim(),
+                pais: primeiraAdicao.fornecedor_pais,
                 cnpj: ''
             };
         }

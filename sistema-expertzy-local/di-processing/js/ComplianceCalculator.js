@@ -179,10 +179,10 @@ class ComplianceCalculator {
         console.log('✅ DI processada com sucesso:', {
             adicoes: totalAdicoes,
             produtos: produtosIndividuais.length,
-            'II Total': `R$ ${totaisConsolidados.impostos.ii.valor_devido.toFixed(2)}`,
-            'IPI Total': `R$ ${totaisConsolidados.impostos.ipi.valor_devido.toFixed(2)}`,
-            'PIS Total': `R$ ${totaisConsolidados.impostos.pis.valor_devido.toFixed(2)}`,
-            'COFINS Total': `R$ ${totaisConsolidados.impostos.cofins.valor_devido.toFixed(2)}`
+            'II Total': `R$ ${parseFloat(totaisConsolidados.impostos.ii.valor_devido).toFixed(2)}`,
+            'IPI Total': `R$ ${parseFloat(totaisConsolidados.impostos.ipi.valor_devido).toFixed(2)}`,
+            'PIS Total': `R$ ${parseFloat(totaisConsolidados.impostos.pis.valor_devido).toFixed(2)}`,
+            'COFINS Total': `R$ ${parseFloat(totaisConsolidados.impostos.cofins.valor_devido).toFixed(2)}`
         });
         
         // Validação automática comparando com totais extraídos do XML
@@ -216,14 +216,36 @@ class ComplianceCalculator {
         
         calculosIndividuais.forEach(calc => {
             // Impostos já calculados - devem existir (podem ser zero mas a estrutura deve existir)
-            totais.ii += calc.impostos.ii.valor_devido;
-            totais.ipi += calc.impostos.ipi.valor_devido;
-            totais.pis += calc.impostos.pis.valor_devido;
-            totais.cofins += calc.impostos.cofins.valor_devido;
-            totais.icms += calc.impostos.icms.valor_devido;
-            totais.valor_aduaneiro += calc.valores_base.cif_brl;
-            totais.despesas += calc.despesas.total_custos;
-            totais.peso_total += calc.valores_base.peso_liquido;
+            const ii = parseFloat(calc.impostos.ii.valor_devido);
+            const ipi = parseFloat(calc.impostos.ipi.valor_devido);
+            const pis = parseFloat(calc.impostos.pis.valor_devido);
+            const cofins = parseFloat(calc.impostos.cofins.valor_devido);
+            const icms = parseFloat(calc.impostos.icms.valor_devido);
+            const cifBrl = parseFloat(calc.valores_base.cif_brl);
+            const despesas = parseFloat(calc.despesas.total_custos);
+            const peso = parseFloat(calc.valores_base.peso_liquido);
+            
+            if (isNaN(ii) || isNaN(ipi) || isNaN(pis) || isNaN(cofins) || isNaN(icms)) {
+                throw new Error(`Valores de impostos inválidos na consolidação: II=${ii}, IPI=${ipi}, PIS=${pis}, COFINS=${cofins}, ICMS=${icms}`);
+            }
+            if (isNaN(cifBrl)) {
+                throw new Error(`Valor CIF BRL inválido na consolidação: ${calc.valores_base.cif_brl}`);
+            }
+            if (isNaN(despesas)) {
+                throw new Error(`Total de despesas inválido na consolidação: ${calc.despesas.total_custos}`);
+            }
+            if (isNaN(peso)) {
+                throw new Error(`Peso líquido inválido na consolidação: ${calc.valores_base.peso_liquido}`);
+            }
+            
+            totais.ii += ii;
+            totais.ipi += ipi;
+            totais.pis += pis;
+            totais.cofins += cofins;
+            totais.icms += icms;
+            totais.valor_aduaneiro += cifBrl;
+            totais.despesas += despesas;
+            totais.peso_total += peso;
         });
         
         const totalImpostos = totais.ii + totais.ipi + totais.pis + totais.cofins + totais.icms;
@@ -570,14 +592,14 @@ class ComplianceCalculator {
             
             console.log('✅ ComplianceCalculator: Cálculo de impostos concluído');
             console.log('📊 Resumo:', {
-                CIF: `R$ ${calculo.valores_base.cif_brl.toFixed(2)}`,
-                II: `R$ ${calculo.impostos.ii.valor_devido.toFixed(2)}`,
-                IPI: `R$ ${calculo.impostos.ipi.valor_devido.toFixed(2)}`,
-                PIS: `R$ ${calculo.impostos.pis.valor_devido.toFixed(2)}`,
-                COFINS: `R$ ${calculo.impostos.cofins.valor_devido.toFixed(2)}`,
-                ICMS: `R$ ${calculo.impostos.icms.valor_devido.toFixed(2)}`,
-                'Total Impostos': `R$ ${calculo.totais.total_impostos.toFixed(2)}`,
-                'Custo Total': `R$ ${calculo.totais.custo_total.toFixed(2)}`
+                CIF: `R$ ${parseFloat(calculo.valores_base.cif_brl).toFixed(2)}`,
+                II: `R$ ${parseFloat(calculo.impostos.ii.valor_devido).toFixed(2)}`,
+                IPI: `R$ ${parseFloat(calculo.impostos.ipi.valor_devido).toFixed(2)}`,
+                PIS: `R$ ${parseFloat(calculo.impostos.pis.valor_devido).toFixed(2)}`,
+                COFINS: `R$ ${parseFloat(calculo.impostos.cofins.valor_devido).toFixed(2)}`,
+                ICMS: `R$ ${parseFloat(calculo.impostos.icms.valor_devido).toFixed(2)}`,
+                'Total Impostos': `R$ ${parseFloat(calculo.totais.total_impostos).toFixed(2)}`,
+                'Custo Total': `R$ ${parseFloat(calculo.totais.custo_total).toFixed(2)}`
             });
             
             return calculo;
@@ -641,9 +663,17 @@ class ComplianceCalculator {
         }
         
         // Usar valores já extraídos da DI (conforme POP de Impostos)
-        const aliquota = adicao.tributos.ii_aliquota_ad_valorem;
-        const valorDevido = adicao.tributos.ii_valor_devido;
-        const baseCalculo = valoresBase.cif_brl;
+        // CRÍTICO: Converter valores para número - SEM FALLBACKS
+        if (adicao.tributos.ii_valor_devido === undefined) {
+            throw new Error('Valor devido II ausente na DI');
+        }
+        if (valoresBase.cif_brl === undefined) {
+            throw new Error('Valor CIF não disponível para cálculo II');
+        }
+        
+        const aliquota = parseFloat(adicao.tributos.ii_aliquota_ad_valorem);
+        const valorDevido = parseFloat(adicao.tributos.ii_valor_devido);
+        const baseCalculo = parseFloat(valoresBase.cif_brl);
         
         return {
             aliquota: aliquota,
@@ -726,13 +756,33 @@ class ComplianceCalculator {
         const aliquotaICMS = this.obterAliquotaICMS(this.estadoDestino);
         
         // Base ICMS = CIF + II + IPI + PIS + COFINS + DESPESAS ADUANEIRAS
+        // CRÍTICO: Converter todos os valores para número - SEM FALLBACKS
+        if (calculo.valores_base.cif_brl === undefined) {
+            throw new Error('Valor CIF não disponível para cálculo ICMS');
+        }
+        if (calculo.impostos.ii.valor_devido === undefined) {
+            throw new Error('Valor II não disponível para cálculo ICMS');
+        }
+        if (calculo.impostos.ipi.valor_devido === undefined) {
+            throw new Error('Valor IPI não disponível para cálculo ICMS');
+        }
+        if (calculo.impostos.pis.valor_devido === undefined) {
+            throw new Error('Valor PIS não disponível para cálculo ICMS');
+        }
+        if (calculo.impostos.cofins.valor_devido === undefined) {
+            throw new Error('Valor COFINS não disponível para cálculo ICMS');
+        }
+        if (calculo.despesas.total_base_icms === undefined) {
+            throw new Error('Total despesas para base ICMS não disponível');
+        }
+        
         const baseAntes = 
-            calculo.valores_base.cif_brl +
-            calculo.impostos.ii.valor_devido +
-            calculo.impostos.ipi.valor_devido +
-            calculo.impostos.pis.valor_devido +
-            calculo.impostos.cofins.valor_devido +
-            calculo.despesas.total_base_icms; // INCLUI SISCOMEX!
+            parseFloat(calculo.valores_base.cif_brl) +
+            parseFloat(calculo.impostos.ii.valor_devido) +
+            parseFloat(calculo.impostos.ipi.valor_devido) +
+            parseFloat(calculo.impostos.pis.valor_devido) +
+            parseFloat(calculo.impostos.cofins.valor_devido) +
+            parseFloat(calculo.despesas.total_base_icms); // INCLUI SISCOMEX!
 
         console.log('📊 Cálculo Base ICMS (Calculator):');
         console.log(`        - Base antes ICMS: R$ ${baseAntes.toFixed(2)}`);

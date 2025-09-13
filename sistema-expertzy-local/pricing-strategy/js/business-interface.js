@@ -337,7 +337,7 @@ function populateDIInfo(diData) {
             <div class="col-md-6">
                 <p><strong>DI:</strong> ${diData.di_numero || 'N/A'}</p>
                 <p><strong>NCM:</strong> ${firstAddition.ncm || 'N/A'}</p>
-                <p><strong>Fornecedor:</strong> ${firstAddition.fornecedor?.nome || 'N/A'}</p>
+                <p><strong>Fornecedor:</strong> ${firstAddition.fornecedor_nome || 'N/A'}</p>
             </div>
             <div class="col-md-6">
                 <p><strong>CIF:</strong> R$ ${formatCurrency(validateNumericValue(calculation.valores_base?.valor_aduaneiro_total, 'Valor aduaneiro'))}</p>

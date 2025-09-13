@@ -154,6 +154,43 @@ O sistema disponibiliza funcionalidades de exportação em formatos Excel e PDF,
 A exportação deve incluir todas as informações processadas, cálculos realizados e análises geradas, proporcionando documentação completa para fins de auditoria e apresentação a clientes.
 >>>>>>> 7d3bba78094df4422d2bd74265553fe6ba0e419b
 
+#### 3.7 Dashboard de Estatísticas e Análise Pós-Importação
+
+Sistema visual dinâmico para análise completa dos dados importados, preparado para expansão futura com cálculos avançados de custos e análises preditivas.
+
+**Estrutura em 3 Camadas:**
+
+##### **Camada 1: Dados Extraídos (Implementada)**
+Apresentação visual de todos os dados extraídos do XML e salvos no banco:
+- **Estatísticas por DI**: numero_di, data_registro, importador (nome/CNPJ/UF)
+- **Valores totalizados**: valor_reais, valor_moeda_negociacao
+- **Taxa de câmbio calculada**: valor_reais ÷ valor_moeda_negociacao (NUNCA hardcoded)
+- **Totais agregados**: total_adicoes, total de mercadorias
+- **Tributos extraídos**: ii_valor_devido, ipi_valor_devido, pis_valor_devido, cofins_valor_devido
+- **Frete e Seguro**: frete_valor_reais, seguro_valor_reais, frete_valor_moeda_negociada, seguro_valor_moeda_negociada
+
+##### **Camada 2: Cálculos Dinâmicos (Preparada para Implementação)**
+Sistema preparado para receber cálculos futuros:
+- **Despesas extras configuráveis**: armazenagem, transporte_interno, despachante
+- **Classificação tributária**: despesas tributáveis ICMS vs apenas custeio
+- **Rateio proporcional**: distribuição de despesas por adição/item
+- **Base ICMS recalculada**: inclusão de despesas tributáveis
+- **Custo por item individual**: valor CIF + despesas + tributos
+
+##### **Camada 3: Análises Preditivas (Infraestrutura Futura)**
+Dashboard preparado para expansões analíticas:
+- **Simulador de cenários**: comparação entre estados
+- **Análise de regimes**: Lucro Real vs Presumido vs Simples Nacional
+- **Score de competitividade**: índice 0-100 por estado
+- **Indicadores financeiros**: ROI, break-even, margem ideal
+
+**Regras Críticas de Implementação:**
+- **PROIBIDO fallbacks em dados obrigatórios**: Sempre throw Error se dados críticos faltarem
+- **Taxa câmbio SEMPRE calculada**: Nunca extraída ou hardcoded
+- **Despesas extras OPCIONAIS**: Podem ter default 0
+- **Nomenclatura convergente**: Usar EXATAMENTE os nomes do sistema (numero_di, valor_reais, etc.)
+- **Validação rigorosa**: Verificar integridade antes de cálculos
+
 ### 4. Especificações Técnicas
 
 #### 4.1 Arquitetura do Sistema
@@ -202,6 +239,72 @@ O sistema será organizado em estrutura modular, facilitando manutenção e evol
 ├── /exports/             # Arquivos gerados para download
 ├── /config/              # Configurações do sistema
 └── index.php             # Ponto de entrada principal
+```
+
+#### 4.4 Padrões de Desenvolvimento e Qualidade
+
+##### 4.4.1 Política Zero Fallbacks (OBRIGATÓRIA)
+
+O sistema deve falhar explicitamente quando dados obrigatórios estiverem ausentes, garantindo integridade e confiabilidade dos cálculos tributários.
+
+**❌ PROIBIDO em módulos fiscais:**
+```javascript
+const valor = adicao.valor_reais || 0; // NUNCA fazer isso
+const ncm = adicao.ncm || "00000000"; // PROIBIDO
+```
+
+**✅ OBRIGATÓRIO:**
+```javascript
+const valor = adicao.valor_reais;
+if (valor === undefined || valor === null) {
+    throw new Error(`Valor reais obrigatório ausente na adição ${adicao.numero_adicao}`);
+}
+
+const ncm = adicao.ncm;
+if (!ncm) {
+    throw new Error(`NCM obrigatório ausente na adição ${adicao.numero_adicao}`);
+}
+```
+
+##### 4.4.2 Dados Dinâmicos (SEM HARDCODE)
+
+Todos os valores devem ser calculados dinamicamente a partir dos dados reais, nunca usando valores fixos no código.
+
+**❌ PROIBIDO:**
+```javascript
+const taxaCambio = 5.20; // NUNCA hardcode
+const aliquotaICMS = 18; // PROIBIDO valores fixos
+```
+
+**✅ OBRIGATÓRIO:**
+```javascript
+// Taxa de câmbio SEMPRE calculada
+const taxaCambio = totalReais / totalMoedaEstrangeira;
+if (!isFinite(taxaCambio) || taxaCambio <= 0) {
+    throw new Error('Taxa de câmbio inválida - verificar valores da DI');
+}
+
+// Alíquotas sempre de configuração ou banco
+const aliquotaICMS = obterAliquotaICMS(estado);
+if (!aliquotaICMS) {
+    throw new Error(`Alíquota ICMS não configurada para o estado ${estado}`);
+}
+```
+
+##### 4.4.3 Tratamento de Despesas Opcionais
+
+Despesas extras são opcionais e podem ter valores padrão, diferentemente dos dados obrigatórios da DI.
+
+```javascript
+// Despesas extras PODEM ter fallback
+const armazenagem = despesasExtras?.armazenagem || 0; // OK
+const transporte = despesasExtras?.transporte_interno || 0; // OK
+
+// Mas despesas da DI são obrigatórias
+const siscomex = despesas.siscomex;
+if (siscomex === undefined) {
+    throw new Error('Taxa SISCOMEX não encontrada na DI');
+}
 ```
 
 ### 5. Workflow Operacional

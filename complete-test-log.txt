@@ -1,0 +1,43 @@
+
+Running 1 test using 1 worker
+
+🚀 Iniciando teste simples...
+
+📋 PARTE 1: Dashboard de Importação
+❌ Erro: Failed to load resource: the server responded with a status of 404 (Not Found)
+❌ Erro: Failed to load resource: the server responded with a status of 404 (Not Found)
+   Título da página: Dashboard de Importação XML - Sistema Expertzy
+   Tentando limpar banco...
+   ✅ Banco limpo
+   Importando XMLs...
+   Importando 2518173187.xml...
+   ✅ 2518173187.xml processado
+   Importando 2300120746.xml...
+   ✅ 2300120746.xml processado
+
+📋 PARTE 2: Processador de DI
+   Procurando DIs carregadas...
+   Selecionando DI para processar...
+❌ Erro: ❌ Despesas aduaneiras não encontradas na DI
+   Step 2 visível: true
+   ✅ DI carregada: 2518173187
+   Calculando impostos...
+❌ Erro: Failed to load resource: the server responded with a status of 400 (Bad Request)
+❌ Erro: Erro ao salvar cálculos no banco: Error: HTTP 400: Bad Request
+    at DatabaseConnector.makeRequest (http://localhost:8889/sistema-expertzy-local/shared/js/DatabaseConnector.js:603:23)
+    at async DatabaseConnector.salvarCalculo (http://localhost:8889/sistema-expertzy-local/shared/js/DatabaseConnector.js:260:34)
+    at async atualizarDINoDatabase (http://localhost:8889/sistema-expertzy-local/di-processing/js/di-interface.js:2167:26)
+    at async calcularImpostos (http://localhost:8889/sistema-expertzy-local/di-processing/js/di-interface.js:780:9)
+   ✅ Cálculos completados!
+
+📊 RELATÓRIO FINAL:
+   5 erros encontrados
+   - Failed to load resource: the server responded with a status of 404 (Not Found)
+   - Failed to load resource: the server responded with a status of 404 (Not Found)
+   - ❌ Despesas aduaneiras não encontradas na DI
+   - Failed to load resource: the server responded with a status of 400 (Bad Request)
+   - Erro ao salvar cálculos no banco: Error: HTTP 400: Bad Request
+    at DatabaseConnector.makeRequest 
+  ✓  1 tests/simple-flow.test.js:7:5 › Teste Simples do Fluxo › Fluxo básico de importação e processamento (23.0s)
+
+  1 passed (23.9s)

@@ -135,7 +135,7 @@ class MultiAdditionExporter {
                 adicao.numero_adicao,
                 adicao.ncm,
                 adicao.descricao_ncm,
-                adicao.fornecedor?.nome || 'N/A',
+                adicao.fornecedor_nome || 'N/A',
                 adicao.valor_moeda_negociacao || 0,
                 adicao.valor_reais || 0,
                 taxa_cambio.toFixed(6),

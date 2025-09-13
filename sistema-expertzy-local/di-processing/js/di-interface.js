@@ -254,7 +254,9 @@ function populateStep2Data(diData) {
     // Basic DI info
     document.getElementById('diNumber').textContent = diData.numero_di || 'N/A';
     document.getElementById('diDate').textContent = diData.data_registro || 'N/A';
-    document.getElementById('diIncoterm').textContent = diData.incoterm_identificado?.codigo || 'N/A';
+    // Pegar incoterm da primeira adição (dados vêm do banco, não do DIProcessor)
+    const firstAdditionIncoterm = diData.adicoes?.[0]?.condicao_venda_incoterm;
+    document.getElementById('diIncoterm').textContent = firstAdditionIncoterm || 'N/A';
     
     // First addition data (most DIs have one main addition)
     const firstAddition = diData.adicoes?.[0];
@@ -263,7 +265,7 @@ function populateStep2Data(diData) {
         document.getElementById('productNCM').textContent = firstAddition.ncm || 'N/A';
         document.getElementById('productDesc').textContent = firstAddition.descricao_ncm || 'N/A';
         document.getElementById('productWeight').textContent = `${formatNumber(firstAddition.peso_liquido || 0)} kg`;
-        document.getElementById('supplierName').textContent = firstAddition.fornecedor?.nome || 'N/A';
+        document.getElementById('supplierName').textContent = firstAddition.fornecedor_nome || 'N/A';
     }
     
     // Automatic expenses using legacy parser structure
@@ -313,7 +315,7 @@ function populateAllAdditions(diData) {
                                     <td>${formatNumber(adicao.peso_liquido || 0)}</td>
                                     <td>${formatCurrency(adicao.valor_reais || 0)}</td>
                                     <td><span class="badge bg-info">${adicao.condicao_venda_incoterm || 'N/A'}</span></td>
-                                    <td class="text-truncate" style="max-width: 150px;" title="${adicao.fornecedor?.nome}">${adicao.fornecedor?.nome || 'N/A'}</td>
+                                    <td class="text-truncate" style="max-width: 150px;" title="${adicao.fornecedor_nome}">${adicao.fornecedor_nome || 'N/A'}</td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="viewAdicaoDetails('${adicao.numero_adicao}')" title="Ver detalhes">
                                             <i class="bi bi-eye"></i>
@@ -437,8 +439,9 @@ function viewAdicaoDetails(numeroAdicao) {
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <h6>Fornecedor</h6>
-                                <p><strong>Nome:</strong> ${adicao.fornecedor?.nome || 'N/A'}</p>
-                                <p><strong>Endereço:</strong> ${adicao.fornecedor?.endereco_completo || 'N/A'}</p>
+                                <p><strong>Nome:</strong> ${adicao.fornecedor_nome || 'N/A'}</p>
+                                <p><strong>Cidade:</strong> ${adicao.fornecedor_cidade || 'N/A'}</p>
+                                <p><strong>País:</strong> ${adicao.fornecedor_pais || 'N/A'}</p>
                             </div>
                             <div class="col-md-6">
                                 <h6>Tributos Federais</h6>
@@ -895,8 +898,8 @@ function populateStep3Results(calculation) {
                 <ul class="list-unstyled">
                     <li><strong>Estado:</strong> ${calculation.estado}</li>
                     <li><strong>NCM:</strong> ${calculation.ncm}</li>
-                    <li><strong>Peso:</strong> ${calculation.valores_base.peso_liquido.toFixed(2)} kg</li>
-                    <li><strong>Taxa Câmbio:</strong> ${calculation.valores_base.taxa_cambio.toFixed(4)}</li>
+                    <li><strong>Peso:</strong> ${parseFloat(calculation.valores_base.peso_liquido).toFixed(2)} kg</li>
+                    <li><strong>Taxa Câmbio:</strong> ${parseFloat(calculation.valores_base.taxa_cambio).toFixed(4)}</li>
                     <li><strong>Custo por kg:</strong> ${formatCurrency(calculation.totais.custo_por_kg)}</li>
                 </ul>
                 
@@ -1073,7 +1076,7 @@ function createTaxReport(diData, calculations) {
         di_info: {
             numero: diData.numero_di,
             data: diData.data_registro,
-            incoterm: diData.incoterm_identificado?.codigo
+            incoterm: diData.adicoes?.[0]?.condicao_venda_incoterm
         },
         calculations: calculations,
         totals: {
@@ -1506,7 +1509,7 @@ function updateDIInfo(diData) {
                     </div>
                     <div class="col-md-6">
                         <small><strong>Adições:</strong> ${totalAdicoes}</small><br>
-                        <small><strong>Incoterm:</strong> ${diData.incoterm_identificado?.codigo || 'N/A'}</small><br>
+                        <small><strong>Incoterm:</strong> ${diData.adicoes?.[0]?.condicao_venda_incoterm || 'N/A'}</small><br>
                         <small><strong>Valor Total:</strong> ${formatCurrency(totalFOB)}</small>
                     </div>
                 </div>
@@ -1993,11 +1996,15 @@ async function selectDIForProcessing(numeroDI) {
         // Atualizar estado global
         currentDI = dataLoader.getFormattedData();
         
+        // CRÍTICO: Alimentar interface com dados da DI antes de calcular
+        populateStep2Data(currentDI);
+        populateAllAdditions(currentDI);
+        
         hideLoading();
         
         // Avançar para Step 2 (configuração)
         avancarStep(2);
-        updateDIInfo();
+        updateDIInfo(currentDI);
         
         showAlert(`✅ DI ${numeroDI} carregada! Configure as despesas e calcule os impostos.`, 'success');
         
@@ -2733,7 +2740,7 @@ function viewMultiAdditionSummary() {
             pis: adicao.tributos.pis_valor_devido || 0,
             cofins: adicao.tributos.cofins_valor_devido || 0,
             total_federal: federalTaxes,
-            fornecedor: adicao.fornecedor?.nome || 'N/A'
+            fornecedor: adicao.fornecedor_nome || 'N/A'
         };
     });
     
@@ -3144,6 +3151,9 @@ async function initializeSystem() {
         dataLoader = new DataLoader();
         complianceCalculator = new ComplianceCalculator();
         databaseConnector = new DatabaseConnector();
+        
+        // CRÍTICO: Carregar configurações ICMS antes de qualquer cálculo
+        await complianceCalculator.carregarConfiguracoes();
         
         // Verificar conectividade
         await checkDatabaseConnection();
