@@ -3,7 +3,7 @@
  * API Clear - Limpa banco de dados
  */
 
-require_once '../processor.php';
+require_once __DIR__ . '/../processor.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');

@@ -3,7 +3,7 @@
  * API Export Log - Exporta logs de importação
  */
 
-require_once '../processor.php';
+require_once __DIR__ . '/../processor.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');

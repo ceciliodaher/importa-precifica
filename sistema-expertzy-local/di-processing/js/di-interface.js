@@ -30,8 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function initializeSystem() {
     try {
-        // Initialize processor instances
-        diProcessor = new DIProcessor();
+        // Initialize data loader instance
+        dataLoader = new DataLoader();
         complianceCalculator = new ComplianceCalculator();
         validator = new CalculationValidator();
         exportManager = new ExportManager();
@@ -46,7 +46,7 @@ async function initializeSystem() {
         setupExpensePreview();
         
         // Make instances globally available for testing
-        window.diProcessor = diProcessor;
+        window.dataLoader = dataLoader;
         window.complianceCalculator = complianceCalculator;
         window.ItemCalculator = ItemCalculator;
         window.exportManager = exportManager;
@@ -2148,14 +2148,21 @@ async function atualizarDINoDatabase(diData, calculos) {
     try {
         if (!databaseConnector || !diData || !calculos) return;
         
-        // Preparar dados dos cálculos seguindo estrutura DIProcessor
+        // Preparar dados dos cálculos seguindo estrutura correta da API
         const dadosCalculo = {
             numero_di: diData.numero_di,
+            estado_icms: diData.importador?.endereco_uf || calculos.estado || 'BR',
             tipo_calculo: 'CONFORMIDADE',
             dados_entrada: {
-                importador_uf: diData.importador?.endereco_uf
+                importador_uf: diData.importador?.endereco_uf || 'BR',
+                despesas_extras: calculos.despesas?.extras || {},
+                configuracoes_icms: window.icmsConfig || {}
             },
-            dados_calculo: calculos,
+            dados_calculo: {
+                impostos: calculos.impostos || {},
+                despesas: calculos.despesas || {},
+                valores_base: calculos.valores_base || {}
+            },
             resultados: {
                 impostos: calculos.impostos || {},
                 totais: calculos.totais || {},
@@ -2169,12 +2176,34 @@ async function atualizarDINoDatabase(diData, calculos) {
         if (response && response.success) {
             console.log('✅ Cálculos salvos no banco de dados');
             
+            // NOVO: Salvar produtos individuais no banco estruturado
+            if (calculos.produtos_individuais && calculos.produtos_individuais.length > 0 && response.calculo_id) {
+                try {
+                    console.log(`💾 Salvando ${calculos.produtos_individuais.length} produtos individuais no banco...`);
+                    
+                    if (window.complianceCalculator && typeof window.complianceCalculator.salvarProdutosCalculadosNoBanco === 'function') {
+                        await window.complianceCalculator.salvarProdutosCalculadosNoBanco(
+                            response.calculo_id, 
+                            calculos.produtos_individuais
+                        );
+                        console.log('✅ Produtos individuais salvos no banco estruturado');
+                    } else {
+                        console.warn('⚠️ ComplianceCalculator não disponível para salvar produtos individuais');
+                    }
+                } catch (produtoError) {
+                    console.error('❌ Erro ao salvar produtos individuais no banco:', produtoError);
+                    // Não interromper o fluxo principal
+                }
+            } else {
+                console.warn('⚠️ Nenhum produto individual encontrado para salvar ou calculo_id ausente');
+            }
+            
             // Mostrar notificação discreta
             const toast = document.createElement('div');
             toast.className = 'toast position-fixed bottom-0 end-0 m-3';
             toast.innerHTML = `
                 <div class="toast-body bg-info text-white">
-                    📊 Cálculos da DI ${diData.numero_di} salvos
+                    📊 Cálculos da DI ${diData.numero_di} salvos no banco
                 </div>
             `;
             document.body.appendChild(toast);

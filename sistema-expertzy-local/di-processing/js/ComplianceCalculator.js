@@ -1085,6 +1085,74 @@ class ComplianceCalculator {
     }
     
     /**
+     * NOVO: Salva produtos individuais calculados no banco estruturado
+     * Substitui armazenamento JSON em calculos_salvos.resultados
+     * @param {number} calculoId - ID do cálculo na tabela calculos_salvos
+     * @param {Array} produtosIndividuais - Array de produtos calculados
+     * @returns {Promise} - Resultado da operação
+     */
+    async salvarProdutosCalculadosNoBanco(calculoId, produtosIndividuais) {
+        console.log(`💾 Salvando ${produtosIndividuais.length} produtos individuais no banco para cálculo ID ${calculoId}...`);
+        
+        try {
+            // Validar parâmetros obrigatórios
+            if (!calculoId || !Number.isInteger(calculoId) || calculoId <= 0) {
+                throw new Error('ID do cálculo inválido ou ausente');
+            }
+            
+            if (!produtosIndividuais || !Array.isArray(produtosIndividuais) || produtosIndividuais.length === 0) {
+                throw new Error('Array de produtos individuais inválido ou vazio');
+            }
+            
+            // Preparar dados para API
+            const requestData = {
+                calculo_id: calculoId,
+                produtos: produtosIndividuais
+            };
+            
+            // Fazer requisição para API
+            const response = await fetch('/api/endpoints/salvar-produtos-individuais.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errorData.message || 'Erro desconhecido na API'}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(`API retornou erro: ${result.message || 'Erro desconhecido'}`);
+            }
+            
+            console.log('✅ Produtos individuais salvos no banco com sucesso:', {
+                calculo_id: result.dados.calculo_id,
+                numero_di: result.dados.numero_di,
+                produtos_inseridos: result.dados.produtos_inseridos,
+                produtos_com_erro: result.dados.produtos_com_erro
+            });
+            
+            // Log de erros se houver
+            if (result.dados.produtos_com_erro > 0 && result.erros && result.erros.length > 0) {
+                console.warn(`⚠️ ${result.dados.produtos_com_erro} produtos tiveram erros:`, result.erros);
+            }
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar produtos individuais no banco:', error);
+            
+            // Re-throw com contexto adicional
+            throw new Error(`Falha ao salvar produtos no banco: ${error.message}`);
+        }
+    }
+    
+    /**
      * INTEGRAÇÃO: Atualiza DI salva no localStorage com cálculos completos - NO FALLBACKS
      * @param {Object} di - Dados da DI processada
      * @param {Object} totaisConsolidados - Totais calculados

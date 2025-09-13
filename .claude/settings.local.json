@@ -50,7 +50,10 @@
       "Bash(./test-complete-workflow.sh:*)",
       "Bash(./test-module2-simple.sh:*)",
       "Bash(timeout 180 npx playwright test tests/e2e-complete-workflow.test.js --headed --timeout=180000)",
-      "Bash(open sistema-expertzy-local/statistics/import-statistics.html)"
+      "Bash(open sistema-expertzy-local/statistics/import-statistics.html)",
+      "Bash(npm test:*)",
+      "Bash(./run-master-test.sh:*)",
+      "Bash(open sistema-expertzy-local/xml-import/api/clear.php)"
     ],
     "deny": [],
     "ask": []

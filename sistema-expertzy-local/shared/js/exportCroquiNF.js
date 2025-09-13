@@ -18,7 +18,7 @@ class CroquiNFExporter {
         console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', diData.numero_di);
         
         this.initializeStyles();
-        this.prepareAllData();
+        // prepareAllData() deve ser chamado explicitamente como async
     }
     
     initializeStyles() {
@@ -97,10 +97,10 @@ class CroquiNFExporter {
     
     // ========== PREPARAÇÃO DE DADOS ==========
     
-    prepareAllData() {
+    async prepareAllData() {
         console.log('📊 Preparando dados do croqui...');
         this.header = this.prepareHeader();
-        this.produtos = this.prepareProdutos();
+        this.produtos = await this.prepareProdutos(); // ASYNC: Consulta banco estruturado
         this.totais = this.prepareTotais();
         console.log('✅ Dados preparados:', { 
             produtos: this.produtos.length, 
@@ -153,13 +153,66 @@ class CroquiNFExporter {
         };
     }
     
-    prepareProdutos() {
+    async prepareProdutos() {
         const produtos = [];
         let itemCounter = 1;
         
-        // NOVO: Usar produtos_individuais já calculados pelo ComplianceCalculator + ItemCalculator
+        // PRIORIDADE 1: Consultar produtos do banco estruturado
+        try {
+            const produtosBanco = await this.consultarProdutosBanco();
+            if (produtosBanco && produtosBanco.length > 0) {
+                console.log(`📦 Usando ${produtosBanco.length} produtos do banco estruturado`);
+                
+                produtosBanco.forEach(produto => {
+                    const produtoProcessado = {
+                        // Identificação
+                        adicao: produto.adicao_numero,
+                        item: this.generateItemCode(itemCounter),
+                        descricao: this.formatDescription(produto.descricao),
+                        ncm: produto.ncm,
+                        
+                        // Quantidades 
+                        peso_kg: 0, // Será calculado proporcionalmente
+                        quant_cx: 1,
+                        quant_por_cx: produto.quantidade || 1,
+                        total_un: produto.quantidade || 1,
+                        
+                        // Valores monetários (já em BRL)
+                        valor_unitario_usd: 0, // Não usado no croqui
+                        valor_unitario: produto.valor_unitario_brl,
+                        valor_total: produto.valor_total_brl,
+                        
+                        // IMPOSTOS DIRETOS DO BANCO ESTRUTURADO
+                        bc_icms: produto.base_icms_item,
+                        valor_icms: produto.icms_valor_item,
+                        aliq_icms: produto.aliquota_icms_aplicada,
+                        
+                        bc_ipi: produto.valor_total_brl + produto.ii_valor_item,
+                        valor_ipi: produto.ipi_valor_item,
+                        aliq_ipi: this.getAliquotaIPIPorNCM(produto.ncm),
+                        
+                        // Outros impostos diretos do banco
+                        valor_ii: produto.ii_valor_item,
+                        valor_pis: produto.pis_valor_item,
+                        valor_cofins: produto.cofins_valor_item,
+                        
+                        // Custo total final
+                        custo_total: produto.custo_total_item
+                    };
+                    
+                    produtos.push(produtoProcessado);
+                    itemCounter++;
+                });
+                
+                return produtos;
+            }
+        } catch (bancError) {
+            console.warn('⚠️ Erro ao consultar produtos do banco, tentando fallbacks:', bancError.message);
+        }
+        
+        // PRIORIDADE 2: Usar produtos_individuais calculados em memória
         if (this.calculos && this.calculos.produtos_individuais && this.calculos.produtos_individuais.length > 0) {
-            console.log('📦 Usando produtos individuais já calculados:', this.calculos.produtos_individuais.length);
+            console.log('📦 Usando produtos individuais em memória:', this.calculos.produtos_individuais.length);
             
             this.calculos.produtos_individuais.forEach(produto => {
                 const produtoProcessado = {
@@ -200,10 +253,158 @@ class CroquiNFExporter {
             });
             
         } else {
-            // Não há DI sem produtos - se não houver produtos individuais, erro
-            throw new Error('Produtos individuais não encontrados. Execute o cálculo de impostos primeiro.');
+            // PRIORIDADE 3: Verificar window.currentCalculation
+            if (window.currentCalculation?.produtos_individuais?.length > 0) {
+                console.log('📦 Usando produtos de window.currentCalculation');
+                return await this.prepareProdutosFromCalculation(window.currentCalculation.produtos_individuais);
+            }
+            
+            // PRIORIDADE 4: Gerar produtos básicos das adições da DI
+            if (this.di?.adicoes?.length > 0) {
+                console.log('📦 Gerando produtos básicos das adições da DI');
+                return this.generateBasicProductsFromAdicoes();
+            }
+            
+            // Erro final se nenhuma fonte de dados disponível
+            throw new Error('Nenhuma fonte de dados de produtos disponível. Execute o cálculo de impostos ou verifique os dados da DI.');
         }
         
+        return produtos;
+    }
+    
+    /**
+     * NOVO: Consulta produtos individuais do banco estruturado
+     * Prioridade 1 para geração de Croqui NF
+     */
+    async consultarProdutosBanco() {
+        try {
+            if (!this.diNumber) {
+                throw new Error('Número da DI não disponível para consulta');
+            }
+            
+            console.log(`🔍 Consultando produtos do banco para DI ${this.diNumber}...`);
+            
+            // Construir URL da API com parâmetros
+            const params = new URLSearchParams({
+                numero_di: this.diNumber,
+                formato: 'completo'
+            });
+            
+            // Se temos ID do cálculo específico, usar para maior precisão
+            if (this.calculos?.calculo_id) {
+                params.append('calculo_id', this.calculos.calculo_id.toString());
+            }
+            
+            const url = `/api/endpoints/consultar-produtos-croqui.php?${params.toString()}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(`API retornou erro: ${data.message || 'Erro desconhecido'}`);
+            }
+            
+            const produtos = data.produtos || [];
+            const resumo = data.resumo || {};
+            
+            console.log(`✅ Consultados ${produtos.length} produtos do banco para DI ${this.diNumber}`, {
+                total_produtos: resumo.total_produtos,
+                total_adicoes: resumo.total_adicoes,
+                valor_total: resumo.valor_total_geral,
+                custo_total: resumo.custo_total_geral
+            });
+            
+            return produtos;
+            
+        } catch (error) {
+            console.error(`❌ Erro ao consultar produtos do banco para DI ${this.diNumber}:`, error);
+            throw error; // Re-throw para permitir fallbacks
+        }
+    }
+    
+    /**
+     * Método auxiliar para preparar produtos de window.currentCalculation
+     */
+    async prepareProdutosFromCalculation(produtosIndividuais) {
+        const produtos = [];
+        let itemCounter = 1;
+        
+        produtosIndividuais.forEach(produto => {
+            const produtoProcessado = {
+                adicao: produto.adicao_numero,
+                item: this.generateItemCode(itemCounter),
+                descricao: this.formatDescription(produto.descricao),
+                ncm: produto.ncm,
+                peso_kg: 0,
+                quant_cx: 1,
+                quant_por_cx: produto.quantidade || 1,
+                total_un: produto.quantidade || 1,
+                valor_unitario_usd: 0,
+                valor_unitario: produto.valor_unitario_brl,
+                valor_total: produto.valor_total_brl,
+                bc_icms: produto.base_icms_item || 0,
+                valor_icms: produto.icms_item || 0,
+                aliq_icms: this.getAliquotaICMSPorNCM(produto.ncm),
+                bc_ipi: (produto.valor_total_brl || 0) + (produto.ii_item || 0),
+                valor_ipi: produto.ipi_item || 0,
+                aliq_ipi: this.getAliquotaIPIPorNCM(produto.ncm),
+                valor_ii: produto.ii_item || 0,
+                valor_pis: produto.pis_item || 0,
+                valor_cofins: produto.cofins_item || 0
+            };
+            
+            produtos.push(produtoProcessado);
+            itemCounter++;
+        });
+        
+        return produtos;
+    }
+    
+    /**
+     * Método auxiliar para gerar produtos básicos das adições quando não há cálculos
+     */
+    generateBasicProductsFromAdicoes() {
+        const produtos = [];
+        let itemCounter = 1;
+        
+        this.di.adicoes.forEach(adicao => {
+            if (adicao.produtos && adicao.produtos.length > 0) {
+                adicao.produtos.forEach(produto => {
+                    const produtoBasico = {
+                        adicao: adicao.numero_adicao,
+                        item: this.generateItemCode(itemCounter),
+                        descricao: this.formatDescription(produto.descricao_mercadoria || 'Produto importado'),
+                        ncm: adicao.ncm || '00000000',
+                        peso_kg: 0,
+                        quant_cx: 1,
+                        quant_por_cx: produto.quantidade || 1,
+                        total_un: produto.quantidade || 1,
+                        valor_unitario_usd: 0,
+                        valor_unitario: produto.valor_unitario_brl || 0,
+                        valor_total: (produto.quantidade || 1) * (produto.valor_unitario_brl || 0),
+                        // Valores zerados pois não há cálculo de impostos
+                        bc_icms: 0,
+                        valor_icms: 0,
+                        aliq_icms: 0,
+                        bc_ipi: 0,
+                        valor_ipi: 0,
+                        aliq_ipi: 0,
+                        valor_ii: 0,
+                        valor_pis: 0,
+                        valor_cofins: 0
+                    };
+                    
+                    produtos.push(produtoBasico);
+                    itemCounter++;
+                });
+            }
+        });
+        
+        console.log(`📦 Gerados ${produtos.length} produtos básicos das adições (sem impostos calculados)`);
         return produtos;
     }
     
@@ -1124,6 +1325,10 @@ window.gerarCroquiPDFNovo = async function(diData) {
         }
         
         const exporter = new CroquiNFExporter(diData, window.currentCalculation);
+        
+        // NOVO: Preparar dados usando banco estruturado
+        await exporter.prepareAllData();
+        
         const buffer = await exporter.generatePDF();
         
         // Download do arquivo

@@ -1,8 +1,8 @@
 {
-    "filename": "import-log-2025-09-12.json",
+    "filename": "import-log-2025-09-13.json",
     "logs": [
         {
-            "timestamp": "2025-09-12T09:42:29+00:00",
+            "timestamp": "2025-09-13T18:59:45+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -11,7 +11,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:42:56+00:00",
+            "timestamp": "2025-09-13T18:59:48+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -20,7 +20,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:43:02+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -29,176 +29,13 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Iniciando processamento de XML",
-            "context": {
-                "filename": "2518173187.xml",
-                "xml_size": 22011
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Processando DIs do XML",
-            "context": {
-                "filename": "2518173187.xml",
-                "total_dis": 1
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Processando DI individual",
-            "context": {
-                "numero_di": "2518173187"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "success",
-            "message": "DI processada com sucesso",
-            "context": {
-                "numero_di": "2518173187",
-                "adicoes_inseridas": 1,
-                "importador_id": "1"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "success",
-            "message": "XML processado com sucesso",
-            "context": {
-                "filename": "2518173187.xml",
-                "stats": {
-                    "dis_processadas": 1,
-                    "adicoes": 1,
-                    "mercadorias": 1,
-                    "erros": 0
-                }
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Iniciando processamento de XML",
-            "context": {
-                "filename": "2300120746.xml",
-                "xml_size": 267318
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Processando DIs do XML",
-            "context": {
-                "filename": "2300120746.xml",
-                "total_dis": 1
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Processando DI individual",
-            "context": {
-                "numero_di": "2300120746"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "success",
-            "message": "DI processada com sucesso",
-            "context": {
-                "numero_di": "2300120746",
-                "adicoes_inseridas": 16,
-                "importador_id": "2"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "success",
-            "message": "XML processado com sucesso",
-            "context": {
-                "filename": "2300120746.xml",
-                "stats": {
-                    "dis_processadas": 1,
-                    "adicoes": 16,
-                    "mercadorias": 189,
-                    "erros": 0
-                }
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:43:15+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:46:12+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:46:16+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:46:21+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:46:29+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Iniciando limpeza do banco de dados",
             "context": []
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -206,7 +43,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -214,7 +51,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -222,7 +59,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -230,7 +67,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -238,7 +75,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -246,7 +83,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -254,7 +91,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -262,7 +99,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -270,7 +107,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -278,7 +115,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -286,7 +123,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:23+00:00",
             "level": "success",
             "message": "Banco de dados limpo com sucesso",
             "context": {
@@ -307,7 +144,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T09:46:29+00:00",
+            "timestamp": "2025-09-13T19:12:28+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -316,7 +153,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:21+00:00",
+            "timestamp": "2025-09-13T19:12:44+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -325,7 +162,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:23+00:00",
+            "timestamp": "2025-09-13T19:14:47+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -334,7 +171,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:28+00:00",
+            "timestamp": "2025-09-13T19:28:25+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -343,7 +180,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:26+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -352,7 +189,84 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:34+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "xml_size": 26008
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2520345968"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "success",
+            "message": "DI processada com sucesso",
+            "context": {
+                "numero_di": "2520345968",
+                "adicoes_inseridas": 1,
+                "importador_id": "1"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2520345968.xml",
+                "stats": {
+                    "dis_processadas": 1,
+                    "adicoes": 1,
+                    "mercadorias": 4,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Iniciando processamento de XML",
             "context": {
@@ -361,7 +275,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Processando DIs do XML",
             "context": {
@@ -370,7 +284,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Processando DI individual",
             "context": {
@@ -378,17 +292,17 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "success",
             "message": "DI processada com sucesso",
             "context": {
                 "numero_di": "2518173187",
                 "adicoes_inseridas": 1,
-                "importador_id": "1"
+                "importador_id": "2"
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "success",
             "message": "XML processado com sucesso",
             "context": {
@@ -402,7 +316,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -411,7 +325,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Iniciando processamento de XML",
             "context": {
@@ -420,7 +334,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Processando DIs do XML",
             "context": {
@@ -429,7 +343,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Processando DI individual",
             "context": {
@@ -437,17 +351,17 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "success",
             "message": "DI processada com sucesso",
             "context": {
                 "numero_di": "2300120746",
                 "adicoes_inseridas": 16,
-                "importador_id": "2"
+                "importador_id": "3"
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "success",
             "message": "XML processado com sucesso",
             "context": {
@@ -461,7 +375,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:55+00:00",
+            "timestamp": "2025-09-13T19:28:59+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -470,7 +384,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T14:00:59+00:00",
+            "timestamp": "2025-09-13T19:29:56+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -479,7 +393,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:00:01+00:00",
+            "timestamp": "2025-09-13T20:34:46+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -488,7 +402,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:02:44+00:00",
+            "timestamp": "2025-09-13T20:34:54+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -497,7 +411,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:03:04+00:00",
+            "timestamp": "2025-09-13T20:35:21+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -506,7 +420,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:04:15+00:00",
+            "timestamp": "2025-09-13T20:35:35+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -515,7 +429,56 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:06:29+00:00",
+            "timestamp": "2025-09-13T20:35:35+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "xml_size": 267318
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:35:35+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:35:35+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2300120746"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:35:35+00:00",
+            "level": "warning",
+            "message": "DI duplicada encontrada",
+            "context": {
+                "numero_di": "2300120746",
+                "action": "skipped"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:35:35+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2300120746.xml",
+                "stats": {
+                    "dis_processadas": 0,
+                    "adicoes": 0,
+                    "mercadorias": 0,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:35:47+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -524,7 +487,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:07:28+00:00",
+            "timestamp": "2025-09-13T20:36:01+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -533,7 +496,56 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:08:09+00:00",
+            "timestamp": "2025-09-13T20:36:01+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "xml_size": 22011
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:36:01+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:36:01+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2518173187"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:36:01+00:00",
+            "level": "warning",
+            "message": "DI duplicada encontrada",
+            "context": {
+                "numero_di": "2518173187",
+                "action": "skipped"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T20:36:01+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2518173187.xml",
+                "stats": {
+                    "dis_processadas": 0,
+                    "adicoes": 0,
+                    "mercadorias": 0,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:12+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -542,7 +554,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:09:31+00:00",
+            "timestamp": "2025-09-13T21:02:14+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -551,7 +563,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:10:42+00:00",
+            "timestamp": "2025-09-13T21:02:17+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -560,7 +572,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:12:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -569,58 +581,13 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:14:09+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T15:16:28+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T15:18:35+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T15:18:41+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T15:18:46+00:00",
-            "level": "info",
-            "message": "Conexão com banco de dados estabelecida",
-            "context": {
-                "host": "localhost:3307",
-                "database": "importa_precificacao"
-            }
-        },
-        {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Iniciando limpeza do banco de dados",
             "context": []
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -628,7 +595,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -636,7 +603,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -644,7 +611,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -652,7 +619,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -660,7 +627,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -668,7 +635,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -676,7 +643,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -684,7 +651,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -692,7 +659,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -700,7 +667,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Tabela truncada com sucesso",
             "context": {
@@ -708,7 +675,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "success",
             "message": "Banco de dados limpo com sucesso",
             "context": {
@@ -729,7 +696,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:46+00:00",
+            "timestamp": "2025-09-13T21:02:21+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -738,7 +705,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -747,7 +714,66 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "xml_size": 26008
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2520345968"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "success",
+            "message": "DI processada com sucesso",
+            "context": {
+                "numero_di": "2520345968",
+                "adicoes_inseridas": 1,
+                "importador_id": "1"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2520345968.xml",
+                "stats": {
+                    "dis_processadas": 1,
+                    "adicoes": 1,
+                    "mercadorias": 4,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Iniciando processamento de XML",
             "context": {
@@ -756,7 +782,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Processando DIs do XML",
             "context": {
@@ -765,7 +791,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Processando DI individual",
             "context": {
@@ -773,17 +799,17 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "success",
             "message": "DI processada com sucesso",
             "context": {
                 "numero_di": "2518173187",
                 "adicoes_inseridas": 1,
-                "importador_id": "1"
+                "importador_id": "2"
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "success",
             "message": "XML processado com sucesso",
             "context": {
@@ -797,7 +823,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -806,7 +832,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Iniciando processamento de XML",
             "context": {
@@ -815,7 +841,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Processando DIs do XML",
             "context": {
@@ -824,7 +850,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Processando DI individual",
             "context": {
@@ -832,17 +858,17 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "success",
             "message": "DI processada com sucesso",
             "context": {
                 "numero_di": "2300120746",
                 "adicoes_inseridas": 16,
-                "importador_id": "2"
+                "importador_id": "3"
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "success",
             "message": "XML processado com sucesso",
             "context": {
@@ -856,7 +882,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:18:56+00:00",
+            "timestamp": "2025-09-13T21:02:28+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -865,7 +891,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:19:59+00:00",
+            "timestamp": "2025-09-13T21:02:54+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -874,7 +900,7 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:20:03+00:00",
+            "timestamp": "2025-09-13T21:03:01+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -883,7 +909,181 @@
             }
         },
         {
-            "timestamp": "2025-09-12T15:20:06+00:00",
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "xml_size": 26008
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2520345968"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "warning",
+            "message": "DI duplicada encontrada",
+            "context": {
+                "numero_di": "2520345968",
+                "action": "skipped"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2520345968.xml",
+                "stats": {
+                    "dis_processadas": 0,
+                    "adicoes": 0,
+                    "mercadorias": 0,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "xml_size": 22011
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2518173187"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "warning",
+            "message": "DI duplicada encontrada",
+            "context": {
+                "numero_di": "2518173187",
+                "action": "skipped"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2518173187.xml",
+                "stats": {
+                    "dis_processadas": 0,
+                    "adicoes": 0,
+                    "mercadorias": 0,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "xml_size": 267318
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2300120746"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "warning",
+            "message": "DI duplicada encontrada",
+            "context": {
+                "numero_di": "2300120746",
+                "action": "skipped"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2300120746.xml",
+                "stats": {
+                    "dis_processadas": 0,
+                    "adicoes": 0,
+                    "mercadorias": 0,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:01+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-13T21:03:10+00:00",
             "level": "info",
             "message": "Conexão com banco de dados estabelecida",
             "context": {
@@ -892,5 +1092,5 @@
             }
         }
     ],
-    "total_entries": 96
+    "total_entries": 116
 }

@@ -8,7 +8,13 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx playwright test",
+    "test:master": "cd tests/exhaustive && ./run-master-test.sh",
+    "test:master:check": "cd tests/exhaustive && ./check-prerequisites.sh",
+    "test:master:headless": "cd tests/exhaustive && npx playwright test full-system-validation.test.js --headed=false",
+    "test:master:debug": "cd tests/exhaustive && npx playwright test full-system-validation.test.js --debug",
+    "test:install": "npx playwright install",
+    "test:report": "cd tests/exhaustive && npx playwright show-report test-results/html-report"
   },
   "repository": {
     "type": "git",
