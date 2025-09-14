@@ -10,12 +10,18 @@
 class CroquiNFExporter {
     constructor(diData, calculosData = null) {
         this.di = diData;  // Dados já processados pelo DIProcessor
+        this.diNumber = diData?.numero_di;  // CRITICAL: Extract DI number for database queries
         this.calculos = calculosData;  // Cálculos já feitos pelo ComplianceCalculator
         this.empresa = 'EXPERTZY';
         this.subtitulo = 'SISTEMA DE IMPORTAÇÃO E PRECIFICAÇÃO';
         this.versao = '2.0.0';
         
-        console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', diData.numero_di);
+        // CRITICAL VALIDATION: Ensure DI number is available
+        if (!this.diNumber) {
+            throw new Error(`DI number obrigatório ausente. Recebido: ${JSON.stringify(diData)}`);
+        }
+        
+        console.log('🏭 CroquiNFExporter v2.0: Inicializando com DI:', this.diNumber);
         
         this.initializeStyles();
         // prepareAllData() deve ser chamado explicitamente como async

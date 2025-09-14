@@ -972,6 +972,13 @@ async function exportarPlanilhaCustos() {
     }
     
     try {
+        // CRITICAL FIX: Ensure exportManager is available
+        if (!exportManager || exportManager === null) {
+            console.warn('⚠️ ExportManager null - re-inicializando...');
+            exportManager = new ExportManager();
+            window.exportManager = exportManager;
+        }
+        
         const result = await exportManager.export('excel', currentDI, currentCalculation);
         showAlert(`Planilha exportada: ${result.filename}`, 'success');
     } catch (error) {
