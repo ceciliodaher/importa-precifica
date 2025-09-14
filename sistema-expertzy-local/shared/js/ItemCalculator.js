@@ -315,17 +315,27 @@ class ItemCalculator {
     processarItensAdicao(adicao, despesasAduaneiras = null, despesasExtras = null) {
         const itensCalculados = [];
         
+        console.log(`🔍 ItemCalculator: Processando adição ${adicao.numero_adicao} - produtos existentes:`, adicao.produtos?.length || 0);
+        
         // Obter lista de produtos da adição
         const produtosList = adicao.produtos || [];
         if (produtosList.length === 0) {
+            console.log(`🔄 ItemCalculator: Criando produto fallback para adição ${adicao.numero_adicao}`);
             // Se não há lista de produtos, criar um item único da adição
-            produtosList.push({
-                descricao_mercadoria: adicao.descricao_mercadoria,
-                quantidade: adicao.quantidade_estatistica,
-                valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario,
-                valor_total: adicao.valor_reais
-            });
+            const fallbackProduct = {
+                descricao_mercadoria: adicao.descricao_mercadoria || adicao.descricao_ncm || `Produto NCM ${adicao.ncm}`,
+                quantidade: adicao.quantidade_estatistica || 1,
+                valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || (adicao.valor_reais / (adicao.quantidade_estatistica || 1)),
+                valor_total: adicao.valor_reais,
+                codigo: adicao.codigo_produto || `PROD-${adicao.numero_adicao}`,
+                unidade_medida: adicao.unidade_medida || 'UN'
+            };
+            
+            console.log(`🔍 ItemCalculator: Produto fallback criado:`, fallbackProduct);
+            produtosList.push(fallbackProduct);
         }
+        
+        console.log(`🔍 ItemCalculator: Processando ${produtosList.length} produtos da adição ${adicao.numero_adicao}`);
         
         produtosList.forEach((produto, index) => {
             const valorItem = produto.valor_total_brl || produto.valor_total || 

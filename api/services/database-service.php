@@ -486,6 +486,22 @@ class DatabaseService {
     }
 
     // ===================================================================
+    // MÉTODOS DE ACESSO À CONEXÃO
+    // ===================================================================
+
+    /**
+     * Obter conexão PDO para uso em endpoints específicos
+     * 
+     * @return PDO A conexão com o banco de dados
+     */
+    public function getConnection() {
+        if (!$this->db) {
+            throw new Exception('Conexão com banco de dados não está disponível');
+        }
+        return $this->db;
+    }
+
+    // ===================================================================
     // SERVIÇOS DE SISTEMA
     // ===================================================================
 

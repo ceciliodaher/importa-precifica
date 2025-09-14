@@ -164,12 +164,18 @@ class CroquiNFExporter {
         let itemCounter = 1;
         
         // PRIORIDADE 1: Consultar produtos do banco estruturado
+        let produtosBanco = null;
         try {
-            const produtosBanco = await this.consultarProdutosBanco();
-            if (produtosBanco && produtosBanco.length > 0) {
-                console.log(`📦 Usando ${produtosBanco.length} produtos do banco estruturado`);
-                
-                produtosBanco.forEach(produto => {
+            produtosBanco = await this.consultarProdutosBanco();
+        } catch (error) {
+            console.warn('⚠️ Falha ao consultar produtos do banco:', error.message);
+            console.log('🔄 Continuando com métodos de fallback...');
+        }
+        
+        if (produtosBanco && produtosBanco.length > 0) {
+            console.log(`📦 Usando ${produtosBanco.length} produtos do banco estruturado`);
+            
+            produtosBanco.forEach(produto => {
                     const produtoProcessado = {
                         // Identificação
                         adicao: produto.adicao_numero,
@@ -258,24 +264,37 @@ class CroquiNFExporter {
                 itemCounter++;
             });
             
-        } else {
-            // PRIORIDADE 3: Verificar window.currentCalculation
-            if (window.currentCalculation?.produtos_individuais?.length > 0) {
-                console.log('📦 Usando produtos de window.currentCalculation');
-                return await this.prepareProdutosFromCalculation(window.currentCalculation.produtos_individuais);
-            }
-            
-            // PRIORIDADE 4: Gerar produtos básicos das adições da DI
-            if (this.di?.adicoes?.length > 0) {
-                console.log('📦 Gerando produtos básicos das adições da DI');
-                return this.generateBasicProductsFromAdicoes();
-            }
-            
-            // Erro final se nenhuma fonte de dados disponível
-            throw new Error('Nenhuma fonte de dados de produtos disponível. Execute o cálculo de impostos ou verifique os dados da DI.');
         }
         
-        return produtos;
+        // PRIORIDADE 2: Verificar window.currentCalculation
+        console.log('🔍 Verificando window.currentCalculation...', {
+            existe: !!window.currentCalculation,
+            produtos_individuais: window.currentCalculation?.produtos_individuais?.length || 0
+        });
+        
+        if (window.currentCalculation?.produtos_individuais?.length > 0) {
+            console.log(`📦 Usando ${window.currentCalculation.produtos_individuais.length} produtos de window.currentCalculation`);
+            return await this.prepareProdutosFromCalculation(window.currentCalculation.produtos_individuais);
+        }
+        
+        // PRIORIDADE 3: Gerar produtos básicos das adições da DI
+        console.log('🔍 Verificando adições da DI...', {
+            existe: !!this.di?.adicoes,
+            quantidade: this.di?.adicoes?.length || 0
+        });
+        
+        if (this.di?.adicoes?.length > 0) {
+            console.log(`📦 Gerando ${this.di.adicoes.length} produtos básicos das adições da DI`);
+            return this.generateBasicProductsFromAdicoes();
+        }
+        
+        // Erro final se nenhuma fonte de dados disponível
+        console.error('❌ Nenhuma fonte de dados de produtos disponível:', {
+            banco_produtos: produtosBanco?.length || 0,
+            window_calculation: window.currentCalculation?.produtos_individuais?.length || 0,
+            di_adicoes: this.di?.adicoes?.length || 0
+        });
+        throw new Error('Nenhuma fonte de dados de produtos disponível. Execute o cálculo de impostos ou verifique os dados da DI.');
     }
     
     /**
@@ -328,7 +347,7 @@ class CroquiNFExporter {
             
         } catch (error) {
             console.error(`❌ Erro ao consultar produtos do banco para DI ${this.diNumber}:`, error);
-            throw error; // Re-throw para permitir fallbacks
+            return null; // Return null to allow fallback methods to work
         }
     }
     

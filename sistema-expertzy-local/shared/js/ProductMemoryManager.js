@@ -10,14 +10,38 @@
 
 class ProductMemoryManager {
     constructor() {
-        this.storageKey = 'expertzy_products_memory';
+        this.storageKey = 'expertzy_products_memory'; // LEGACY: Keep for migration
         this.products = [];
         this.lastSyncTime = null;
-        this.initializeStorage();
+        
+        // Initialize database connector for product persistence
+        this.dbConnector = new DatabaseConnector();
+        this.apiBaseUrl = window.location.origin + '/api/endpoints';
+        
+        // Initialize with database-first approach
+        this.initializeDatabase();
     }
 
     /**
-     * Inicializa o storage e carrega dados existentes
+     * Initialize database-first storage (NEW)
+     */
+    async initializeDatabase() {
+        try {
+            console.log('🔄 ProductMemoryManager: Inicializando com banco de dados...');
+            
+            // Try to load products from database first
+            await this.loadFromDatabase();
+            
+            console.log(`✅ ProductMemoryManager: ${this.products.length} produtos carregados do banco`);
+        } catch (error) {
+            console.warn('⚠️ Database unavailable, fallback to localStorage:', error.message);
+            // Fallback to localStorage if database fails
+            this.initializeStorage();
+        }
+    }
+
+    /**
+     * Inicializa o storage e carrega dados existentes (LEGACY FALLBACK)
      */
     initializeStorage() {
         try {
@@ -26,15 +50,88 @@ class ProductMemoryManager {
                 const data = JSON.parse(stored);
                 this.products = data.products || [];
                 this.lastSyncTime = data.lastSyncTime || null;
-                console.log(`✅ ProductMemoryManager: ${this.products.length} produtos carregados`);
+                console.log(`✅ ProductMemoryManager: ${this.products.length} produtos carregados (localStorage)`);
             } else {
                 this.products = [];
                 this.saveToStorage();
-                console.log('🆕 ProductMemoryManager: Storage inicializado');
+                console.log('🆕 ProductMemoryManager: Storage inicializado (localStorage)');
             }
         } catch (error) {
             console.error('❌ Erro ao inicializar ProductMemoryManager:', error);
             this.products = [];
+        }
+    }
+
+    /**
+     * Load products from database (NEW)
+     */
+    async loadFromDatabase() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/consultar-produtos-memoria.php`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.products = result.data || [];
+                this.lastSyncTime = new Date().toISOString();
+                console.log(`🗄️ Loaded ${this.products.length} products from database`);
+            } else {
+                throw new Error(result.error || 'Failed to load products from database');
+            }
+        } catch (error) {
+            console.error('❌ Error loading products from database:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Save products to database (NEW)
+     */
+    async saveToDatabase() {
+        try {
+            console.log(`💾 Saving ${this.products.length} products to database...`);
+            
+            const response = await fetch(`${this.apiBaseUrl}/salvar-produtos-memoria.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    products: this.products,
+                    lastSyncTime: this.lastSyncTime
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('✅ Products saved to database successfully');
+                this.lastSyncTime = new Date().toISOString();
+                
+                // Also save to localStorage as backup
+                this.saveToStorage();
+            } else {
+                throw new Error(result.error || 'Failed to save products to database');
+            }
+        } catch (error) {
+            console.error('❌ Error saving products to database:', error);
+            // Fallback to localStorage if database fails
+            console.warn('⚠️ Falling back to localStorage save');
+            this.saveToStorage();
+            throw error;
         }
     }
 
@@ -106,7 +203,11 @@ class ProductMemoryManager {
 
             // Adicionar à lista
             this.products.push(product);
-            this.saveToStorage();
+            
+            // Save to database first, localStorage as fallback
+            this.saveToDatabase().catch(error => {
+                console.warn('⚠️ Database save failed, using localStorage:', error.message);
+            });
 
             console.log(`✅ Produto salvo: ${product.id} - NCM ${product.ncm}`);
             return product;

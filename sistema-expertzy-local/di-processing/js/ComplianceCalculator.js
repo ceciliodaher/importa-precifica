@@ -134,27 +134,39 @@ class ComplianceCalculator {
                 );
                 
                 // Adicionar produtos calculados ao array global
-                resultadoItens.itens.forEach((item, index) => {
-                    produtosIndividuais.push({
-                        adicao_numero: adicao.numero_adicao,
-                        produto_index: index + 1,
-                        ncm: adicao.ncm,
-                        descricao: item.produto.descricao,
-                        codigo: item.produto.codigo,                    // Real code from DI
-                        unidade_medida: item.produto.unidade_medida,   // Real unit from DI
-                        valor_unitario_brl: item.produto.valor_unitario,
-                        valor_total_brl: item.valorItem,
-                        quantidade: item.produto.quantidade,
-                        ii_item: item.tributos.ii.valor,
-                        ipi_item: item.tributos.ipi.valor, 
-                        pis_item: item.tributos.pis.valor,
-                        cofins_item: item.tributos.cofins.valor,
-                        icms_item: item.valorICMS,
-                        base_icms_item: item.baseICMS
-                    });
+                console.log(`🔍 ComplianceCalculator: resultadoItens para adição ${adicao.numero_adicao}:`, {
+                    itens: resultadoItens.itens?.length || 0,
+                    estrutura: resultadoItens
                 });
                 
-                console.log(`    ✅ ${resultadoItens.itens.length} produtos processados individualmente`);
+                if (resultadoItens.itens && resultadoItens.itens.length > 0) {
+                    resultadoItens.itens.forEach((item, index) => {
+                        const produtoIndividual = {
+                            adicao_numero: adicao.numero_adicao,
+                            produto_index: index + 1,
+                            ncm: adicao.ncm,
+                            descricao: item.produto?.descricao || item.produto?.descricao_mercadoria || `Item ${index + 1}`,
+                            codigo: item.produto?.codigo || `ITEM-${adicao.numero_adicao}-${index + 1}`,
+                            unidade_medida: item.produto?.unidade_medida || 'UN',
+                            valor_unitario_brl: item.produto?.valor_unitario || 0,
+                            valor_total_brl: item.valorItem || 0,
+                            quantidade: item.produto?.quantidade || 1,
+                            ii_item: item.tributos?.ii?.valor || 0,
+                            ipi_item: item.tributos?.ipi?.valor || 0, 
+                            pis_item: item.tributos?.pis?.valor || 0,
+                            cofins_item: item.tributos?.cofins?.valor || 0,
+                            icms_item: item.valorICMS || 0,
+                            base_icms_item: item.baseICMS || 0
+                        };
+                        
+                        console.log(`🔍 ComplianceCalculator: Adicionando produto individual:`, produtoIndividual);
+                        produtosIndividuais.push(produtoIndividual);
+                    });
+                    
+                    console.log(`    ✅ ${resultadoItens.itens.length} produtos processados individualmente`);
+                } else {
+                    console.warn(`    ⚠️ Nenhum item retornado pelo ItemCalculator para adição ${adicao.numero_adicao}`);
+                }
             }
             
             // Guardar resumo
@@ -172,6 +184,12 @@ class ComplianceCalculator {
                 }
             });
         }
+        
+        // Log final do array de produtos individuais
+        console.log(`🔍 ComplianceCalculator: Array produtosIndividuais final:`, {
+            length: produtosIndividuais.length,
+            samples: produtosIndividuais.slice(0, 3) // Primeiros 3 itens para debug
+        });
         
         // Consolidar totais incluindo produtos individuais e despesas originais
         const totaisConsolidados = this.consolidarTotaisDI(calculosIndividuais, resumoPorAdicao, produtosIndividuais, despesasConsolidadas, di);

@@ -53,7 +53,10 @@
       "Bash(open sistema-expertzy-local/statistics/import-statistics.html)",
       "Bash(npm test:*)",
       "Bash(./run-master-test.sh:*)",
-      "Bash(open sistema-expertzy-local/xml-import/api/clear.php)"
+      "Bash(open sistema-expertzy-local/xml-import/api/clear.php)",
+      "Bash(timeout 180 npx playwright test tests/productmemorymanager-database.test.js --headed --timeout=180000)",
+      "Bash(mysql:*)",
+      "Bash(REQUEST_METHOD=GET php api/endpoints/consultar-produtos-memoria.php)"
     ],
     "deny": [],
     "ask": []

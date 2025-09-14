@@ -7,8 +7,25 @@
 
 class ExportManager {
     constructor() {
-        this.excelExporter = new ExcelExporter();
         this.name = 'ExportManager';
+        this.excelExporter = null;
+        
+        // Initialize ExcelExporter with error handling
+        this.initializeExcelExporter();
+    }
+    
+    initializeExcelExporter() {
+        try {
+            if (typeof ExcelExporter === 'undefined') {
+                throw new Error('ExcelExporter class não disponível - verifique se o script está carregado');
+            }
+            
+            this.excelExporter = new ExcelExporter();
+            console.log('✅ ExportManager: ExcelExporter inicializado com sucesso');
+        } catch (error) {
+            console.error('❌ ExportManager: Erro ao inicializar ExcelExporter:', error);
+            this.excelExporter = null;
+        }
     }
 
     /**
@@ -48,6 +65,16 @@ class ExportManager {
      * Export to Excel using specialized module
      */
     async exportExcel(diData, calculationData, memoryData = null) {
+        // Check if ExcelExporter is available
+        if (!this.excelExporter) {
+            console.warn('⚠️ ExcelExporter não disponível, tentando reinicializar...');
+            this.initializeExcelExporter();
+        }
+        
+        if (!this.excelExporter) {
+            throw new Error('ExcelExporter não pôde ser inicializado. Verifique se todas as dependências estão carregadas.');
+        }
+        
         return this.excelExporter.export(diData, calculationData, memoryData);
     }
 
