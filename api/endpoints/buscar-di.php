@@ -68,17 +68,18 @@ try {
     // Formatar dados da DI
     $di = $resultado['data'];
     
-    // Formatar valores monetários e percentuais
+    // Converter valores para números (não strings formatadas)
     if (!empty($di['adicoes'])) {
         foreach ($di['adicoes'] as &$adicao) {
-            $adicao['valor_reais'] = number_format($adicao['valor_reais'], 2, '.', '');
-            $adicao['valor_moeda_negociacao'] = number_format($adicao['valor_moeda_negociacao'], 2, '.', '');
-            $adicao['frete_valor_reais'] = number_format($adicao['frete_valor_reais'], 2, '.', '');
-            $adicao['seguro_valor_reais'] = number_format($adicao['seguro_valor_reais'], 2, '.', '');
+            // Valores monetários como float
+            $adicao['valor_reais'] = floatval($adicao['valor_reais']);
+            $adicao['valor_moeda_negociacao'] = floatval($adicao['valor_moeda_negociacao']);
+            $adicao['frete_valor_reais'] = floatval($adicao['frete_valor_reais']);
+            $adicao['seguro_valor_reais'] = floatval($adicao['seguro_valor_reais']);
             
-            // Formatar pesos
-            $adicao['peso_liquido'] = number_format($adicao['peso_liquido'], 5, '.', '');
-            $adicao['quantidade_estatistica'] = number_format($adicao['quantidade_estatistica'], 5, '.', '');
+            // Pesos como float
+            $adicao['peso_liquido'] = floatval($adicao['peso_liquido']);
+            $adicao['quantidade_estatistica'] = floatval($adicao['quantidade_estatistica']);
             
             // Formatar tributos se existirem
             if (!empty($adicao['tributos'])) {
@@ -92,7 +93,7 @@ try {
                 
                 foreach ($campos_monetarios as $campo) {
                     if (isset($tributos[$campo])) {
-                        $tributos[$campo] = number_format($tributos[$campo], 2, '.', '');
+                        $tributos[$campo] = floatval($tributos[$campo]);
                     }
                 }
                 
@@ -103,17 +104,17 @@ try {
                 
                 foreach ($campos_percentuais as $campo) {
                     if (isset($tributos[$campo])) {
-                        $tributos[$campo] = number_format($tributos[$campo], 2, '.', '');
+                        $tributos[$campo] = floatval($tributos[$campo]);
                     }
                 }
             }
             
-            // Formatar mercadorias se existirem
+            // Converter mercadorias para números
             if (!empty($adicao['mercadorias'])) {
                 foreach ($adicao['mercadorias'] as &$mercadoria) {
-                    $mercadoria['quantidade'] = number_format($mercadoria['quantidade'], 5, '.', '');
-                    $mercadoria['valor_unitario_usd'] = number_format($mercadoria['valor_unitario_usd'], 7, '.', '');
-                    $mercadoria['valor_unitario_brl'] = number_format($mercadoria['valor_unitario_brl'], 2, '.', '');
+                    $mercadoria['quantidade'] = floatval($mercadoria['quantidade']);
+                    $mercadoria['valor_unitario_usd'] = floatval($mercadoria['valor_unitario_usd']);
+                    $mercadoria['valor_unitario_brl'] = floatval($mercadoria['valor_unitario_brl']);
                 }
             }
         }
@@ -128,32 +129,32 @@ try {
         $di['carga_data_chegada_formatada'] = date('d/m/Y', strtotime($di['carga_data_chegada']));
     }
     
-    // Formatar pesos da carga
-    $di['carga_peso_bruto'] = number_format($di['carga_peso_bruto'], 5, '.', '');
-    $di['carga_peso_liquido'] = number_format($di['carga_peso_liquido'], 5, '.', '');
+    // Converter pesos da carga para números
+    $di['carga_peso_bruto'] = floatval($di['carga_peso_bruto']);
+    $di['carga_peso_liquido'] = floatval($di['carga_peso_liquido']);
     
-    // Formatar valores de despesas, pagamentos e acréscimos
+    // Converter valores de despesas, pagamentos e acréscimos para números
     if (!empty($di['despesas'])) {
         foreach ($di['despesas'] as &$despesa) {
-            $despesa['valor'] = number_format($despesa['valor'], 2, '.', '');
+            $despesa['valor'] = floatval($despesa['valor']);
         }
     }
     
     if (!empty($di['pagamentos'])) {
         foreach ($di['pagamentos'] as &$pagamento) {
-            $pagamento['valor'] = number_format($pagamento['valor'], 2, '.', '');
+            $pagamento['valor'] = floatval($pagamento['valor']);
         }
     }
     
     if (!empty($di['acrescimos'])) {
         foreach ($di['acrescimo'] as &$acrescimo) {
-            $acrescimo['valor_reais'] = number_format($acrescimo['valor_reais'], 2, '.', '');
+            $acrescimo['valor_reais'] = floatval($acrescimo['valor_reais']);
         }
     }
     
     if (!empty($di['icms'])) {
         foreach ($di['icms'] as &$icms_item) {
-            $icms_item['valor_total_icms'] = number_format($icms_item['valor_total_icms'], 2, '.', '');
+            $icms_item['valor_total_icms'] = floatval($icms_item['valor_total_icms']);
         }
     }
     
@@ -163,14 +164,14 @@ try {
     
     if (!empty($di['adicoes'])) {
         foreach ($di['adicoes'] as $adicao) {
-            $total_valor_adicoes += floatval(str_replace(',', '', $adicao['valor_reais']));
+            $total_valor_adicoes += $adicao['valor_reais'];
             
             if (!empty($adicao['tributos'])) {
                 $tributos = $adicao['tributos'];
-                $total_tributos += floatval(str_replace(',', '', $tributos['ii_valor_devido'] ?? 0));
-                $total_tributos += floatval(str_replace(',', '', $tributos['ipi_valor_devido'] ?? 0));
-                $total_tributos += floatval(str_replace(',', '', $tributos['pis_valor_devido'] ?? 0));
-                $total_tributos += floatval(str_replace(',', '', $tributos['cofins_valor_devido'] ?? 0));
+                $total_tributos += ($tributos['ii_valor_devido'] ?? 0);
+                $total_tributos += ($tributos['ipi_valor_devido'] ?? 0);
+                $total_tributos += ($tributos['pis_valor_devido'] ?? 0);
+                $total_tributos += ($tributos['cofins_valor_devido'] ?? 0);
             }
         }
     }
@@ -178,9 +179,9 @@ try {
     $di['resumo'] = [
         'total_adicoes' => count($di['adicoes'] ?? []),
         'total_mercadorias' => array_sum(array_map(function($a) { return count($a['mercadorias'] ?? []); }, $di['adicoes'] ?? [])),
-        'valor_total_adicoes' => number_format($total_valor_adicoes, 2, '.', ''),
-        'total_tributos_federais' => number_format($total_tributos, 2, '.', ''),
-        'custo_total_estimado' => number_format($total_valor_adicoes + $total_tributos, 2, '.', '')
+        'valor_total_adicoes' => $total_valor_adicoes,
+        'total_tributos_federais' => $total_tributos,
+        'custo_total_estimado' => $total_valor_adicoes + $total_tributos
     ];
 
     // Resposta de sucesso

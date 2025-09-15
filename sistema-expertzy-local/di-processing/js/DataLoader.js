@@ -48,10 +48,14 @@ class DataLoader {
             // Carregar despesas aduaneiras da DI
             await this.carregarDespesasAduaneiras();
             
+            // Transformar mercadorias em produtos individuais
+            this.transformarMercadoriasEmProdutos();
+            
             console.log('✅ DataLoader: DI carregada com sucesso', {
                 numero_di: this.diData.numero_di,
                 total_adicoes: this.diData.total_adicoes,
-                valor_total: this.diData.resumo?.valor_total_adicoes
+                valor_total: this.diData.resumo?.valor_total_adicoes,
+                total_produtos: this.diData.produtos_individuais?.length || 0
             });
             
             return this.diData;
@@ -95,19 +99,27 @@ class DataLoader {
         await this.init();
         
         try {
-            // Usar endpoint de status que já existe
-            const response = await this.databaseConnector.checkAPIStatus();
+            console.log('📊 DataLoader: Carregando estatísticas do banco...');
             
-            if (response && response.stats) {
-                return response.stats;
+            // Usar novo endpoint de estatísticas
+            const response = await fetch('../../api/endpoints/database-stats.php');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            return {
-                total_dis: 0,
-                total_adicoes: 0,
-                total_mercadorias: 0,
-                last_import: null
-            };
+            const data = await response.json();
+            
+            if (data.success && data.stats) {
+                console.log('✅ DataLoader: Estatísticas carregadas', {
+                    dis: data.stats.total_dis,
+                    mercadorias: data.stats.total_mercadorias,
+                    valor_total: data.stats.valor_total_dis
+                });
+                return data.stats;
+            }
+            
+            throw new Error('Resposta inválida da API de estatísticas');
             
         } catch (error) {
             console.error('❌ DataLoader: Erro ao obter estatísticas', error);
@@ -384,6 +396,108 @@ class DataLoader {
                 fonte: 'fallback',
                 erro: error.message
             };
+        }
+    }
+
+    /**
+     * Transformar mercadorias aninhadas em produtos individuais flat
+     * Converte estrutura adicoes[].mercadorias[] em produtos_individuais[]
+     */
+    transformarMercadoriasEmProdutos() {
+        if (!this.diData || !this.diData.adicoes) {
+            console.warn('⚠️ DataLoader: Sem adições para transformar em produtos');
+            return;
+        }
+        
+        const produtos_individuais = [];
+        let produto_index_global = 0;
+        
+        // Percorrer todas as adições
+        this.diData.adicoes.forEach((adicao, adicaoIndex) => {
+            const mercadorias = adicao.mercadorias || [];
+            
+            if (mercadorias.length === 0) {
+                // Se não há mercadorias específicas, criar um produto fallback da adição
+                console.log(`📦 DataLoader: Criando produto fallback para adição ${adicao.numero_adicao}`);
+                
+                produtos_individuais.push({
+                    // Identificação
+                    adicao_numero: adicao.numero_adicao || String(adicaoIndex + 1).padStart(3, '0'),
+                    produto_index: ++produto_index_global,
+                    
+                    // Dados do produto
+                    ncm: adicao.ncm || '',
+                    descricao: adicao.descricao_ncm || `Produto da adição ${adicao.numero_adicao}`,
+                    codigo: `PROD-${adicao.numero_adicao}`,
+                    
+                    // Quantidades e valores
+                    quantidade: adicao.quantidade_estatistica || 1,
+                    unidade_medida: adicao.unidade_estatistica || 'UN',
+                    valor_unitario_brl: adicao.valor_reais / Math.max(1, adicao.quantidade_estatistica || 1),
+                    valor_total_brl: adicao.valor_reais,
+                    
+                    // Tributos da adição (rateados se necessário)
+                    ii_item: adicao.tributos?.ii_valor_devido || 0,
+                    ipi_item: adicao.tributos?.ipi_valor_devido || 0,
+                    pis_item: adicao.tributos?.pis_valor_devido || 0,
+                    cofins_item: adicao.tributos?.cofins_valor_devido || 0,
+                    
+                    // Dados extras
+                    peso_liquido: adicao.peso_liquido || 0,
+                    frete_brl: adicao.frete_valor_reais || 0,
+                    seguro_brl: adicao.seguro_valor_reais || 0
+                });
+            } else {
+                // Processar cada mercadoria como produto individual
+                console.log(`📦 DataLoader: Processando ${mercadorias.length} mercadorias da adição ${adicao.numero_adicao}`);
+                
+                mercadorias.forEach((mercadoria, mercadoriaIndex) => {
+                    // Ratear tributos da adição entre mercadorias
+                    const proporcao = mercadorias.length > 0 ? 1 / mercadorias.length : 1;
+                    
+                    produtos_individuais.push({
+                        // Identificação
+                        adicao_numero: adicao.numero_adicao || String(adicaoIndex + 1).padStart(3, '0'),
+                        produto_index: ++produto_index_global,
+                        mercadoria_index: mercadoriaIndex + 1,
+                        
+                        // Dados do produto
+                        ncm: adicao.ncm || mercadoria.ncm || '',
+                        descricao: mercadoria.descricao_mercadoria || adicao.descricao_ncm || '',
+                        codigo: mercadoria.codigo_produto || `PROD-${adicao.numero_adicao}-${mercadoriaIndex + 1}`,
+                        
+                        // Quantidades e valores
+                        quantidade: mercadoria.quantidade || 0,
+                        unidade_medida: mercadoria.unidade_medida || 'UN',
+                        valor_unitario_brl: mercadoria.valor_unitario_brl || 0,
+                        valor_total_brl: (mercadoria.valor_unitario_brl || 0) * (mercadoria.quantidade || 0),
+                        
+                        // Tributos rateados
+                        ii_item: (adicao.tributos?.ii_valor_devido || 0) * proporcao,
+                        ipi_item: (adicao.tributos?.ipi_valor_devido || 0) * proporcao,
+                        pis_item: (adicao.tributos?.pis_valor_devido || 0) * proporcao,
+                        cofins_item: (adicao.tributos?.cofins_valor_devido || 0) * proporcao,
+                        
+                        // Dados extras
+                        peso_liquido: (adicao.peso_liquido || 0) * proporcao,
+                        frete_brl: (adicao.frete_valor_reais || 0) * proporcao,
+                        seguro_brl: (adicao.seguro_valor_reais || 0) * proporcao
+                    });
+                });
+            }
+        });
+        
+        // Adicionar array de produtos individuais à DI
+        this.diData.produtos_individuais = produtos_individuais;
+        
+        console.log(`✅ DataLoader: ${produtos_individuais.length} produtos individuais criados`);
+        
+        // Debug: mostrar primeiro e último produto
+        if (produtos_individuais.length > 0) {
+            console.log('📊 Primeiro produto:', produtos_individuais[0]);
+            if (produtos_individuais.length > 1) {
+                console.log('📊 Último produto:', produtos_individuais[produtos_individuais.length - 1]);
+            }
         }
     }
 
