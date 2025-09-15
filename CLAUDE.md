@@ -155,6 +155,7 @@ Sistema brasileiro de tributação e precificação de importação (Sistema de 
 - **Módulo 2** trabalha EXCLUSIVAMENTE com dados processados da API
 - **NUNCA** processar XML em mais de um local
 - **NUNCA** converter dados já processados
+- **✅ CONSOLIDADO**: PHP parser (`processor.php`) é fonte única - JavaScript parser (`DIProcessor.js`) removido
 
 ### **Política Zero Fallbacks (OBRIGATÓRIA)**
 ```javascript

@@ -568,5 +568,40 @@ class DatabaseService {
             ];
         }
     }
+
+    /**
+     * Busca despesas aduaneiras extraídas de informações complementares
+     */
+    public function buscarDespesasAduaneiras($numero_di) {
+        try {
+            $sql = "
+                SELECT 
+                    tipo_despesa,
+                    codigo_receita,
+                    descricao,
+                    valor,
+                    created_at
+                FROM despesas_aduaneiras
+                WHERE numero_di = ?
+                ORDER BY tipo_despesa, valor DESC
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$numero_di]);
+            $despesas = $stmt->fetchAll();
+            
+            return [
+                'success' => true,
+                'data' => $despesas,
+                'total' => count($despesas)
+            ];
+            
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'error' => 'Erro ao buscar despesas aduaneiras: ' . $e->getMessage()
+            ];
+        }
+    }
 }
 ?>
