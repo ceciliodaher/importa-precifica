@@ -94,6 +94,7 @@ try {
                     UPDATE produtos_individuais_calculados SET
                         numero_di = :numero_di,
                         adicao_numero = :adicao_numero,
+                        produto_index = :produto_index,
                         ncm = :ncm,
                         descricao = :descricao,
                         codigo_produto = :codigo_produto,
@@ -153,6 +154,7 @@ try {
                         product_id,
                         numero_di,
                         adicao_numero,
+                        produto_index,
                         ncm,
                         descricao,
                         codigo_produto,
@@ -205,6 +207,7 @@ try {
                         :product_id,
                         :numero_di,
                         :adicao_numero,
+                        :produto_index,
                         :ncm,
                         :descricao,
                         :codigo_produto,
@@ -263,6 +266,7 @@ try {
             $stmt->bindValue(':product_id', $product['id'], PDO::PARAM_STR);
             $stmt->bindValue(':numero_di', $product['di_number'], PDO::PARAM_STR);
             $stmt->bindValue(':adicao_numero', $product['addition_number'] ?? '001', PDO::PARAM_STR);
+            $stmt->bindValue(':produto_index', $product['produto_index'] ?? 1, PDO::PARAM_INT);
             $stmt->bindValue(':ncm', $product['ncm'] ?? '', PDO::PARAM_STR);
             $stmt->bindValue(':descricao', $product['description'] ?? '', PDO::PARAM_STR);
             $stmt->bindValue(':codigo_produto', $product['codigo'] ?? '', PDO::PARAM_STR);

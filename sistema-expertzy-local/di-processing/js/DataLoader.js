@@ -45,6 +45,9 @@ class DataLoader {
             // Dados já vêm processados da API - usar diretamente
             this.diData = response.data;
             
+            // Carregar despesas aduaneiras da DI
+            await this.carregarDespesasAduaneiras();
+            
             console.log('✅ DataLoader: DI carregada com sucesso', {
                 numero_di: this.diData.numero_di,
                 total_adicoes: this.diData.total_adicoes,
@@ -315,6 +318,73 @@ class DataLoader {
         
         console.log('✅ Despesas consolidadas:', despesasConsolidadas);
         return despesasConsolidadas;
+    }
+
+    /**
+     * Carregar despesas aduaneiras da API
+     * Mapeia a estrutura da API para o formato esperado pelo sistema
+     */
+    async carregarDespesasAduaneiras() {
+        if (!this.diData?.numero_di) {
+            console.warn('⚠️ Número da DI não disponível para carregar despesas');
+            return;
+        }
+        
+        try {
+            console.log(`🔍 Carregando despesas aduaneiras da DI ${this.diData.numero_di}...`);
+            
+            const response = await fetch(`../../api/endpoints/buscar-despesas.php?numero_di=${this.diData.numero_di}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const despesasData = await response.json();
+            
+            if (!despesasData.success) {
+                throw new Error(`API error: ${despesasData.message || 'Erro desconhecido'}`);
+            }
+            
+            // Mapear estrutura da API para formato esperado
+            const despesasCalculadas = {
+                siscomex: 0,
+                afrmm: 0,
+                capatazia: 0
+            };
+            
+            // Processar despesas retornadas pela API
+            if (despesasData.despesas && Array.isArray(despesasData.despesas)) {
+                despesasData.despesas.forEach(despesa => {
+                    const tipo = despesa.tipo_despesa.toLowerCase();
+                    const valor = parseFloat(despesa.valor) || 0;
+                    
+                    if (despesasCalculadas.hasOwnProperty(tipo)) {
+                        despesasCalculadas[tipo] = valor;
+                    }
+                });
+            }
+            
+            // Estruturar no formato esperado pelo sistema
+            this.diData.despesas_aduaneiras = {
+                calculadas: despesasCalculadas,
+                total_despesas_aduaneiras: despesasData.total_valor || 0,
+                fonte: 'php_parser',
+                extraido_de: 'informacaoComplementar',
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log(`✅ Despesas aduaneiras carregadas: ${this.diData.despesas_aduaneiras.total_despesas_aduaneiras}`, despesasCalculadas);
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar despesas aduaneiras:', error);
+            // Fallback: definir estrutura vazia
+            this.diData.despesas_aduaneiras = {
+                calculadas: { siscomex: 0, afrmm: 0, capatazia: 0 },
+                total_despesas_aduaneiras: 0,
+                fonte: 'fallback',
+                erro: error.message
+            };
+        }
     }
 
     /**
