@@ -58,7 +58,8 @@
       "Bash(mysql:*)",
       "Bash(REQUEST_METHOD=GET php api/endpoints/consultar-produtos-memoria.php)",
       "Bash(sed:*)",
-      "Bash(timeout 120 npx playwright test tests/etapa-1-1-extract-validation.test.js --headed --timeout=120000)"
+      "Bash(timeout 120 npx playwright test tests/etapa-1-1-extract-validation.test.js --headed --timeout=120000)",
+      "Bash(timeout 120 npx playwright test tests/etapa-2-3-apis-despesas.test.js --headed --timeout=120000)"
     ],
     "deny": [],
     "ask": []

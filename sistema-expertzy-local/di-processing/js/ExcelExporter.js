@@ -105,7 +105,7 @@ class ExcelExporter {
             ['Data registro', this.diData.data_registro || 'N/D'],
             ['URF despacho', this.diData.urf_despacho_nome],
             ['Modalidade', this.diData.modalidade_nome],
-            ['Qtd. adições', this.diData.adicoes.length],
+            ['Qtd. adições', this.diData.total_adicoes || (this.diData.adicoes ? this.diData.adicoes.length : 0)],
             ['Situação', this.diData.situacao_entrega]
         ];
 
@@ -157,11 +157,11 @@ class ExcelExporter {
     createCargoSheet() {
         const data = [
             ['Campo', 'Valor'],
-            ['Peso Bruto (kg)', this.formatNumber(this.diData.carga.peso_bruto)],
-            ['Peso Líquido (kg)', this.formatNumber(this.diData.carga.peso_liquido)],
-            ['Via de Transporte', this.diData.carga.via_transporte_nome],
+            ['Peso Bruto (kg)', this.formatNumber(this.diData.carga_peso_bruto)],
+            ['Peso Líquido (kg)', this.formatNumber(this.diData.carga_peso_liquido)],
+            ['Via de Transporte', this.diData.carga_via_transporte_nome],
             ['Tipo de Declaração', this.diData.modalidade_nome],
-            ['URF Entrada', this.diData.carga.urf_entrada_nome],
+            ['URF Entrada', this.diData.carga_urf_entrada_nome],
             ['Recinto Aduaneiro', this.diData.urf_despacho_nome]
         ];
 
@@ -664,7 +664,7 @@ this.calculationData.produtos_individuais ? this.calculationData.produtos_indivi
             [''],
             ['DI Processada:'],
             [`- Número: ${this.diData.numero_di}`],
-            [`- Total de Adições: ${this.diData.adicoes.length}`],
+            [`- Total de Adições: ${this.diData.total_adicoes || (this.diData.adicoes ? this.diData.adicoes.length : 0)}`],
             [`- Estado Destino: ${this.calculationData.estado}`],
             [''],
             ['Notas:'],
@@ -960,8 +960,8 @@ this.calculationData.produtos_individuais ? this.calculationData.produtos_indivi
             new Date().toLocaleDateString('pt-BR');
         
         // Clean importer name for filename
-        const nomeImportador = this.diData.importador?.nome ? 
-            this.diData.importador.nome
+        const nomeImportador = this.diData.importador_nome ? 
+            this.diData.importador_nome
                 .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
                 .replace(/\s+/g, '_')          // Replace spaces with underscore
                 .substring(0, 20)              // Limit to 20 characters
