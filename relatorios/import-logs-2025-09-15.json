@@ -1315,7 +1315,395 @@
                 "host": "localhost:3307",
                 "database": "importa_precificacao"
             }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:46+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:51+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Iniciando limpeza do banco de dados",
+            "context": []
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "mercadorias"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "tributos"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "adicoes"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "icms"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "pagamentos"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "acrescimos"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "declaracoes_importacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "fornecedores"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "fabricantes"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "importadores"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Tabela truncada com sucesso",
+            "context": {
+                "table": "importacoes_log"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "success",
+            "message": "Banco de dados limpo com sucesso",
+            "context": {
+                "tables_cleared": 11,
+                "cleared_tables": [
+                    "mercadorias",
+                    "tributos",
+                    "adicoes",
+                    "icms",
+                    "pagamentos",
+                    "acrescimos",
+                    "declaracoes_importacao",
+                    "fornecedores",
+                    "fabricantes",
+                    "importadores",
+                    "importacoes_log"
+                ]
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:08:55+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "xml_size": 26008
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2520345968.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2520345968"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Despesa extraída",
+            "context": {
+                "di": "2520345968",
+                "tipo": "SISCOMEX",
+                "valor": 154.23,
+                "descricao": "Taxa SISCOMEX extraída de informações complementares"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "DI processada com sucesso",
+            "context": {
+                "numero_di": "2520345968",
+                "adicoes_inseridas": 1,
+                "importador_id": "1"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2520345968.xml",
+                "stats": {
+                    "dis_processadas": 1,
+                    "adicoes": 1,
+                    "mercadorias": 4,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "xml_size": 22011
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2518173187.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2518173187"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Despesa extraída",
+            "context": {
+                "di": "2518173187",
+                "tipo": "SISCOMEX",
+                "valor": 154.23,
+                "descricao": "Taxa SISCOMEX extraída de informações complementares"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "DI processada com sucesso",
+            "context": {
+                "numero_di": "2518173187",
+                "adicoes_inseridas": 1,
+                "importador_id": "2"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2518173187.xml",
+                "stats": {
+                    "dis_processadas": 1,
+                    "adicoes": 1,
+                    "mercadorias": 1,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Iniciando processamento de XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "xml_size": 267318
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DIs do XML",
+            "context": {
+                "filename": "2300120746.xml",
+                "total_dis": 1
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Processando DI individual",
+            "context": {
+                "numero_di": "2300120746"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Despesa extraída",
+            "context": {
+                "di": "2300120746",
+                "tipo": "AFRMM",
+                "valor": 1256.77,
+                "descricao": "AFRMM extraído de informações complementares"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "DI processada com sucesso",
+            "context": {
+                "numero_di": "2300120746",
+                "adicoes_inseridas": 16,
+                "importador_id": "3"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "success",
+            "message": "XML processado com sucesso",
+            "context": {
+                "filename": "2300120746.xml",
+                "stats": {
+                    "dis_processadas": 1,
+                    "adicoes": 16,
+                    "mercadorias": 189,
+                    "erros": 0
+                }
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:09:52+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:10:00+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
+        },
+        {
+            "timestamp": "2025-09-15T18:10:17+00:00",
+            "level": "info",
+            "message": "Conexão com banco de dados estabelecida",
+            "context": {
+                "host": "localhost:3307",
+                "database": "importa_precificacao"
+            }
         }
     ],
-    "total_entries": 140
+    "total_entries": 181
 }

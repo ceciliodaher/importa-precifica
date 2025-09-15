@@ -317,7 +317,7 @@ class CroquiNFExporter {
                 params.append('calculo_id', this.calculos.calculo_id.toString());
             }
             
-            const url = `/api/endpoints/consultar-produtos-croqui.php?${params.toString()}`;
+            const url = `../../api/endpoints/consultar-produtos-croqui.php?${params.toString()}`;
             const response = await fetch(url);
             
             if (!response.ok) {

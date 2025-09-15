@@ -1130,7 +1130,7 @@ class ComplianceCalculator {
             };
             
             // Fazer requisição para API
-            const response = await fetch('/api/endpoints/salvar-produtos-individuais.php', {
+            const response = await fetch('../../api/endpoints/salvar-produtos-individuais.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
