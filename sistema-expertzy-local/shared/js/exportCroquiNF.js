@@ -217,9 +217,6 @@ class CroquiNFExporter {
                 });
                 
                 return produtos;
-            }
-        } catch (bancError) {
-            console.warn('⚠️ Erro ao consultar produtos do banco, tentando fallbacks:', bancError.message);
         }
         
         // PRIORIDADE 2: Usar produtos_individuais calculados em memória

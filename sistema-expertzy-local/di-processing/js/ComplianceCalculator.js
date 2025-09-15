@@ -121,52 +121,53 @@ class ComplianceCalculator {
             calculosIndividuais.push(calculoAdicao);
             
             // NOVO: Calcular impostos para cada produto individual usando ItemCalculator
-            if (adicao.produtos && adicao.produtos.length > 0) {
-                // Passar despesas totais da DI - ItemCalculator fará o rateio correto
-                const despesasTotaisDI = despesasConsolidadas ? {
-                    total_despesas_aduaneiras: despesasConsolidadas.totais?.tributavel_icms || despesasConsolidadas.automaticas?.total
-                } : null;
-                
-                const resultadoItens = this.itemCalculator.processarItensAdicao(
-                    adicao, 
-                    despesasTotaisDI,
-                    null
-                );
-                
-                // Adicionar produtos calculados ao array global
-                console.log(`🔍 ComplianceCalculator: resultadoItens para adição ${adicao.numero_adicao}:`, {
-                    itens: resultadoItens.itens?.length || 0,
-                    estrutura: resultadoItens
+            // SEMPRE processar adições - ItemCalculator criará fallback se necessário
+            console.log(`🔍 ComplianceCalculator: Processando produtos da adição ${adicao.numero_adicao}, produtos existentes: ${adicao.produtos?.length || 0}`);
+            
+            // Passar despesas totais da DI - ItemCalculator fará o rateio correto
+            const despesasTotaisDI = despesasConsolidadas ? {
+                total_despesas_aduaneiras: despesasConsolidadas.totais?.tributavel_icms || despesasConsolidadas.automaticas?.total
+            } : null;
+            
+            const resultadoItens = this.itemCalculator.processarItensAdicao(
+                adicao, 
+                despesasTotaisDI,
+                null
+            );
+            
+            // Adicionar produtos calculados ao array global
+            console.log(`🔍 ComplianceCalculator: resultadoItens para adição ${adicao.numero_adicao}:`, {
+                itens: resultadoItens.itens?.length || 0,
+                estrutura: resultadoItens
+            });
+            
+            if (resultadoItens.itens && resultadoItens.itens.length > 0) {
+                resultadoItens.itens.forEach((item, index) => {
+                    const produtoIndividual = {
+                        adicao_numero: adicao.numero_adicao,
+                        produto_index: index + 1,
+                        ncm: adicao.ncm,
+                        descricao: item.produto?.descricao || item.produto?.descricao_mercadoria || `Item ${index + 1}`,
+                        codigo: item.produto?.codigo || `ITEM-${adicao.numero_adicao}-${index + 1}`,
+                        unidade_medida: item.produto?.unidade_medida || 'UN',
+                        valor_unitario_brl: item.produto?.valor_unitario || 0,
+                        valor_total_brl: item.valorItem || 0,
+                        quantidade: item.produto?.quantidade || 1,
+                        ii_item: item.tributos?.ii?.valor || 0,
+                        ipi_item: item.tributos?.ipi?.valor || 0, 
+                        pis_item: item.tributos?.pis?.valor || 0,
+                        cofins_item: item.tributos?.cofins?.valor || 0,
+                        icms_item: item.valorICMS || 0,
+                        base_icms_item: item.baseICMS || 0
+                    };
+                    
+                    console.log(`🔍 ComplianceCalculator: Adicionando produto individual:`, produtoIndividual);
+                    produtosIndividuais.push(produtoIndividual);
                 });
                 
-                if (resultadoItens.itens && resultadoItens.itens.length > 0) {
-                    resultadoItens.itens.forEach((item, index) => {
-                        const produtoIndividual = {
-                            adicao_numero: adicao.numero_adicao,
-                            produto_index: index + 1,
-                            ncm: adicao.ncm,
-                            descricao: item.produto?.descricao || item.produto?.descricao_mercadoria || `Item ${index + 1}`,
-                            codigo: item.produto?.codigo || `ITEM-${adicao.numero_adicao}-${index + 1}`,
-                            unidade_medida: item.produto?.unidade_medida || 'UN',
-                            valor_unitario_brl: item.produto?.valor_unitario || 0,
-                            valor_total_brl: item.valorItem || 0,
-                            quantidade: item.produto?.quantidade || 1,
-                            ii_item: item.tributos?.ii?.valor || 0,
-                            ipi_item: item.tributos?.ipi?.valor || 0, 
-                            pis_item: item.tributos?.pis?.valor || 0,
-                            cofins_item: item.tributos?.cofins?.valor || 0,
-                            icms_item: item.valorICMS || 0,
-                            base_icms_item: item.baseICMS || 0
-                        };
-                        
-                        console.log(`🔍 ComplianceCalculator: Adicionando produto individual:`, produtoIndividual);
-                        produtosIndividuais.push(produtoIndividual);
-                    });
-                    
-                    console.log(`    ✅ ${resultadoItens.itens.length} produtos processados individualmente`);
-                } else {
-                    console.warn(`    ⚠️ Nenhum item retornado pelo ItemCalculator para adição ${adicao.numero_adicao}`);
-                }
+                console.log(`    ✅ ${resultadoItens.itens.length} produtos processados individualmente`);
+            } else {
+                throw new Error(`ItemCalculator não retornou itens válidos para adição ${adicao.numero_adicao} - sistema deve garantir pelo menos 1 produto por adição`);
             }
             
             // Guardar resumo

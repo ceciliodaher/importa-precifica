@@ -228,6 +228,11 @@ class ItemCalculator {
         // 4. Obter alíquota ICMS (específica do NCM ou padrão)
         const aliquotaICMS = ncm ? this.getAliquotaICMSParaNCM(ncm) : this.icmsConfig.aliquotaPadrao;
         
+        // Validar que temos uma alíquota ICMS válida
+        if (aliquotaICMS === null || aliquotaICMS === undefined) {
+            throw new Error(`Alíquota ICMS não configurada no ItemCalculator para NCM ${ncm || 'padrão'}: estado=${this.icmsConfig.estado}, aliquotaPadrao=${this.icmsConfig.aliquotaPadrao}`);
+        }
+        
         // 5. Aplicar fórmula "por dentro"
         const fatorDivisao = 1 - (aliquotaICMS / 100);
         const baseICMS = baseAntesICMS / fatorDivisao;
@@ -322,11 +327,16 @@ class ItemCalculator {
         if (produtosList.length === 0) {
             console.log(`🔄 ItemCalculator: Criando produto fallback para adição ${adicao.numero_adicao}`);
             // Se não há lista de produtos, criar um item único da adição
+            const quantidade = adicao.quantidade_estatistica || 1;
+            const valorUnitario = adicao.valor_reais / quantidade;
+            
             const fallbackProduct = {
                 descricao_mercadoria: adicao.descricao_mercadoria || adicao.descricao_ncm || `Produto NCM ${adicao.ncm}`,
-                quantidade: adicao.quantidade_estatistica || 1,
-                valor_unitario: adicao.valor_unitario_brl || adicao.valor_unitario || (adicao.valor_reais / (adicao.quantidade_estatistica || 1)),
+                quantidade: quantidade,
+                valor_unitario: valorUnitario,
+                valor_unitario_brl: valorUnitario,
                 valor_total: adicao.valor_reais,
+                valor_total_brl: adicao.valor_reais,
                 codigo: adicao.codigo_produto || `PROD-${adicao.numero_adicao}`,
                 unidade_medida: adicao.unidade_medida || 'UN'
             };
@@ -352,9 +362,12 @@ class ItemCalculator {
             // Adicionar dados do produto
             calculoCompleto.produto = {
                 indice: index + 1,
-                descricao: produto.descricao_mercadoria || adicao.descricao_mercadoria,
-                quantidade: produto.quantidade || adicao.quantidade_estatistica,
-                valor_unitario: produto.valor_unitario_brl || produto.valor_unitario,
+                descricao: produto.descricao_mercadoria || adicao.descricao_mercadoria || `Produto ${index + 1}`,
+                descricao_mercadoria: produto.descricao_mercadoria || adicao.descricao_mercadoria || `Produto ${index + 1}`,
+                quantidade: produto.quantidade || adicao.quantidade_estatistica || 1,
+                valor_unitario: produto.valor_unitario_brl || produto.valor_unitario || valorItem,
+                codigo: produto.codigo || `PROD-${adicao.numero_adicao}-${index + 1}`,
+                unidade_medida: produto.unidade_medida || 'UN',
                 ncm: adicao.ncm,
                 peso_kg: adicao.peso_liquido // Peso total da adição (não temos peso individual)
             };

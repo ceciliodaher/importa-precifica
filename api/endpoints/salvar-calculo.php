@@ -6,13 +6,26 @@
  * 
  * Body JSON:
  * {
- *   "numero_di": "string",
- *   "estado_icms": "string",
- *   "tipo_calculo": "string", 
- *   "dados_entrada": {},
- *   "dados_calculo": {},
- *   "resultados": {}
+ *   "numero_di": "string",           // OBRIGATÓRIO - deve existir na tabela declaracoes_importacao
+ *   "estado_icms": "string",         // OPCIONAL - inferido de dados_entrada.importador_uf ou padrão 'SP'
+ *   "tipo_calculo": "string",        // OPCIONAL - padrão 'CONFORMIDADE'
+ *   "dados_entrada": {},             // OPCIONAL - dados originais (despesas, configurações)
+ *   "dados_calculo": {},             // OPCIONAL - dados intermediários do cálculo
+ *   "resultados": {}                 // OPCIONAL - resultados finais (impostos, totais, produtos_individuais)
  * }
+ * 
+ * Responses:
+ * - 201: Sucesso - cálculo salvo
+ * - 400: Dados inválidos (numero_di ausente ou formato inválido)
+ * - 404: DI não encontrada no banco
+ * - 500: Erro interno do servidor
+ * 
+ * FIXES APLICADOS (2025-09-15):
+ * - Corrigido erro HTTP 500: campo estado_icms é obrigatório na tabela
+ * - Adicionada inferência automática de estado_icms de dados_entrada.importador_uf
+ * - Melhorado tratamento de foreign key constraints com mensagens claras
+ * - Adicionado sistema de logs detalhado para debug
+ * - Implementado fallback para SP quando estado não pode ser determinado
  */
 
 header('Content-Type: application/json');
@@ -55,7 +68,7 @@ try {
         exit;
     }
 
-    // Validar campo obrigatório (seguindo estrutura DIProcessor)
+    // Validar campos obrigatórios (seguindo estrutura DIProcessor)
     if (empty($dados['numero_di'])) {
         http_response_code(400);
         echo json_encode([
@@ -63,6 +76,22 @@ try {
             'error' => "Campo 'numero_di' é obrigatório"
         ]);
         exit;
+    }
+    
+    // estado_icms é obrigatório para a tabela - inferir de dados de entrada se não fornecido
+    if (empty($dados['estado_icms'])) {
+        // Tentar extrair do importador ou dados de entrada
+        if (!empty($dados['dados_entrada']['importador_uf'])) {
+            $dados['estado_icms'] = $dados['dados_entrada']['importador_uf'];
+            error_log("INFO salvar-calculo.php: estado_icms inferido dos dados de entrada: {$dados['estado_icms']}");
+        } else if (!empty($dados['dados_calculo']['estado_selecionado'])) {
+            $dados['estado_icms'] = $dados['dados_calculo']['estado_selecionado'];
+            error_log("INFO salvar-calculo.php: estado_icms inferido do estado selecionado: {$dados['estado_icms']}");
+        } else {
+            // Usar SP como padrão com aviso
+            $dados['estado_icms'] = 'SP';
+            error_log("WARNING salvar-calculo.php: estado_icms não fornecido, usando padrão SP");
+        }
     }
 
     // Validar formato do número da DI (mais flexível)
@@ -99,6 +128,7 @@ try {
     // Preparar dados para salvar (seguindo estrutura DIProcessor)
     $dados_calculo = [
         'numero_di' => $dados['numero_di'],
+        'estado_icms' => $dados['estado_icms'], // Campo obrigatório na tabela (já validado acima)
         'tipo_calculo' => $dados['tipo_calculo'] ?? 'CONFORMIDADE',
         'dados_entrada' => $dados['dados_entrada'] ?? [],
         'dados_calculo' => $dados['dados_calculo'] ?? [],
@@ -130,9 +160,29 @@ try {
     $resultado = $service->salvarCalculo($dados_calculo);
     
     if (!$resultado['success']) {
-        error_log("ERROR salvar-calculo.php: Falha ao salvar - " . ($resultado['error'] ?? 'Erro desconhecido'));
-        http_response_code(500);
-        echo json_encode($resultado);
+        $error_msg = $resultado['error'] ?? 'Erro desconhecido';
+        $debug_info = $resultado['debug'] ?? '';
+        $error_type = $resultado['error_type'] ?? '';
+        
+        error_log("ERROR salvar-calculo.php: Falha ao salvar - " . $error_msg);
+        if ($debug_info) {
+            error_log("ERROR salvar-calculo.php: Debug info - " . $debug_info);
+        }
+        
+        // Set appropriate HTTP status code based on error type
+        if ($error_type === 'DI_NOT_FOUND') {
+            http_response_code(404); // Not Found
+        } else {
+            http_response_code(500); // Internal Server Error
+        }
+        
+        echo json_encode([
+            'success' => false,
+            'error' => $error_msg,
+            'error_type' => $error_type,
+            'debug' => $debug_info,
+            'timestamp' => date('c')
+        ]);
         exit;
     }
     

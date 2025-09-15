@@ -363,9 +363,22 @@ class DatabaseService {
         } catch (PDOException $e) {
             $this->db->rollback();
             error_log("Erro ao salvar cálculo: " . $e->getMessage());
+            
+            // Check for foreign key constraint violation
+            if ($e->getCode() == '23000' && strpos($e->getMessage(), 'foreign key constraint fails') !== false) {
+                if (strpos($e->getMessage(), 'numero_di') !== false) {
+                    return [
+                        'success' => false,
+                        'error' => "DI '{$dados_calculo['numero_di']}' não existe no banco de dados. Importe a DI primeiro antes de salvar cálculos.",
+                        'debug' => $e->getMessage(),
+                        'error_type' => 'DI_NOT_FOUND'
+                    ];
+                }
+            }
+            
             return [
                 'success' => false,
-                'error' => 'Erro ao salvar cálculo',
+                'error' => 'Erro ao salvar cálculo no banco de dados',
                 'debug' => $e->getMessage()
             ];
         }

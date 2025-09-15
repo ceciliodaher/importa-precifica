@@ -16,7 +16,8 @@ class ProductMemoryManager {
         
         // Initialize database connector for product persistence
         this.dbConnector = new DatabaseConnector();
-        this.apiBaseUrl = window.location.origin + '/api/endpoints';
+        // Use relative path for API endpoints to work with both local and production
+        this.apiBaseUrl = '/api/endpoints';
         
         // Initialize with database-first approach
         this.initializeDatabase();
