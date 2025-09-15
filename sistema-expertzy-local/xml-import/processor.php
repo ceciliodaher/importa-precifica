@@ -58,6 +58,22 @@ class ImportLogger {
             'total_entries' => count($this->getLogs())
         ];
     }
+    
+    public function info($message, $context = []) {
+        $this->log('info', $message, $context);
+    }
+    
+    public function success($message, $context = []) {
+        $this->log('success', $message, $context);
+    }
+    
+    public function warning($message, $context = []) {
+        $this->log('warning', $message, $context);
+    }
+    
+    public function error($message, $context = []) {
+        $this->log('error', $message, $context);
+    }
 }
 
 class XMLImportProcessor {
@@ -216,6 +232,9 @@ class XMLImportProcessor {
             
             // ICMS não é processado da DI - calculado no frontend via aliquotas.json
             // $this->processICMS($declaracao, $numero_di);
+            
+            // Processar informações complementares (SISCOMEX, AFRMM, etc.)
+            $this->processInformacaoComplementar($declaracao, $numero_di);
             
             // Processar pagamentos e acréscimos
             $this->processPagamentos($declaracao, $numero_di);
@@ -592,6 +611,140 @@ class XMLImportProcessor {
                 $this->convertValue($this->getFirstValue($acrescimo, ['valorReais']), 'monetary')
             ]);
         }
+    }
+    
+    /**
+     * Processa informações complementares (SISCOMEX, AFRMM, despesas)
+     */
+    private function processInformacaoComplementar($declaracao, $numero_di) {
+        $informacao_complementar = $this->getFirstValue($declaracao, ['informacaoComplementar']);
+        
+        if (!$informacao_complementar) {
+            return;
+        }
+        
+        // Extrair despesas do texto livre
+        $despesas_extraidas = $this->extractDespesasFromText($informacao_complementar);
+        
+        // Salvar cada despesa extraída na tabela despesas_aduaneiras
+        foreach ($despesas_extraidas as $despesa) {
+            if ($despesa['valor'] > 0) {
+                $sql = "INSERT INTO despesas_aduaneiras (numero_di, tipo_despesa, codigo_receita, descricao, valor)
+                        VALUES (?, ?, ?, ?, ?)";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    $numero_di,
+                    $despesa['tipo'],
+                    $despesa['codigo_receita'] ?? null,
+                    $despesa['descricao'],
+                    $despesa['valor']
+                ]);
+                
+                $this->logger->info("Despesa extraída", [
+                    'di' => $numero_di,
+                    'tipo' => $despesa['tipo'],
+                    'valor' => $despesa['valor'],
+                    'descricao' => $despesa['descricao']
+                ]);
+            }
+        }
+    }
+    
+    /**
+     * Extrai despesas do texto livre de informações complementares
+     */
+    private function extractDespesasFromText($texto) {
+        $despesas = [];
+        
+        // Padrões SISCOMEX (múltiplas variações)
+        $siscomex_patterns = [
+            '/Taxa\s+Siscomex\.+:\s*([\d,]+)/i',
+            '/Siscomex\.+:\s*([\d,]+)/i',
+            '/Taxa\s+de\s+utilizacao\s+do\s+siscomex[^\d]*?R?\$?\s*([\d\.,]+)/i',
+            '/Utilizacao\s+do\s+siscomex[^\d]*?R?\$?\s*([\d\.,]+)/i',
+            '/SISCOMEX[^\d]*?:?\s*([\d\.,]+)/i'
+        ];
+        
+        foreach ($siscomex_patterns as $pattern) {
+            if (preg_match($pattern, $texto, $matches)) {
+                $valor = $this->convertMonetaryString($matches[1]);
+                if ($valor > 0) {
+                    $despesas[] = [
+                        'tipo' => 'SISCOMEX',
+                        'codigo_receita' => '7811',
+                        'descricao' => 'Taxa SISCOMEX extraída de informações complementares',
+                        'valor' => $valor
+                    ];
+                    break; // Só pegar a primeira ocorrência
+                }
+            }
+        }
+        
+        // Padrões AFRMM (múltiplas variações)
+        $afrmm_patterns = [
+            '/(?:VALOR\s+)?AFRMM[^\d]*?R?\$?\s*([\d\.,]+)/i',
+            '/A\.F\.R\.M\.M[^\d]*?R?\$?\s*([\d\.,]+)/i',
+            '/Adicional\s+Frete\s+Renovacao\s+Marinha\s+Mercante[^\d]*?R?\$?\s*([\d\.,]+)/i'
+        ];
+        
+        foreach ($afrmm_patterns as $pattern) {
+            if (preg_match($pattern, $texto, $matches)) {
+                $valor = $this->convertMonetaryString($matches[1]);
+                if ($valor > 0) {
+                    $despesas[] = [
+                        'tipo' => 'AFRMM',
+                        'codigo_receita' => null, // AFRMM não tem código fixo
+                        'descricao' => 'AFRMM extraído de informações complementares',
+                        'valor' => $valor
+                    ];
+                    break;
+                }
+            }
+        }
+        
+        // Padrões CAPATAZIA
+        $capatazia_patterns = [
+            '/Capatazia[^\d]*?R?\$?\s*([\d\.,]+)/i',
+            '/Taxa\s+de\s+capatazia[^\d]*?R?\$?\s*([\d\.,]+)/i'
+        ];
+        
+        foreach ($capatazia_patterns as $pattern) {
+            if (preg_match($pattern, $texto, $matches)) {
+                $valor = $this->convertMonetaryString($matches[1]);
+                if ($valor > 0) {
+                    $despesas[] = [
+                        'tipo' => 'CAPATAZIA',
+                        'codigo_receita' => '16',
+                        'descricao' => 'Capatazia extraída de informações complementares',
+                        'valor' => $valor
+                    ];
+                    break;
+                }
+            }
+        }
+        
+        return $despesas;
+    }
+    
+    /**
+     * Converte string monetária para decimal
+     */
+    private function convertMonetaryString($value) {
+        if (empty($value)) return 0;
+        
+        // Remove tudo que não é dígito, vírgula ou ponto
+        $value = preg_replace('/[^\d\.,]/', '', $value);
+        
+        // Se tem vírgula como separador decimal (padrão brasileiro)
+        if (strpos($value, ',') !== false) {
+            // Se tem ponto também, ponto é separador de milhares
+            if (strpos($value, '.') !== false) {
+                $value = str_replace('.', '', $value); // Remove separadores de milhares
+            }
+            $value = str_replace(',', '.', $value); // Vírgula vira ponto decimal
+        }
+        
+        return floatval($value);
     }
     
     /**
